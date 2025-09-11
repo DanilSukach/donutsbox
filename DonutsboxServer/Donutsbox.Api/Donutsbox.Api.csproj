@@ -9,13 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-    <Folder Include="Dto\" />
-    <Folder Include="Services\" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.4" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.4" />
+    <ProjectReference Include="..\Donutsbox.Domain\Donutsbox.Domain.csproj" />
   </ItemGroup>
 
 </Project>
