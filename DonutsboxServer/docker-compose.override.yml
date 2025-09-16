@@ -1,45 +1,31 @@
 services:
   auth.api:
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8080
-      - ASPNETCORE_HTTPS_PORTS=8081
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=donutsboxdb;Username=donuts;Password=donutspw
-      - Kafka__BootstrapServers=kafka:9092
-      - Minio__Endpoint=minio:9000
-      - Minio__AccessKey=minio
-      - Minio__SecretKey=minio123
-    ports:
-      - "8080"
-      - "8081"
-    volumes:
-      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
-      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
-      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
-      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
-    depends_on:
-      - postgres
-      - kafka
-      - minio
+      environment:
+        - ASPNETCORE_ENVIRONMENT=Development
+        - ASPNETCORE_URLS=http://+:8080
+        - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=donutsboxdb;Username=donuts;Password=donutspw
+        - Kafka__BootstrapServers=kafka:9092
+        - Minio__Endpoint=minio:9000
+        - Minio__AccessKey=minio
+        - Minio__SecretKey=minio123
+      ports:
+        - "8080:8080"
+      depends_on:
+        - postgres
+        - kafka
+        - minio
   donutsbox.api:
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8082
-      - ASPNETCORE_HTTPS_PORTS=8083
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=donutsboxdb;Username=donuts;Password=donutspw
-      - Kafka__BootstrapServers=kafka:9092
-      - Minio__Endpoint=minio:9000
-      - Minio__AccessKey=minio
-      - Minio__SecretKey=minio123
-    ports:
-      - "8082"
-      - "8083"
-    volumes:
-      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
-      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
-      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
-      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
-    depends_on:
-      - postgres
-      - kafka
-      - minio
+      environment:
+        - ASPNETCORE_ENVIRONMENT=Development
+        - ASPNETCORE_URLS=http://+:8082
+        - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=donutsboxdb;Username=donuts;Password=donutspw
+        - Kafka__BootstrapServers=kafka:9092
+        - Minio__Endpoint=minio:9000
+        - Minio__AccessKey=minio
+        - Minio__SecretKey=minio123
+      ports:
+        - "8082:8082"
+      depends_on:
+        - postgres
+        - kafka
+        - minio
