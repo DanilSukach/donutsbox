@@ -30,6 +30,7 @@ services:
 
   kafka:
     image: apache/kafka:4.1.0
+    user: "1000:1000"
     environment:
       KAFKA_KRAFT_MODE: "true"
       KAFKA_CLUSTER_ID: "my-cluster-1"
