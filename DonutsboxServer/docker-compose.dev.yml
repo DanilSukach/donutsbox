@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: donuts
+      POSTGRES_PASSWORD: donutspw
+      POSTGRES_DB: donutsboxdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U donuts -d donutsboxdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  kafka:
+    image: apache/kafka:4.1.0
+    environment:
+      KAFKA_KRAFT_MODE: "true"
+      KAFKA_CLUSTER_ID: "my-cluster-1"
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
+      KAFKA_LOG_DIRS: /kafka/data
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/kafka/data
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" 
+      - "9001:9001" 
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    volumes:
+      - minio_data:/data
+
+volumes:
+  postgres_data:
+  kafka_data:
+  minio_data:
