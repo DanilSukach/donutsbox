@@ -397,3 +397,5 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+DonutsboxServer/Donutsbox.Api/appsettings.Development.json
+DonutsboxServer/Auth.Api/appsettings.Development.json
