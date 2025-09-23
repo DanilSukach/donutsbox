@@ -1,5 +1,4 @@
-﻿using Donutsbox.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace Donutsbox.Domain.Context;
 

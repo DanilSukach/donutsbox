@@ -33,6 +33,6 @@ public class UserAuth
     /// </summary>
     [Column("LastAuth")]
     [Required]
-    public required DateTime LastAuth { get; set;}
+    public required DateTime LastAuth { get; set; }
 }
 

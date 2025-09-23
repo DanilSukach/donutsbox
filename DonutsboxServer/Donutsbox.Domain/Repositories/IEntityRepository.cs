@@ -1,6 +1,6 @@
 ﻿namespace Donutsbox.Domain.Repositories;
 
-public interface IEntityRepository<T,TId>
+public interface IEntityRepository<T, TId>
 {
     public Task<IEnumerable<T>> GetAllAsync();
     public Task<T?> GetByIdAsync(TId id);

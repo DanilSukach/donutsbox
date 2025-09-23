@@ -3,10 +3,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Donutsbox.Domain.Entities;
 
-[Table("UserSubscription")]
 /// <summary>
 /// Сущность подписки пользователя на страницу автора
 /// </summary>
+[Table("UserSubscription")]
 public class UserSubscription
 {
     /// <summary>

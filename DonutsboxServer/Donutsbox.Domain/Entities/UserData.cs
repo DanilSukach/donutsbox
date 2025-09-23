@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Donutsbox.Domain.Entities;
+
 /// <summary>
 /// Доп инфа о пользователе
 /// </summary>
