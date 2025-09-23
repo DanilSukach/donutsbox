@@ -20,4 +20,8 @@
     <ProjectReference Include="..\Donutsbox.Domain\Donutsbox.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Mapper\" />
+  </ItemGroup>
+
 </Project>
