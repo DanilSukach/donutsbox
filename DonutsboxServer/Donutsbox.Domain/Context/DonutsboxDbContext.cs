@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Donutsbox.Domain.Context;
 
-class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : DbContext(options)
+public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : DbContext(options)
 {
     public required DbSet<User> Users { get; set; }
     public required DbSet<UserType> UserTypes { get; set; }
