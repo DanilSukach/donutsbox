@@ -17,7 +17,7 @@ public class UserTypeRepository(DonutsboxDbContext context) : IEntityRepository<
     public async Task<bool> DeleteAsync(int id)
     {
         var oldValue = await GetByIdAsync(id);
-        if(oldValue == null)
+        if (oldValue == null)
         {
             return false;
         }
@@ -33,7 +33,7 @@ public class UserTypeRepository(DonutsboxDbContext context) : IEntityRepository<
     public async Task<bool> UpdateAsync(UserType entity, int id)
     {
         var oldValue = await GetByIdAsync(id);
-        if(oldValue == null)
+        if (oldValue == null)
         {
             return false;
         }

@@ -19,9 +19,9 @@ public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : 
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<UserType>().HasData(
-            new UserType { Id = 0, Name = "User"},
-            new UserType { Id = 2, Name = "Administrator"},
-            new UserType { Id = 1, Name = "Creator"}
+            new UserType { Id = 0, Name = "User" },
+            new UserType { Id = 2, Name = "Administrator" },
+            new UserType { Id = 1, Name = "Creator" }
             );
         modelBuilder.Entity<UserType>()
             .HasMany<User>()
