@@ -23,13 +23,13 @@ public class User
     /// <summary>
     /// Тип пользователя
     /// </summary>
-    [Column("TypeID")]
+    [Column("TypeId")]
     [Required]
-    public required string TypeID { get; set; }
+    public required string TypeId { get; set; }
     /// <summary>
     /// Сущность для авторизации
     /// </summary>
-    [Column("AuthID")]
+    [Column("AuthId")]
     [Required]
-    public required string AuthID { get; set; }
+    public required string AuthId { get; set; }
 }
