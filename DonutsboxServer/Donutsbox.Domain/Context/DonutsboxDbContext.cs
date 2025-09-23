@@ -63,5 +63,4 @@ public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : 
             .HasForeignKey<CreatorPageData>(cp => cp.GUID)
             .OnDelete(DeleteBehavior.Cascade);
     }
-
 }
