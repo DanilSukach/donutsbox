@@ -14,7 +14,7 @@ public class UserType
     /// </summary>
     [Key]
     [Column("Id")]
-    public required string Id { get; set; }
+    public required int Id { get; set; }
     /// <summary>
     /// Имя типа
     /// </summary>
