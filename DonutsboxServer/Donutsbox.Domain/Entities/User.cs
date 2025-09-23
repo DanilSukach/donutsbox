@@ -13,11 +13,13 @@ public class User
     /// Идентификатор
     /// </summary>
     [Key]
+    [Column("GUID")]
     public required string GUID { get; set; }
     /// <summary>
     /// Имя пользователя
     /// </summary>
     [Column("Name")]
+    [MaxLength(30)]
     [Required]
     public required string Name { get; set; }
     /// <summary>
