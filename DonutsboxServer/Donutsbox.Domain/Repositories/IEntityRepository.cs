@@ -1,5 +1,4 @@
-﻿
-namespace Donutsbox.Domain.Repositories;
+﻿namespace Donutsbox.Domain.Repositories;
 
 public interface IEntityRepository<T,TId>
 {

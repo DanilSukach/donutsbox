@@ -1,5 +1,9 @@
-﻿namespace Donutsbox.Domain.Context;
+﻿using Donutsbox.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
-class DonutsboxDbContext
+namespace Donutsbox.Domain.Context;
+
+class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : DbContext(options)
 {
+
 }
