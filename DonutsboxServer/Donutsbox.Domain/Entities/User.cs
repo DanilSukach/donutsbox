@@ -13,23 +13,25 @@ public class User
     /// Идентификатор
     /// </summary>
     [Key]
+    [Column("GUID")]
     public required string GUID { get; set; }
     /// <summary>
     /// Имя пользователя
     /// </summary>
     [Column("Name")]
+    [MaxLength(30)]
     [Required]
     public required string Name { get; set; }
     /// <summary>
     /// Тип пользователя
     /// </summary>
-    [Column("TypeID")]
+    [Column("TypeId")]
     [Required]
-    public required string TypeID { get; set; }
+    public required string TypeId { get; set; }
     /// <summary>
     /// Сущность для авторизации
     /// </summary>
-    [Column("AuthID")]
+    [Column("AuthId")]
     [Required]
-    public required string AuthID { get; set; }
+    public required string AuthId { get; set; }
 }
