@@ -3,6 +3,10 @@
 public class ContentPostDto
 {
     /// <summary>
+    /// Идентификатор поста
+    /// </summary>
+    public required Guid PostId { get; set; }
+    /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
     public required Guid PageId { get; set; }

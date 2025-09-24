@@ -1,11 +1,10 @@
-using Donutsbox.Api.Mapper;
 using Donutsbox.Api.Dto;
+using Donutsbox.Api.Mapper;
 using Donutsbox.Api.Services;
-using Donutsbox.Domain.Repositories;
-using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Context;
+using Donutsbox.Domain.Entities;
+using Donutsbox.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);

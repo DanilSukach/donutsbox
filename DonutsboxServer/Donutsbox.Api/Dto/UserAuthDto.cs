@@ -3,6 +3,10 @@
 public class UserAuthDto
 {
     /// <summary>
+    /// Id
+    /// </summary>
+    public required Guid Id { get; set; }
+    /// <summary>
     /// Email для аунтентификации
     /// </summary>
     public required string AuthEmail { get; set; }

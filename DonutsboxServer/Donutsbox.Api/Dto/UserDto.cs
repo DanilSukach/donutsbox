@@ -3,6 +3,10 @@
 public class UserDto
 {
     /// <summary>
+    /// Идентификатор
+    /// </summary>
+    public required Guid GUID { get; set; }
+    /// <summary>
     /// Имя пользователя
     /// </summary>
     public required string Name { get; set; }

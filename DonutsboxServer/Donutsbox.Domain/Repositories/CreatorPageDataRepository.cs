@@ -37,7 +37,7 @@ public class CreatorPageDataRepository(DonutsboxDbContext context) : IEntityRepo
     {
         var pageData = await GetByIdAsync(id);
         if (pageData == null) return false;
-        pageData.PageId = entity.PageId;
+        pageData.GUID = entity.GUID;
         pageData.PageName = entity.PageName;
         pageData.AvatarURL = entity.AvatarURL;
         pageData.BannerURL = entity.BannerURL;

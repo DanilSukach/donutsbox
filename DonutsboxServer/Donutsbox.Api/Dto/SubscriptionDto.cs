@@ -3,6 +3,10 @@
 public class SubscriptionDto
 {
     /// <summary>
+    /// Идентификатор подписки
+    /// </summary>
+    public required Guid SubscriptionId { get; set; }
+    /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
     public required Guid PageId { get; set; }

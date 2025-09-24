@@ -3,6 +3,10 @@
 public class UserSubscriptionDto
 {
     /// <summary>
+    /// Идентификатор
+    /// </summary>
+    public required Guid Id { get; set; }
+    /// <summary>
     /// Идентификатор пользователя, который подписан
     /// </summary>
     public required Guid UserId { get; set; }

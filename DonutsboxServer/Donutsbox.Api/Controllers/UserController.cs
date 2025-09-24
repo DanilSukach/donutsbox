@@ -1,6 +1,5 @@
 ﻿using Donutsbox.Api.Dto;
 using Donutsbox.Api.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Donutsbox.Api.Controllers;
