@@ -10,17 +10,17 @@ namespace Donutsbox.Domain.Entities;
 public class CreatorPageData
 {
     /// <summary>
-    /// Идентификатор автора(пользователя)
-    /// </summary>
-    [Key]
-    [Column("GUID", TypeName = "uuid")]
-    public required Guid GUID { get; set; }
-    /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
+    [Key]
     [Column("PageId", TypeName = "uuid")]
-    [Required]
     public required Guid PageId { get; set; }
+    /// <summary>
+    /// Идентификатор автора(пользователя)
+    /// </summary>
+    [Column("GUID", TypeName = "uuid")]
+    [Required]
+    public required Guid GUID { get; set; }
     /// <summary>
     /// Название страницы автора
     /// </summary>

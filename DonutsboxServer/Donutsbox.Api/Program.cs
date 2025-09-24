@@ -25,7 +25,7 @@ builder.Configuration
        .AddEnvironmentVariables();
 
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
-builder.Services.AddDbContext<DonutsboxDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<DonutsboxDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 builder.Services.AddScoped<IEntityRepository<User, Guid>, UserRepository>();
 builder.Services.AddScoped<IEntityRepository<UserAuth, Guid>, UserAuthRepository>();
 builder.Services.AddScoped<IEntityRepository<UserData, Guid>, UserDataRepository>();
@@ -36,13 +36,13 @@ builder.Services.AddScoped<IEntityRepository<CreatorPageData, Guid>, CreatorPage
 builder.Services.AddScoped<IEntityRepository<ContentPost, Guid>, ContentPostRepository>();
 
 builder.Services.AddScoped<IEntityService<UserDto, Guid>, UserService>();
-//builder.Services.AddScoped<IEntityService<UserAuthDto, Guid>, UserAuthService>();
-//builder.Services.AddScoped<IEntityService<UserDataDto, Guid>, UserDataService>();
-//builder.Services.AddScoped<IEntityService<UserSubscriptionDto, Guid>, UserSubscriptionService>();
-//builder.Services.AddScoped<IEntityService<UserTypeDto, int>, UserTypeService>();
-//builder.Services.AddScoped<IEntityService<SubscriptionDto, Guid>, SubscriptionService>();
-//builder.Services.AddScoped<IEntityService<CreatorPageDataDto, Guid>, CreatorPageDataService>();
-//builder.Services.AddScoped<IEntityService<ContentPostDto, Guid>, ContentPostService>();
+builder.Services.AddScoped<IEntityService<UserAuthDto, Guid>, UserAuthService>();
+builder.Services.AddScoped<IEntityService<UserDataDto, Guid>, UserDataService>();
+builder.Services.AddScoped<IEntityService<UserSubscriptionDto, Guid>, UserSubscriptionService>();
+builder.Services.AddScoped<IEntityService<UserTypeDto, int>, UserTypeService>();
+builder.Services.AddScoped<IEntityService<SubscriptionDto, Guid>, SubscriptionService>();
+builder.Services.AddScoped<IEntityService<CreatorPageDataDto, Guid>, CreatorPageDataService>();
+builder.Services.AddScoped<IEntityService<ContentPostDto, Guid>, ContentPostService>();
 
 builder.Services.AddControllers();
 
