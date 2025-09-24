@@ -13,12 +13,12 @@ public class ContentPost
     /// Идентификатор поста
     /// </summary>
     [Key]
-    [Column("PostId")]
+    [Column("PostId", TypeName = "uuid")]
     public required Guid PostId { get; set; }
     /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
-    [Column("PageId")]
+    [Column("PageId", TypeName = "uuid")]
     [Required]
     public required Guid PageId { get; set; }
     /// <summary>

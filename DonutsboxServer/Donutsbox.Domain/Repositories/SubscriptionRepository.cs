@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Donutsbox.Domain.Repositories;
 
-public class SubscriptionRepository(DonutsboxDbContext context) : IEntityRepository<Subscription, string>
+public class SubscriptionRepository(DonutsboxDbContext context) : IEntityRepository<Subscription, Guid>
 {
     public async Task<Subscription> AddAsync(Subscription entity)
     {
@@ -13,7 +13,7 @@ public class SubscriptionRepository(DonutsboxDbContext context) : IEntityReposit
         return subscription.Entity;
     }
 
-    public async Task<bool> DeleteAsync(string id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         var subscription = await GetByIdAsync(id);
         if (subscription == null) return false;
@@ -27,13 +27,13 @@ public class SubscriptionRepository(DonutsboxDbContext context) : IEntityReposit
         return await context.Subscriptions.ToListAsync();
     }
 
-    public async Task<Subscription?> GetByIdAsync(string id)
+    public async Task<Subscription?> GetByIdAsync(Guid id)
     {
         return await context.Subscriptions
                             .FirstOrDefaultAsync(s => s.SubscriptionId == id);
     }
 
-    public async Task<bool> UpdateAsync(Subscription entity, string id)
+    public async Task<bool> UpdateAsync(Subscription entity, Guid id)
     {
         var subscription = await GetByIdAsync(id);
         if (subscription == null) return false;

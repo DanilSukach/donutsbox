@@ -12,7 +12,7 @@ public class UserData
     /// <summary>
     /// Id непоссредственного пользователя
     /// </summary>
-    [Column("GUID")]
+    [Column("GUID", TypeName = "uuid")]
     [Required]
     public required Guid GUID { get; set; }
     /// <summary>

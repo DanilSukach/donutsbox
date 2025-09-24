@@ -13,12 +13,12 @@ public class CreatorPageData
     /// Идентификатор автора(пользователя)
     /// </summary>
     [Key]
-    [Column("GUID")]
+    [Column("GUID", TypeName = "uuid")]
     public required Guid GUID { get; set; }
     /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
-    [Column("PageId")]
+    [Column("PageId", TypeName = "uuid")]
     [Required]
     public required Guid PageId { get; set; }
     /// <summary>

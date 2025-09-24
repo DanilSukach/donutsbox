@@ -13,12 +13,12 @@ public class Subscription
     /// Идентификатор подписки
     /// </summary>
     [Key]
-    [Column("SubscriptionId")]
+    [Column("SubscriptionId", TypeName = "uuid")]
     public required Guid SubscriptionId { get; set; }
     /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
-    [Column("PageId")]
+    [Column("PageId", TypeName = "uuid")]
     public required Guid PageId { get; set; }
     /// <summary>
     /// Цена подписки

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Donutsbox.Domain.Repositories;
 
-public class ContentPostRepository(DonutsboxDbContext context) : IEntityRepository<ContentPost, string>
+public class ContentPostRepository(DonutsboxDbContext context) : IEntityRepository<ContentPost, Guid>
 {
     public async Task<ContentPost> AddAsync(ContentPost entity)
     {
@@ -13,7 +13,7 @@ public class ContentPostRepository(DonutsboxDbContext context) : IEntityReposito
         return post.Entity;
     }
 
-    public async Task<bool> DeleteAsync(string id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         var post = await GetByIdAsync(id);
         if (post == null) return false;
@@ -27,13 +27,13 @@ public class ContentPostRepository(DonutsboxDbContext context) : IEntityReposito
         return await context.ContentPosts.ToListAsync();
     }
 
-    public async Task<ContentPost?> GetByIdAsync(string id)
+    public async Task<ContentPost?> GetByIdAsync(Guid id)
     {
         return await context.ContentPosts
                             .FirstOrDefaultAsync(c => c.PostId == id);
     }
 
-    public async Task<bool> UpdateAsync(ContentPost entity, string id)
+    public async Task<bool> UpdateAsync(ContentPost entity, Guid id)
     {
         var post = await GetByIdAsync(id);
         if (post == null) return false;
@@ -49,7 +49,7 @@ public class ContentPostRepository(DonutsboxDbContext context) : IEntityReposito
         return true;
     }
 
-    public async Task<bool> UpdateDislikesAsync(string id, int dislikesCount)
+    public async Task<bool> UpdateDislikesAsync(Guid id, int dislikesCount)
     {
         var post = await GetByIdAsync(id);
         if (post == null) return false;

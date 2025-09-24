@@ -13,7 +13,7 @@ public class UserAuth
     /// Id
     /// </summary>
     [Key]
-    [Column("Id")]
+    [Column("Id", TypeName = "uuid")]
     [Required]
     public required Guid Id { get; set; }
     /// <summary>

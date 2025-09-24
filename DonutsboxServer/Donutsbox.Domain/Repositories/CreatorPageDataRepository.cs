@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Donutsbox.Domain.Repositories;
 
-public class CreatorPageDataRepository(DonutsboxDbContext context) : IEntityRepository<CreatorPageData, string>
+public class CreatorPageDataRepository(DonutsboxDbContext context) : IEntityRepository<CreatorPageData, Guid>
 {
     public async Task<CreatorPageData> AddAsync(CreatorPageData entity)
     {
@@ -13,7 +13,7 @@ public class CreatorPageDataRepository(DonutsboxDbContext context) : IEntityRepo
         return pageData.Entity;
     }
 
-    public async Task<bool> DeleteAsync(string id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         var pageData = await GetByIdAsync(id);
         if (pageData == null) return false;
@@ -27,13 +27,13 @@ public class CreatorPageDataRepository(DonutsboxDbContext context) : IEntityRepo
         return await context.CreatorsPageData.ToListAsync();
     }
 
-    public async Task<CreatorPageData?> GetByIdAsync(string id)
+    public async Task<CreatorPageData?> GetByIdAsync(Guid id)
     {
         return await context.CreatorsPageData
                             .FirstOrDefaultAsync(c => c.GUID == id);
     }
 
-    public async Task<bool> UpdateAsync(CreatorPageData entity, string id)
+    public async Task<bool> UpdateAsync(CreatorPageData entity, Guid id)
     {
         var pageData = await GetByIdAsync(id);
         if (pageData == null) return false;

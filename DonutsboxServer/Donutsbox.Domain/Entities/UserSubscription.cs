@@ -13,18 +13,18 @@ public class UserSubscription
     /// Идентификатор
     /// </summary>
     [Key]
-    [Column("Id")]
+    [Column("Id", TypeName = "uuid")]
     public required Guid Id { get; set; }
     /// <summary>
     /// Идентификатор пользователя, который подписан
     /// </summary>
-    [Column("UserId")]
+    [Column("UserId", TypeName = "uuid")]
     [Required]
     public required Guid UserId { get; set; }
     /// <summary>
     /// Идентификатор подписки (тип подписки)
     /// </summary>
-    [Column("SubscriptionId")]
+    [Column("SubscriptionId", TypeName = "uuid")]
     [Required]
     public required Guid SubscriptionId { get; set; }
     /// <summary>

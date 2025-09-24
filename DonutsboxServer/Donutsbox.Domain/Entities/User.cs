@@ -13,7 +13,7 @@ public class User
     /// Идентификатор
     /// </summary>
     [Key]
-    [Column("GUID")]
+    [Column("GUID", TypeName = "uuid")]
     public required Guid GUID { get; set; }
     /// <summary>
     /// Имя пользователя
@@ -31,7 +31,7 @@ public class User
     /// <summary>
     /// Сущность для авторизации
     /// </summary>
-    [Column("AuthId")]
+    [Column("AuthId", TypeName = "uuid")]
     [Required]
-    public required string AuthId { get; set; }
+    public required Guid AuthId { get; set; }
 }

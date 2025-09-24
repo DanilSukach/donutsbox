@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Donutsbox.Domain.Repositories;
 
-public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User, string>
+public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User, Guid>
 {
     public async Task<User> AddAsync(User entity)
     {
@@ -13,7 +13,7 @@ public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User
         return entity;
     }
 
-    public async Task<bool> DeleteAsync(string id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         var oldValue = await GetByIdAsync(id);
         if (oldValue == null)
@@ -27,9 +27,9 @@ public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User
 
     public async Task<IEnumerable<User>> GetAllAsync() => await context.Users.ToListAsync();
 
-    public async Task<User?> GetByIdAsync(string id) => await context.Users.FirstOrDefaultAsync(u => u.GUID == id);
+    public async Task<User?> GetByIdAsync(Guid id) => await context.Users.FirstOrDefaultAsync(u => u.GUID == id);
 
-    public async Task<bool> UpdateAsync(User entity, string id)
+    public async Task<bool> UpdateAsync(User entity, Guid id)
     {
         var oldValue = await GetByIdAsync(id);
         if (oldValue == null)
