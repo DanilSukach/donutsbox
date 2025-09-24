@@ -44,6 +44,8 @@ builder.Services.AddScoped<IEntityService<SubscriptionDto, Guid>, SubscriptionSe
 builder.Services.AddScoped<IEntityService<CreatorPageDataDto, Guid>, CreatorPageDataService>();
 builder.Services.AddScoped<IEntityService<ContentPostDto, Guid>, ContentPostService>();
 
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy => { policy.AllowAnyOrigin(); policy.AllowAnyMethod(); policy.AllowAnyHeader(); }));
+
 builder.Services.AddControllers();
 
 var app = builder.Build();
@@ -57,5 +59,6 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = string.Empty;
     });
 }
-
+app.UseCors();
+app.UseHttpsRedirection();
 app.Run();
