@@ -14,7 +14,7 @@ public class UserData
     /// </summary>
     [Column("GUID")]
     [Required]
-    public required string GUID { get; set; }
+    public required Guid GUID { get; set; }
     /// <summary>
     /// Ссылка на хранилище аватарки
     /// </summary>

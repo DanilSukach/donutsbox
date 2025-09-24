@@ -14,12 +14,12 @@ public class Subscription
     /// </summary>
     [Key]
     [Column("SubscriptionId")]
-    public required string SubscriptionId { get; set; }
+    public required Guid SubscriptionId { get; set; }
     /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
     [Column("PageId")]
-    public required string PageId { get; set; }
+    public required Guid PageId { get; set; }
     /// <summary>
     /// Цена подписки
     /// </summary>

@@ -4,7 +4,7 @@ using Donutsbox.Domain.Entities;
 
 namespace Donutsbox.Api.Services;
 
-public class UserService(IEntityRepository<UserDTO, Guid> repository) : IEntityService<UserDTO, Guid>
+public class UserService(IEntityRepository<UserDto, Guid> repository) : IEntityService<UserDTO, Guid>
 {
 
 }

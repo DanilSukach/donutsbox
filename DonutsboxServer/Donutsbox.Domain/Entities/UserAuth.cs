@@ -15,7 +15,7 @@ public class UserAuth
     [Key]
     [Column("Id")]
     [Required]
-    public required string Id { get; set; }
+    public required Guid Id { get; set; }
     /// <summary>
     /// Email для аунтентификации
     /// </summary>

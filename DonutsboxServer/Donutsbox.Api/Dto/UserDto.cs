@@ -9,7 +9,7 @@ public class UserDto
     /// <summary>
     /// Тип пользователя
     /// </summary>
-    public required string TypeId { get; set; }
+    public required int TypeId { get; set; }
     /// <summary>
     /// Сущность для авторизации
     /// </summary>

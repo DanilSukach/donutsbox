@@ -5,7 +5,7 @@ public class SubscriptionDto
     /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
-    public required string PageId { get; set; }
+    public required Guid PageId { get; set; }
     /// <summary>
     /// Цена подписки
     /// </summary>

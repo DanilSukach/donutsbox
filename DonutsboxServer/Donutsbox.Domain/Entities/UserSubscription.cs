@@ -14,19 +14,19 @@ public class UserSubscription
     /// </summary>
     [Key]
     [Column("Id")]
-    public required string Id { get; set; }
+    public required Guid Id { get; set; }
     /// <summary>
     /// Идентификатор пользователя, который подписан
     /// </summary>
     [Column("UserId")]
     [Required]
-    public required string UserId { get; set; }
+    public required Guid UserId { get; set; }
     /// <summary>
     /// Идентификатор подписки (тип подписки)
     /// </summary>
     [Column("SubscriptionId")]
     [Required]
-    public required string SubscriptionId { get; set; }
+    public required Guid SubscriptionId { get; set; }
     /// <summary>
     /// Дата начала подписки
     /// </summary>

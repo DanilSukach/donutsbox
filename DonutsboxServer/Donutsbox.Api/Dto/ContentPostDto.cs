@@ -5,7 +5,7 @@ public class ContentPostDto
     /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
-    public required string PageId { get; set; }
+    public required Guid PageId { get; set; }
     /// <summary>
     /// Заголовок поста
     /// </summary>

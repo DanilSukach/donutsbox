@@ -14,7 +14,7 @@ public class User
     /// </summary>
     [Key]
     [Column("GUID")]
-    public required string GUID { get; set; }
+    public required Guid GUID { get; set; }
     /// <summary>
     /// Имя пользователя
     /// </summary>
@@ -27,7 +27,7 @@ public class User
     /// </summary>
     [Column("TypeId")]
     [Required]
-    public required string TypeId { get; set; }
+    public required int TypeId { get; set; }
     /// <summary>
     /// Сущность для авторизации
     /// </summary>

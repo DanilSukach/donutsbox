@@ -5,7 +5,7 @@ public class CreatorPageDataDto
     /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
-    public required string PageId { get; set; }
+    public required Guid PageId { get; set; }
     /// <summary>
     /// Название страницы автора
     /// </summary>

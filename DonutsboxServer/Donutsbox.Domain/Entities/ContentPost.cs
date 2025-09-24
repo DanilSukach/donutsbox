@@ -14,13 +14,13 @@ public class ContentPost
     /// </summary>
     [Key]
     [Column("PostId")]
-    public required string PostId { get; set; }
+    public required Guid PostId { get; set; }
     /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
     [Column("PageId")]
     [Required]
-    public required string PageId { get; set; }
+    public required Guid PageId { get; set; }
     /// <summary>
     /// Заголовок поста
     /// </summary>
