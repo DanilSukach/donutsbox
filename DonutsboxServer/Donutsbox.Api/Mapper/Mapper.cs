@@ -1,6 +1,6 @@
-﻿using Donutsbox.Domain.Entities;
-using AutoMapper;
+﻿using AutoMapper;
 using Donutsbox.Api.Dto;
+using Donutsbox.Domain.Entities;
 
 namespace Donutsbox.Api.Mapper;
 
