@@ -10,11 +10,17 @@ namespace Donutsbox.Domain.Entities;
 public class UserData
 {
     /// <summary>
+    /// Идентификатор
+    /// </summary>
+    [Key]
+    [Column("GUID", TypeName = "uuid")]
+    public required Guid Id { get; set; }
+    /// <summary>
     /// Id непоссредственного пользователя
     /// </summary>
-    [Column("GUID", TypeName = "uuid")]
+    [Column("UserId", TypeName = "uuid")]
     [Required]
-    public required Guid GUID { get; set; }
+    public required Guid UserId { get; set; }
     /// <summary>
     /// Ссылка на хранилище аватарки
     /// </summary>

@@ -40,7 +40,7 @@ public class UserDataService(IEntityRepository<UserData, Guid> repository, IMapp
         if (existingUserData == null) return false;
 
         var updatedUserData = mapper.Map<UserData>(entity);
-        updatedUserData.GUID = id;
+        updatedUserData.Id = id;
 
         return await repository.UpdateAsync(updatedUserData, id);
     }

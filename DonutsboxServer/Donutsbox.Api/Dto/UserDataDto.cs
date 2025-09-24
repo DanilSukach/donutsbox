@@ -3,6 +3,10 @@
 public class UserDataDto
 {
     /// <summary>
+    /// Id непоссредственного пользователя
+    /// </summary>
+    public required Guid UserId { get; set; }
+    /// <summary>
     /// Ссылка на хранилище аватарки
     /// </summary>
     public required string AvatarUrl { get; set; }

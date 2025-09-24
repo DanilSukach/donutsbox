@@ -19,9 +19,9 @@ public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : 
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<UserType>().HasData(
-            new UserType { Id = 0, Name = "User" },
-            new UserType { Id = 2, Name = "Administrator" },
-            new UserType { Id = 1, Name = "Creator" }
+            new UserType { Id = 1, Name = "User" },
+            new UserType { Id = 2, Name = "Creator" },
+            new UserType { Id = 3, Name = "Administrator" }
             );
         modelBuilder.Entity<UserType>()
             .HasMany<User>()
@@ -36,7 +36,7 @@ public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : 
         modelBuilder.Entity<User>()
             .HasOne<UserData>()
             .WithOne()
-            .HasForeignKey<UserData>(ud => ud.GUID);
+            .HasForeignKey<UserData>(ud => ud.UserId);
         modelBuilder.Entity<User>()
             .HasMany<UserSubscription>()
             .WithOne()

@@ -26,7 +26,7 @@ public class UserDataRepository(DonutsboxDbContext context) : IEntityRepository<
 
     public async Task<IEnumerable<UserData>> GetAllAsync() => await context.UsersData.ToListAsync();
 
-    public async Task<UserData?> GetByIdAsync(Guid id) => await context.UsersData.FirstOrDefaultAsync(ud => ud.GUID == id);
+    public async Task<UserData?> GetByIdAsync(Guid id) => await context.UsersData.FirstOrDefaultAsync(ud => ud.Id == id);
 
     public async Task<bool> UpdateAsync(UserData entity, Guid id)
     {
@@ -35,6 +35,7 @@ public class UserDataRepository(DonutsboxDbContext context) : IEntityRepository<
         {
             return false;
         }
+        oldValue.UserId = entity.UserId;
         oldValue.AvatarUrl = entity.AvatarUrl;
         oldValue.Description = entity.Description;
         oldValue.NotificationEmail = entity.NotificationEmail;
