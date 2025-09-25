@@ -16,10 +16,7 @@ public class CreatorPageDataService(IEntityRepository<CreatorPageData, Guid> rep
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var page = await repository.GetByIdAsync(id);
-        if (page == null) return false;
-        await repository.DeleteAsync(id);
-        return true;
+        return await repository.DeleteAsync(id);
     }
 
     public async Task<IEnumerable<CreatorPageDataDto>> GetAllAsync()
@@ -36,12 +33,7 @@ public class CreatorPageDataService(IEntityRepository<CreatorPageData, Guid> rep
 
     public async Task<bool> UpdateAsync(CreatorPageDataDto entity, Guid id)
     {
-        var existingPage = await repository.GetByIdAsync(id);
-        if (existingPage == null) return false;
-
         var updatedPage = mapper.Map<CreatorPageData>(entity);
-        updatedPage.PageId = id;
-
         return await repository.UpdateAsync(updatedPage, id);
     }
 }

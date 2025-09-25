@@ -16,10 +16,7 @@ public class ContentPostService(IEntityRepository<ContentPost, Guid> repository,
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var post = await repository.GetByIdAsync(id);
-        if (post == null) return false;
-        await repository.DeleteAsync(id);
-        return true;
+        return await repository.DeleteAsync(id);
     }
 
     public async Task<IEnumerable<ContentPostDto>> GetAllAsync()
@@ -36,12 +33,7 @@ public class ContentPostService(IEntityRepository<ContentPost, Guid> repository,
 
     public async Task<bool> UpdateAsync(ContentPostDto entity, Guid id)
     {
-        var existingPost = await repository.GetByIdAsync(id);
-        if (existingPost == null) return false;
-
         var updatedPost = mapper.Map<ContentPost>(entity);
-        updatedPost.PostId = id;
-
         return await repository.UpdateAsync(updatedPost, id);
     }
 }

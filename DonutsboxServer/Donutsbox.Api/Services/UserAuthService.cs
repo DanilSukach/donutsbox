@@ -16,10 +16,7 @@ public class UserAuthService(IEntityRepository<UserAuth, Guid> repository, IMapp
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var user = await repository.GetByIdAsync(id);
-        if (user == null) return false;
-        await repository.DeleteAsync(id);
-        return true;
+        return await repository.DeleteAsync(id);
     }
 
     public async Task<IEnumerable<UserAuthDto>> GetAllAsync()
@@ -36,12 +33,7 @@ public class UserAuthService(IEntityRepository<UserAuth, Guid> repository, IMapp
 
     public async Task<bool> UpdateAsync(UserAuthDto entity, Guid id)
     {
-        var existingUser = await repository.GetByIdAsync(id);
-        if (existingUser == null) return false;
-
         var updatedUser = mapper.Map<UserAuth>(entity);
-        updatedUser.Id = id;
-
         return await repository.UpdateAsync(updatedUser, id);
     }
 }

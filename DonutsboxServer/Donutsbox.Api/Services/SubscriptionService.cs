@@ -16,10 +16,7 @@ public class SubscriptionService(IEntityRepository<Subscription, Guid> repositor
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var subscription = await repository.GetByIdAsync(id);
-        if (subscription == null) return false;
-        await repository.DeleteAsync(id);
-        return true;
+        return await repository.DeleteAsync(id);
     }
 
     public async Task<IEnumerable<SubscriptionDto>> GetAllAsync()
@@ -36,12 +33,7 @@ public class SubscriptionService(IEntityRepository<Subscription, Guid> repositor
 
     public async Task<bool> UpdateAsync(SubscriptionDto entity, Guid id)
     {
-        var existingSubscription = await repository.GetByIdAsync(id);
-        if (existingSubscription == null) return false;
-
         var updatedSubscription = mapper.Map<Subscription>(entity);
-        updatedSubscription.SubscriptionId = id;
-
         return await repository.UpdateAsync(updatedSubscription, id);
     }
 }

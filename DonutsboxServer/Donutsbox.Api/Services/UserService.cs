@@ -16,10 +16,7 @@ public class UserService(IEntityRepository<User, Guid> repository, IMapper mappe
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var user = await repository.GetByIdAsync(id);
-        if (user == null) return false;
-        await repository.DeleteAsync(id);
-        return true;
+        return await repository.DeleteAsync(id);
     }
 
     public async Task<IEnumerable<UserDto>> GetAllAsync()
@@ -36,12 +33,7 @@ public class UserService(IEntityRepository<User, Guid> repository, IMapper mappe
 
     public async Task<bool> UpdateAsync(UserDto entity, Guid id)
     {
-        var existingUser = await repository.GetByIdAsync(id);
-        if (existingUser == null) return false;
-
         var updatedUser = mapper.Map<User>(entity);
-        updatedUser.GUID = id;
-
         return await repository.UpdateAsync(updatedUser, id);
     }
 }
