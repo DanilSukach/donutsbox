@@ -6,28 +6,28 @@ namespace Donutsbox.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class UserController(IEntityService<UserDto, Guid> service) : ControllerBase
+public class UserAuthController(IEntityService<UserAuthDto, Guid> service) : ControllerBase
 {   /// <summary>
-    /// Возвращает всех пользователей
+    /// Возвращает все сущности пользователей для аутентификации
     /// </summary>
-    /// <returns>Коллекция объектов <see cref="UserDto"/>/></returns>
-    /// <response code="200">Список пользователей получен</response>
+    /// <returns>Коллекция объектов <see cref="UserAuthDto"/>/></returns>
+    /// <response code="200">Список пользователей для аутентификации получен</response>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserDto>>> Get()
+    public async Task<ActionResult<IEnumerable<UserAuthDto>>> Get()
     {
         var users = await service.GetAllAsync();
         return Ok(users);
     }
 
     /// <summary>
-    /// Возвращает пользователя по идентификатору.
+    /// Возвращает cущность пользователя для аутентификации по идентификатору.
     /// </summary>
     /// <param name="id">Идентификатор пользователя.</param>
     /// <returns>Объект <see cref="UserDto"/>.</returns>
     /// <response code="200">Пользователь найден.</response>
     /// <response code="404">Пользователь с указанным ID не найден.</response>
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<UserDto>> Get(Guid id)
+    public async Task<ActionResult<UserAuthDto>> Get(Guid id)
     {
         var user = await service.GetByIdAsync(id);
         if (user == null) return NotFound();
@@ -38,10 +38,10 @@ public class UserController(IEntityService<UserDto, Guid> service) : ControllerB
     /// Создаёт нового пользователя.
     /// </summary>
     /// <param name="newUser">Данные нового пользователя.</param>
-    /// <returns>Созданный объект <see cref="UserDto"/>.</returns>
+    /// <returns>Созданный объект <see cref="UserAuthDto"/>.</returns>
     /// <response code="200">Пользователь успешно создан.</response>
     [HttpPost]
-    public async Task<ActionResult<UserDto>> Post([FromBody] UserDto newUser)
+    public async Task<ActionResult<UserAuthDto>> Post([FromBody] UserAuthDto newUser)
     {
         var addedUser = await service.AddAsync(newUser);
         return Ok(addedUser);
@@ -56,7 +56,7 @@ public class UserController(IEntityService<UserDto, Guid> service) : ControllerB
     /// <response code="200">Пользователь успешно обновлён.</response>
     /// <response code="404">Пользователь с указанным ID не найден.</response>
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Put(Guid id, [FromBody] UserDto updatedUser)
+    public async Task<IActionResult> Put(Guid id, [FromBody] UserAuthDto updatedUser)
     {
         var result = await service.UpdateAsync(updatedUser, id);
         if (!result) return NotFound();
