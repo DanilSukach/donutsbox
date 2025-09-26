@@ -32,7 +32,16 @@ public class UserAuth
     /// Дата последнего входа
     /// </summary>
     [Column("LastAuth")]
-    [Required]
-    public required DateTime LastAuth { get; set; }
+    public DateTime? LastAuth { get; set; }
+    /// <summary>
+    /// Refresh Token
+    /// </summary>
+    [Column("Refresh_token")]
+    public string? RefreshToken { get; set; }
+    /// <summary>
+    /// Время истечения RefreshToken
+    /// </summary>
+    [Column("Refresh_token_expiry_time")]
+    public DateTime? RefreshTokenExpiryTime { get; set; }
 }
 

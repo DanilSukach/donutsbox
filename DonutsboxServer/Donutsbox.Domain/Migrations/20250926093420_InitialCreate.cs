@@ -22,7 +22,9 @@ namespace Donutsbox.Domain.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     AuthEmail = table.Column<string>(type: "text", nullable: false),
                     Password = table.Column<string>(type: "text", nullable: false),
-                    LastAuth = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    LastAuth = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Refresh_token = table.Column<string>(type: "text", nullable: true),
+                    Refresh_token_expiry_time = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {

@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Donutsbox.Domain.Migrations
 {
     [DbContext(typeof(DonutsboxDbContext))]
-    [Migration("20250924154841_InitialCreate")]
+    [Migration("20250926093420_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -202,7 +202,7 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("text")
                         .HasColumnName("AuthEmail");
 
-                    b.Property<DateTime>("LastAuth")
+                    b.Property<DateTime?>("LastAuth")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("LastAuth");
 
@@ -210,6 +210,14 @@ namespace Donutsbox.Domain.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("Password");
+
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("text")
+                        .HasColumnName("Refresh_token");
+
+                    b.Property<DateTime?>("RefreshTokenExpiryTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Refresh_token_expiry_time");
 
                     b.HasKey("Id");
 
