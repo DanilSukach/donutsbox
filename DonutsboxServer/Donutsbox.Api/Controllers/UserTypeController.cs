@@ -26,7 +26,7 @@ public class UserTypeController(IEntityService<UserTypeDto, int> service) : Cont
     /// <returns>Объект <see cref="UserTypeDto"/>.</returns>
     /// <response code="200">Тип пользователя найден.</response>
     /// <response code="404">Тип пользователя с указанным ID не найден.</response>
-    [HttpGet("{id:guid}")]
+    [HttpGet("{id}")]
     public async Task<ActionResult<UserTypeDto>> Get(int id)
     {
         var userType = await service.GetByIdAsync(id);
@@ -55,7 +55,7 @@ public class UserTypeController(IEntityService<UserTypeDto, int> service) : Cont
     /// <returns>Код результата.</returns>
     /// <response code="200">Тип успешно обновлён.</response>
     /// <response code="404">Тип пользователя с указанным ID не найден.</response>
-    [HttpPut("{id:guid}")]
+    [HttpPut("{id}")]
     public async Task<IActionResult> Put(int id, [FromBody] UserTypeDto updatedType)
     {
         var result = await service.UpdateAsync(updatedType, id);
@@ -70,7 +70,7 @@ public class UserTypeController(IEntityService<UserTypeDto, int> service) : Cont
     /// <returns>Код результата.</returns>
     /// <response code="200">Тип пользователя успешно удалён.</response>
     /// <response code="404">Тип пользователя с указанным ID не найден.</response>
-    [HttpDelete("{id:guid}")]
+    [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await service.DeleteAsync(id);

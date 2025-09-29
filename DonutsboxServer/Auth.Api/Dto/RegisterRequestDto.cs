@@ -14,4 +14,8 @@ public class RegisterRequestDto
     /// Повторный пароль
     /// </summary>
     public required string RepeatPassword { get; set; }
+    /// <summary>
+    /// Роль
+    /// </summary>
+    public required string Role {  get; set; }
 }
