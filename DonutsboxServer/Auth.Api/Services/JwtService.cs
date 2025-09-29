@@ -1,5 +1,7 @@
 ﻿using Donutsbox.Domain.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -9,7 +11,7 @@ namespace Auth.Api.Services;
 
 public class JwtService(IConfiguration config) : IJwtService
 {
-    public string GenerateAccessToken(UserAuth user)
+    public string GenerateAccessToken(UserAuth user, string role)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -17,7 +19,8 @@ public class JwtService(IConfiguration config) : IJwtService
         var claims = new[]
         {
             new Claim(ClaimTypes.Email, user.AuthEmail),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Role, role)
         };
 
         var token = new JwtSecurityToken(

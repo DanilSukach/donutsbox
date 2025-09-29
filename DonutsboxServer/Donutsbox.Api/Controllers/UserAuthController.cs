@@ -14,7 +14,7 @@ public class UserAuthController(IEntityService<UserAuthDto, Guid> service) : Con
     /// <returns>Коллекция объектов <see cref="UserAuthDto"/>/></returns>
     /// <response code="200">Список пользователей для аутентификации получен</response>
     [HttpGet]
-    [Authorize]
+    [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<IEnumerable<UserAuthDto>>> Get()
     {
         var users = await service.GetAllAsync();
