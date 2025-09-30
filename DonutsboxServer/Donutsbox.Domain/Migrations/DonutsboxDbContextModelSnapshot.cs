@@ -25,135 +25,176 @@ namespace Donutsbox.Domain.Migrations
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.ContentPost", b =>
                 {
-                    b.Property<Guid>("PostId")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasColumnName("PostId");
+                        .HasColumnName("id");
 
                     b.PrimitiveCollection<List<string>>("AudioURLs")
                         .IsRequired()
                         .HasColumnType("text[]")
-                        .HasColumnName("AudioURLs");
+                        .HasColumnName("audio_urls");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("CreatedAt");
+                    b.Property<int>("CommentsCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("comments_count");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
 
                     b.Property<int>("DislikesCount")
                         .HasColumnType("integer")
-                        .HasColumnName("DislikesCount");
+                        .HasColumnName("dislikes_count");
+
+                    b.Property<int>("LikesCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("likes_count");
 
                     b.Property<Guid>("PageId")
                         .HasColumnType("uuid")
-                        .HasColumnName("PageId");
+                        .HasColumnName("page_id");
 
                     b.PrimitiveCollection<List<string>>("PictureURLs")
                         .IsRequired()
                         .HasColumnType("text[]")
-                        .HasColumnName("PictureURLs");
+                        .HasColumnName("picture_urls");
 
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("Text");
+                        .HasColumnName("text");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("Title");
+                        .HasColumnName("title");
 
                     b.PrimitiveCollection<List<string>>("VideoURLs")
                         .IsRequired()
                         .HasColumnType("text[]")
-                        .HasColumnName("VideoURLs");
+                        .HasColumnName("video_urls");
 
-                    b.HasKey("PostId");
+                    b.HasKey("Id");
 
                     b.HasIndex("PageId");
 
-                    b.ToTable("ContentPost");
+                    b.ToTable("content_post");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.CreatorPageData", b =>
                 {
-                    b.Property<Guid>("PageId")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasColumnName("PageId");
+                        .HasColumnName("id");
 
                     b.Property<string>("AvatarURL")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("AvatarURL");
+                        .HasColumnName("avatar_url");
 
                     b.Property<string>("BannerURL")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("BannerURL");
+                        .HasColumnName("banner_url");
 
                     b.Property<string>("Description")
                         .HasColumnType("text")
-                        .HasColumnName("Description");
+                        .HasColumnName("description");
 
                     b.Property<Guid>("GUID")
                         .HasColumnType("uuid")
-                        .HasColumnName("GUID");
+                        .HasColumnName("guid");
 
                     b.Property<string>("PageName")
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
-                        .HasColumnName("PageName");
+                        .HasColumnName("page_name");
 
                     b.Property<int>("SubscribersCount")
                         .HasColumnType("integer")
-                        .HasColumnName("SubscribersCount");
+                        .HasColumnName("subscribers_count");
 
-                    b.HasKey("PageId");
+                    b.HasKey("Id");
 
                     b.HasIndex("GUID")
                         .IsUnique();
 
-                    b.ToTable("CreatorPageData");
+                    b.ToTable("creator_page_data");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.PostComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("post_comment");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.Subscription", b =>
                 {
-                    b.Property<Guid>("SubscriptionId")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasColumnName("SubscriptionId");
+                        .HasColumnName("id");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("Description");
+                        .HasColumnName("description");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
-                        .HasColumnName("Name");
+                        .HasColumnName("name");
 
                     b.Property<Guid>("PageId")
                         .HasColumnType("uuid")
-                        .HasColumnName("PageId");
+                        .HasColumnName("page_id");
 
                     b.Property<string>("PictureURL")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("PictureURL");
+                        .HasColumnName("picture_url");
 
                     b.Property<string>("Price")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("Price");
+                        .HasColumnName("price");
 
-                    b.HasKey("SubscriptionId");
+                    b.HasKey("Id");
 
                     b.HasIndex("PageId");
 
-                    b.ToTable("Subscriptions");
+                    b.ToTable("subscription");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.User", b =>
@@ -161,64 +202,62 @@ namespace Donutsbox.Domain.Migrations
                     b.Property<Guid>("GUID")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasColumnName("GUID");
+                        .HasColumnName("id");
 
                     b.Property<Guid>("AuthId")
                         .HasColumnType("uuid")
-                        .HasColumnName("AuthId");
+                        .HasColumnName("auth_id");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
-                        .HasColumnName("Name");
+                        .HasColumnName("name");
 
-                    b.Property<int>("TypeId")
-                        .HasColumnType("integer")
-                        .HasColumnName("TypeId");
+                    b.Property<int>("type_id")
+                        .HasColumnType("integer");
 
                     b.HasKey("GUID");
 
                     b.HasIndex("AuthId")
                         .IsUnique();
 
-                    b.HasIndex("TypeId");
+                    b.HasIndex("type_id");
 
-                    b.ToTable("Users");
+                    b.ToTable("user");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.UserAuth", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasColumnName("Id");
+                        .HasColumnName("id");
 
                     b.Property<string>("AuthEmail")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("AuthEmail");
+                        .HasColumnName("auth_email");
 
                     b.Property<DateTime?>("LastAuth")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("LastAuth");
+                        .HasColumnName("last_auth");
 
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("Password");
+                        .HasColumnName("password");
 
                     b.Property<string>("RefreshToken")
                         .HasColumnType("text")
-                        .HasColumnName("Refresh_token");
+                        .HasColumnName("refresh_token");
 
                     b.Property<DateTime?>("RefreshTokenExpiryTime")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("Refresh_token_expiry_time");
+                        .HasColumnName("refresh_token_expiry_time");
 
                     b.HasKey("Id");
 
-                    b.ToTable("UsersAuth");
+                    b.ToTable("user_auth");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.UserData", b =>
@@ -226,41 +265,41 @@ namespace Donutsbox.Domain.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasColumnName("GUID");
+                        .HasColumnName("id");
 
                     b.Property<string>("AvatarUrl")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("AvatarUrl");
+                        .HasColumnName("avatar_url");
 
                     b.Property<string>("Description")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)")
-                        .HasColumnName("Description");
+                        .HasColumnName("description");
 
                     b.Property<string>("NotificationEmail")
                         .HasColumnType("text")
-                        .HasColumnName("NotificationEmail");
+                        .HasColumnName("notification_email");
 
                     b.Property<string>("PaymentInfo")
                         .HasColumnType("text")
-                        .HasColumnName("PaymentInfo");
+                        .HasColumnName("payment_info");
 
                     b.Property<string>("PhoneNumber")
                         .HasMaxLength(11)
                         .HasColumnType("character varying(11)")
-                        .HasColumnName("PhoneNumber");
+                        .HasColumnName("phone_number");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
-                        .HasColumnName("UserId");
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("UsersData");
+                    b.ToTable("user_data");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.UserSubscription", b =>
@@ -268,23 +307,23 @@ namespace Donutsbox.Domain.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
-                        .HasColumnName("Id");
+                        .HasColumnName("id");
 
                     b.Property<DateTime>("BeginDate")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("BeginDate");
+                        .HasColumnName("begin_date");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("EndDate");
+                        .HasColumnName("end_date");
 
                     b.Property<Guid>("SubscriptionId")
                         .HasColumnType("uuid")
-                        .HasColumnName("SubscriptionId");
+                        .HasColumnName("subscription_id");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
-                        .HasColumnName("UserId");
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id");
 
@@ -292,7 +331,7 @@ namespace Donutsbox.Domain.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserSubscription");
+                    b.ToTable("user_subscription");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.UserType", b =>
@@ -300,7 +339,7 @@ namespace Donutsbox.Domain.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("Id");
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
@@ -308,11 +347,11 @@ namespace Donutsbox.Domain.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
-                        .HasColumnName("Name");
+                        .HasColumnName("name");
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserTypes");
+                    b.ToTable("user_type");
 
                     b.HasData(
                         new
@@ -350,6 +389,21 @@ namespace Donutsbox.Domain.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Donutsbox.Domain.Entities.PostComment", b =>
+                {
+                    b.HasOne("Donutsbox.Domain.Entities.ContentPost", null)
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Donutsbox.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Donutsbox.Domain.Entities.Subscription", b =>
                 {
                     b.HasOne("Donutsbox.Domain.Entities.CreatorPageData", null)
@@ -367,11 +421,24 @@ namespace Donutsbox.Domain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Donutsbox.Domain.Entities.UserType", null)
+                    b.HasOne("Donutsbox.Domain.Entities.UserType", "Type")
                         .WithMany()
-                        .HasForeignKey("TypeId")
+                        .HasForeignKey("type_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Type");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.UserAuth", b =>
+                {
+                    b.HasOne("Donutsbox.Domain.Entities.User", "User")
+                        .WithOne("UserAuth")
+                        .HasForeignKey("Donutsbox.Domain.Entities.UserAuth", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.UserData", b =>
@@ -395,6 +462,12 @@ namespace Donutsbox.Domain.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.User", b =>
+                {
+                    b.Navigation("UserAuth")
                         .IsRequired();
                 });
 #pragma warning restore 612, 618

@@ -6,49 +6,49 @@ namespace Donutsbox.Domain.Entities;
 /// <summary>
 /// Данные о странице автора
 /// </summary>
-[Table("CreatorPageData")]
+[Table("creator_page_data")]
 public class CreatorPageData
 {
     /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
     [Key]
-    [Column("PageId", TypeName = "uuid")]
-    public required Guid PageId { get; set; }
+    [Column("id", TypeName = "uuid")]
+    public required Guid Id { get; set; }
     /// <summary>
     /// Идентификатор автора(пользователя)
     /// </summary>
-    [Column("GUID", TypeName = "uuid")]
+    [Column("guid", TypeName = "uuid")]
     [Required]
     public required Guid GUID { get; set; }
     /// <summary>
     /// Название страницы автора
     /// </summary>
-    [Column("PageName")]
+    [Column("page_name")]
     [MaxLength(40)]
     [Required]
     public required string PageName { get; set; }
     /// <summary>
     /// Ссылка на аватарку автора
     /// </summary>
-    [Column("AvatarURL")]
+    [Column("avatar_url")]
     [Required]
     public required string AvatarURL { get; set; }
     /// <summary>
     /// Ссылка на баннер автора
     /// </summary>
-    [Column("BannerURL")]
+    [Column("banner_url")]
     [Required]
     public required string BannerURL { get; set; }
     /// <summary>
     /// Описание страницы автора
     /// </summary>
-    [Column("Description")]
+    [Column("description")]
     public string? Description { get; set; }
     /// <summary>
     /// Количество подписчиков
     /// </summary>
-    [Column("SubscribersCount")]
+    [Column("subscribers_count")]
     [Required]
     public required int SubscribersCount { get; set; }
 }

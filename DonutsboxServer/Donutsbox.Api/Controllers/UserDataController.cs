@@ -7,28 +7,29 @@ namespace Donutsbox.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class UserAuthController(IEntityService<UserAuthDto, Guid> service) : ControllerBase
+[Authorize]
+public class UserDataController(IEntityService<UserDataDto, Guid> service) : ControllerBase
 {   /// <summary>
-    /// Возвращает все сущности пользователей для аутентификации
+    /// Возвращает данные всех пользователей
     /// </summary>
-    /// <returns>Коллекция объектов <see cref="UserAuthDto"/>/></returns>
-    /// <response code="200">Список пользователей для аутентификации получен</response>
+    /// <returns>Коллекция объектов <see cref="UserDataDto"/>/></returns>
+    /// <response code="200">Список данных о пользователях получен</response>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserAuthDto>>> Get()
+    public async Task<ActionResult<IEnumerable<UserDataDto>>> Get()
     {
         var users = await service.GetAllAsync();
         return Ok(users);
     }
 
     /// <summary>
-    /// Возвращает cущность пользователя для аутентификации по идентификатору.
+    /// Возвращает данные о пользователе по идентификатору.
     /// </summary>
-    /// <param name="id">Идентификатор пользователя.</param>
-    /// <returns>Объект <see cref="UserDto"/>.</returns>
-    /// <response code="200">Пользователь найден.</response>
-    /// <response code="404">Пользователь с указанным ID не найден.</response>
+    /// <param name="id">Идентификатор данных пользователя.</param>
+    /// <returns>Объект <see cref="UserDataDto"/>.</returns>
+    /// <response code="200">Даныне найдены.</response>
+    /// <response code="404">Данные о пользователе с указанным ID не найден.</response>
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<UserAuthDto>> Get(Guid id)
+    public async Task<ActionResult<UserDataDto>> Get(Guid id)
     {
         var user = await service.GetByIdAsync(id);
         if (user == null) return NotFound();
@@ -36,13 +37,13 @@ public class UserAuthController(IEntityService<UserAuthDto, Guid> service) : Con
     }
 
     /// <summary>
-    /// Создаёт нового пользователя.
+    /// Создаёт новые данные пользователя.
     /// </summary>
     /// <param name="newUser">Данные нового пользователя.</param>
-    /// <returns>Созданный объект <see cref="UserAuthDto"/>.</returns>
-    /// <response code="200">Пользователь успешно создан.</response>
+    /// <returns>Созданный объект <see cref="UserDataDto"/>.</returns>
+    /// <response code="200">Данные о пользователе успешно созданы.</response>
     [HttpPost]
-    public async Task<ActionResult<UserAuthDto>> Post([FromBody] UserAuthDto newUser)
+    public async Task<ActionResult<UserDataDto>> Post([FromBody] UserDataDto newUser)
     {
         var addedUser = await service.AddAsync(newUser);
         return Ok(addedUser);
@@ -51,13 +52,13 @@ public class UserAuthController(IEntityService<UserAuthDto, Guid> service) : Con
     /// <summary>
     /// Обновляет данные существующего пользователя.
     /// </summary>
-    /// <param name="id">Идентификатор пользователя для обновления.</param>
+    /// <param name="id">Идентификатор данных о пользователе для обновления.</param>
     /// <param name="updatedUser">Новые данные пользователя.</param>
     /// <returns>Код результата.</returns>
     /// <response code="200">Пользователь успешно обновлён.</response>
     /// <response code="404">Пользователь с указанным ID не найден.</response>
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Put(Guid id, [FromBody] UserAuthDto updatedUser)
+    public async Task<IActionResult> Put(Guid id, [FromBody] UserDataDto updatedUser)
     {
         var result = await service.UpdateAsync(updatedUser, id);
         if (!result) return NotFound();
@@ -65,7 +66,7 @@ public class UserAuthController(IEntityService<UserAuthDto, Guid> service) : Con
     }
 
     /// <summary>
-    /// Удаляет пользователя по идентификатору.
+    /// Удаляет данные пользователя по идентификатору.
     /// </summary>
     /// <param name="id">Идентификатор пользователя для удаления.</param>
     /// <returns>Код результата.</returns>

@@ -6,42 +6,42 @@ namespace Donutsbox.Domain.Entities;
 /// <summary>
 /// Данные о подписке
 /// </summary>
-[Table("Subscriptions")]
+[Table("subscription")]
 public class Subscription
 {
     /// <summary>
     /// Идентификатор подписки
     /// </summary>
     [Key]
-    [Column("SubscriptionId", TypeName = "uuid")]
-    public required Guid SubscriptionId { get; set; }
+    [Column("id", TypeName = "uuid")]
+    public required Guid Id { get; set; }
     /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
-    [Column("PageId", TypeName = "uuid")]
+    [Column("page_id", TypeName = "uuid")]
     public required Guid PageId { get; set; }
     /// <summary>
     /// Цена подписки
     /// </summary>
-    [Column("Price")]
+    [Column("price")]
     public required string Price { get; set; }
     /// <summary>
     /// Название подписки
     /// </summary>
-    [Column("Name")]
+    [Column("name")]
     [MaxLength(30)]
     [Required]
     public required string Name { get; set; }
     /// <summary>
     /// Описание подписки
     /// </summary>
-    [Column("Description")]
+    [Column("description")]
     [Required]
     public required string Description { get; set; }
     /// <summary>
     /// Ссылка на картинку подписки
     /// </summary>
-    [Column("PictureURL")]
+    [Column("picture_url")]
     [Required]
     public required string PictureURL { get; set; }
 }

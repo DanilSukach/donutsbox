@@ -45,5 +45,3 @@ public class UserDataRepository(DonutsboxDbContext context) : IEntityRepository<
         return true;
     }
 }
-
-

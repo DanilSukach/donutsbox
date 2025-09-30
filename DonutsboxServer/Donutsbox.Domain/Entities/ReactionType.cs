@@ -4,23 +4,22 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Donutsbox.Domain.Entities;
 
 /// <summary>
-/// Тип пользователя
+/// Типы реакций на пост
 /// </summary>
-[Table("user_type")]
-public class UserType
+[Table("reaction_type")]
+public class ReactionType
 {
     /// <summary>
-    /// Id типа пользователя
+    /// Идентификатор
     /// </summary>
     [Key]
     [Column("id")]
     public required int Id { get; set; }
     /// <summary>
-    /// Имя типа
+    /// Название типа реакции
     /// </summary>
     [Column("name")]
     [MaxLength(30)]
     [Required]
     public required string Name { get; set; }
 }
-
