@@ -36,15 +36,27 @@ public class ContentPost
     /// <summary>
     /// Дата создания поста
     /// </summary>
-    [Column("CreatedAt")]
+    [Column("CreatedAt", TypeName = "timestamptz")]
     [Required]
-    public required DateTime CreatedAt { get; set; }
+    public required DateTimeOffset CreatedAt { get; set; }
+    /// <summary>
+    /// Кол-во лайков
+    /// </summary>
+    [Column("DislikesCount")]
+    [Required]
+    public required int LikesCount { get; set; }
     /// <summary>
     /// Кол-во дизлайков
     /// </summary>
     [Column("DislikesCount")]
     [Required]
     public required int DislikesCount { get; set; }
+    /// <summary>
+    /// Кол-во комментариев
+    /// </summary>
+    [Column("CommentsCount")]
+    [Required]
+    public required int CommentsCount { get; set; }
     /// <summary>
     /// Ссылки на аудио
     /// </summary>
