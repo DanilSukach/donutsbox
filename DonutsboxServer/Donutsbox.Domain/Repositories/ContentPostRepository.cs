@@ -49,7 +49,7 @@ public class ContentPostRepository(DonutsboxDbContext context) : IEntityReposito
         return true;
     }
 
-    public async Task<bool> UpdateDislikesAsync(Guid id, int dislikesCount)
+    public async Task<bool> AddDislikesAsync(Guid id, int dislikesCount)
     {
         var post = await GetByIdAsync(id);
         if (post == null) return false;
