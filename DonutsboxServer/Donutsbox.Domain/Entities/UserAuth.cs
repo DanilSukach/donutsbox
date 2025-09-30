@@ -21,6 +21,7 @@ public class UserAuth
     /// </summary>
     [Column("user_id", TypeName = "uuid")]
     [Required]
+    public required Guid UserId { get; set; }
     public required User User { get; set; }
     /// <summary>
     /// Email для аунтентификации

@@ -37,7 +37,7 @@ public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User
             return false;
         }
         oldValue.Name = entity.Name;
-        oldValue.TypeId = entity.TypeId;
+        //oldValue.TypeId = entity.TypeId;
         oldValue.AuthId = entity.AuthId;
         await context.SaveChangesAsync();
         return true;

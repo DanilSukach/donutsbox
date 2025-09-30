@@ -27,15 +27,15 @@ public class User
     /// </summary>
     [Column("type_id")]
     [Required]
-    public required int TypeId { get; set; }
+    public required UserType Type { get; set; }
     /// <summary>
     /// Сущность для авторизации
     /// </summary>
     [Column("auth_id", TypeName = "uuid")]
     [Required]
     public required Guid AuthId { get; set; }
-
-    [Column("user_auth")]
-    [Required]
+    /// <summary>
+    /// Сущность для авторизации
+    /// </summary>
     public required UserAuth UserAuth { get; set; }
 }
