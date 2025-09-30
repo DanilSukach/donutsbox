@@ -20,7 +20,7 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         {
             Id = Guid.NewGuid(),
             Password = hash,
-            AuthEmail = dto.AuthEmail
+            AuthEmail = dto.AuthEmail,
         };
 
         await repository.AddAsync(user, dto.Role);
@@ -28,11 +28,11 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
 
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto dto)
     {
-        var (user, role) = await repository.GetByEmailAsync(dto.EmailAuth);
-        if (user == null|| role == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.Password))
+        var user = await repository.GetByEmailAsync(dto.EmailAuth);
+        if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.Password))
             throw new UnauthorizedAccessException("Invalid credentials");
 
-        var accessToken = jwt.GenerateAccessToken(user, role);
+        var accessToken = jwt.GenerateAccessToken(user);
         var refreshToken = jwt.GenerateRefreshToken();
 
         user.RefreshToken = refreshToken;
@@ -51,10 +51,8 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
 
     public async Task<AuthResponseDto> RefreshTokenAsync(RefreshRequestDto dto)
     {
-        var (user, role) = await repository.GetByEmailAsync(dto.RefreshToken);
-        if (user == null || role == null)
-            throw new UnauthorizedAccessException("Invalid refresh token");
-        var newAccessToken = jwt.GenerateAccessToken(user, role);
+        var user = await repository.GetByEmailAsync(dto.RefreshToken) ?? throw new UnauthorizedAccessException("Invalid refresh token");
+        var newAccessToken = jwt.GenerateAccessToken(user);
         var newRefreshToken = jwt.GenerateRefreshToken();
 
         user.RefreshToken = newRefreshToken;

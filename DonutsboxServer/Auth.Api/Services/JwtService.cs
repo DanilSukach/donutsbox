@@ -11,7 +11,7 @@ namespace Auth.Api.Services;
 
 public class JwtService(IConfiguration config) : IJwtService
 {
-    public string GenerateAccessToken(UserAuth user, string role)
+    public string GenerateAccessToken(UserAuth user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -20,7 +20,7 @@ public class JwtService(IConfiguration config) : IJwtService
         {
             new Claim(ClaimTypes.Email, user.AuthEmail),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Role, role)
+            new Claim(ClaimTypes.Role, user.User!.UserType.Name)
         };
 
         var token = new JwtSecurityToken(

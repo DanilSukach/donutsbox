@@ -5,7 +5,7 @@ namespace Auth.Api.Services;
 
 public interface IJwtService
 {
-    string GenerateAccessToken(UserAuth user, string role);
+    string GenerateAccessToken(UserAuth user);
     string GenerateRefreshToken();
     ClaimsPrincipal? ValidateAccessToken(string token);
     Guid? GetUserIdFromToken(string token);

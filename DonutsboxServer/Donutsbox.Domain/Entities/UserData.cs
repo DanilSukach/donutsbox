@@ -21,6 +21,8 @@ public class UserData
     [Column("user_id", TypeName = "uuid")]
     [Required]
     public required Guid UserId { get; set; }
+    [Required]
+    public required User User { get; set; }
     /// <summary>
     /// Ссылка на хранилище аватарки
     /// </summary>

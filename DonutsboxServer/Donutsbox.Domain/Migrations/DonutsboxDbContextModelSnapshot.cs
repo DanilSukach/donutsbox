@@ -77,8 +77,6 @@ namespace Donutsbox.Domain.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PageId");
-
                     b.ToTable("content_post");
                 });
 
@@ -119,9 +117,6 @@ namespace Donutsbox.Domain.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GUID")
-                        .IsUnique();
-
                     b.ToTable("creator_page_data");
                 });
 
@@ -151,11 +146,51 @@ namespace Donutsbox.Domain.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PostId");
-
-                    b.HasIndex("UserId");
-
                     b.ToTable("post_comment");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.PostReaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
+
+                    b.Property<int>("ReactionTypeId")
+                        .HasColumnType("int")
+                        .HasColumnName("reaction_type_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("post_reaction");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.ReactionType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("reaction_type");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.Subscription", b =>
@@ -192,8 +227,6 @@ namespace Donutsbox.Domain.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PageId");
-
                     b.ToTable("subscription");
                 });
 
@@ -204,25 +237,24 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("AuthId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("auth_id");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasColumnName("name");
 
-                    b.Property<int>("type_id")
+                    b.Property<Guid>("UserAuthId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("UserTypeId")
                         .HasColumnType("integer");
 
                     b.HasKey("GUID");
 
-                    b.HasIndex("AuthId")
+                    b.HasIndex("UserAuthId")
                         .IsUnique();
 
-                    b.HasIndex("type_id");
+                    b.HasIndex("UserTypeId");
 
                     b.ToTable("user");
                 });
@@ -230,6 +262,7 @@ namespace Donutsbox.Domain.Migrations
             modelBuilder.Entity("Donutsbox.Domain.Entities.UserAuth", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -327,10 +360,6 @@ namespace Donutsbox.Domain.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SubscriptionId");
-
-                    b.HasIndex("UserId");
-
                     b.ToTable("user_subscription");
                 });
 
@@ -371,104 +400,44 @@ namespace Donutsbox.Domain.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Donutsbox.Domain.Entities.ContentPost", b =>
-                {
-                    b.HasOne("Donutsbox.Domain.Entities.CreatorPageData", null)
-                        .WithMany()
-                        .HasForeignKey("PageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Donutsbox.Domain.Entities.CreatorPageData", b =>
-                {
-                    b.HasOne("Donutsbox.Domain.Entities.User", null)
-                        .WithOne()
-                        .HasForeignKey("Donutsbox.Domain.Entities.CreatorPageData", "GUID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Donutsbox.Domain.Entities.PostComment", b =>
-                {
-                    b.HasOne("Donutsbox.Domain.Entities.ContentPost", null)
-                        .WithMany()
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Donutsbox.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Donutsbox.Domain.Entities.Subscription", b =>
-                {
-                    b.HasOne("Donutsbox.Domain.Entities.CreatorPageData", null)
-                        .WithMany()
-                        .HasForeignKey("PageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Donutsbox.Domain.Entities.User", b =>
                 {
-                    b.HasOne("Donutsbox.Domain.Entities.UserAuth", null)
-                        .WithOne()
-                        .HasForeignKey("Donutsbox.Domain.Entities.User", "AuthId")
+                    b.HasOne("Donutsbox.Domain.Entities.UserAuth", "UserAuth")
+                        .WithOne("User")
+                        .HasForeignKey("Donutsbox.Domain.Entities.User", "UserAuthId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Donutsbox.Domain.Entities.UserType", "Type")
+                    b.HasOne("Donutsbox.Domain.Entities.UserType", "UserType")
                         .WithMany()
-                        .HasForeignKey("type_id")
+                        .HasForeignKey("UserTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Type");
+                    b.Navigation("UserAuth");
+
+                    b.Navigation("UserType");
                 });
 
-            modelBuilder.Entity("Donutsbox.Domain.Entities.UserAuth", b =>
+            modelBuilder.Entity("Donutsbox.Domain.Entities.UserData", b =>
                 {
                     b.HasOne("Donutsbox.Domain.Entities.User", "User")
-                        .WithOne("UserAuth")
-                        .HasForeignKey("Donutsbox.Domain.Entities.UserAuth", "Id")
+                        .WithOne("UserData")
+                        .HasForeignKey("Donutsbox.Domain.Entities.UserData", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Donutsbox.Domain.Entities.UserData", b =>
-                {
-                    b.HasOne("Donutsbox.Domain.Entities.User", null)
-                        .WithOne()
-                        .HasForeignKey("Donutsbox.Domain.Entities.UserData", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Donutsbox.Domain.Entities.UserSubscription", b =>
-                {
-                    b.HasOne("Donutsbox.Domain.Entities.Subscription", null)
-                        .WithMany()
-                        .HasForeignKey("SubscriptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Donutsbox.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Donutsbox.Domain.Entities.User", b =>
                 {
-                    b.Navigation("UserAuth")
-                        .IsRequired();
+                    b.Navigation("UserData");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.UserAuth", b =>
+                {
+                    b.Navigation("User");
                 });
 #pragma warning restore 612, 618
         }

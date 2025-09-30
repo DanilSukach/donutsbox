@@ -27,7 +27,7 @@ public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User
 
     public async Task<IEnumerable<User>> GetAllAsync() => await context.Users.ToListAsync();
 
-    public async Task<User?> GetByIdAsync(Guid id) => await context.Users.FirstOrDefaultAsync(u => u.GUID == id);
+    public async Task<User?> GetByIdAsync(Guid id) => await context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
     public async Task<bool> UpdateAsync(User entity, Guid id)
     {
@@ -38,7 +38,7 @@ public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User
         }
         oldValue.Name = entity.Name;
         //oldValue.TypeId = entity.TypeId;
-        oldValue.AuthId = entity.AuthId;
+        //oldValue.AuthId = entity.AuthId;
         await context.SaveChangesAsync();
         return true;
     }
