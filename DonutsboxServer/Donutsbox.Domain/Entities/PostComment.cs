@@ -6,37 +6,37 @@ namespace Donutsbox.Domain.Entities;
 /// <summary>
 /// Сущность комментария к посту
 /// </summary>
-[Table("PostComment")]
+[Table("post_comment")]
 public class PostComment
 {
     /// <summary>
     /// Идентификатор
     /// </summary>
     [Key]
-    [Column("GUID", TypeName = "uuid")]
-    public required Guid GUID { get; set; }
+    [Column("id", TypeName = "uuid")]
+    public required Guid Id { get; set; }
     /// <summary>
     /// Идентификатор поста
     /// </summary>
-    [Column("PostId", TypeName = "uuid")]
+    [Column("post_id", TypeName = "uuid")]
     [Required]
     public required Guid PostId { get; set; }
     /// <summary>
     /// Идентификатор юзера
     /// </summary>
-    [Column("UserId", TypeName = "uuid")]
+    [Column("user_id", TypeName = "uuid")]
     [Required]
     public required Guid UserId { get; set; }
     /// <summary>
     /// Текст комментария
     /// </summary>
-    [Column("Text", TypeName = "text")]
+    [Column("text", TypeName = "text")]
     [Required]
     public required string Text { get; set; }
     /// <summary>
     /// Дата создания комментария
     /// </summary>
-    [Column("CreatedAt", TypeName = "timestamptz")]
+    [Column("created_at", TypeName = "timestamptz")]
     [Required]
     public required DateTimeOffset CreatedAt { get; set; }
 }

@@ -1,11 +1,13 @@
 ﻿using Donutsbox.Api.Dto;
 using Donutsbox.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Donutsbox.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class UserDataController(IEntityService<UserDataDto, Guid> service) : ControllerBase
 {   /// <summary>
     /// Возвращает данные всех пользователей

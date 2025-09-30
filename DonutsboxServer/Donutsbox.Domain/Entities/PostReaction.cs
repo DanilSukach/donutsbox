@@ -6,31 +6,31 @@ namespace Donutsbox.Domain.Entities;
 /// <summary>
 /// Сущность реакции на пост
 /// </summary>
-[Table("PostReaction")]
+[Table("post_reaction")]
 public class PostReaction
 {
     /// <summary>
     /// Идентификатор
     /// </summary>
     [Key]
-    [Column("GUID", TypeName = "uuid")]
-    public required Guid GUID { get; set; }
+    [Column("id", TypeName = "uuid")]
+    public required Guid Id { get; set; }
     /// <summary>
     /// Идентификатор поста
     /// </summary>
-    [Column("PostId", TypeName = "uuid")]
+    [Column("post_id", TypeName = "uuid")]
     [Required]
     public required Guid PostId { get; set; }
     /// <summary>
     /// Идентификатор юзера
     /// </summary>
-    [Column("UserId", TypeName = "uuid")]
+    [Column("user_id", TypeName = "uuid")]
     [Required]
     public required Guid UserId { get; set; }
     /// <summary>
     /// Разновидность реакции (лайк, дизлайк и т.д.)
     /// </summary>
-    [Column("ReactionTypeId", TypeName = "int")]
+    [Column("reaction_type_id", TypeName = "int")]
     [Required]
     public required int ReactionTypeId { get; set; }
 }

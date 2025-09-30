@@ -30,7 +30,7 @@ public class SubscriptionRepository(DonutsboxDbContext context) : IEntityReposit
     public async Task<Subscription?> GetByIdAsync(Guid id)
     {
         return await context.Subscriptions
-                            .FirstOrDefaultAsync(s => s.SubscriptionId == id);
+                            .FirstOrDefaultAsync(s => s.Id == id);
     }
 
     public async Task<bool> UpdateAsync(Subscription entity, Guid id)

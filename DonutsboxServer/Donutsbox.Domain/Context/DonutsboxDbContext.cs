@@ -62,5 +62,9 @@ public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : 
             .WithOne()
             .HasForeignKey<CreatorPageData>(cp => cp.GUID)
             .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.UserAuth)
+            .WithOne(ua => ua.User)
+            .HasForeignKey<UserAuth>(ua => ua.Id);
     }
 }

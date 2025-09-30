@@ -46,6 +46,7 @@ public class AuthRepository(DonutsboxDbContext db) : IAuthRepository
         var user = new User
         {
             GUID = Guid.NewGuid(),
+            UserAuth = userAuth,
             Name = userAuth.AuthEmail, 
             TypeId = userType.Id,      
             AuthId = userAuth.Id      

@@ -30,7 +30,7 @@ public class ContentPostRepository(DonutsboxDbContext context) : IEntityReposito
     public async Task<ContentPost?> GetByIdAsync(Guid id)
     {
         return await context.ContentPosts
-                            .FirstOrDefaultAsync(c => c.PostId == id);
+                            .FirstOrDefaultAsync(c => c.Id == id);
     }
 
     public async Task<bool> UpdateAsync(ContentPost entity, Guid id)
@@ -41,7 +41,9 @@ public class ContentPostRepository(DonutsboxDbContext context) : IEntityReposito
         post.Title = entity.Title;
         post.Text = entity.Text;
         post.CreatedAt = entity.CreatedAt;
+        post.LikesCount = entity.LikesCount;
         post.DislikesCount = entity.DislikesCount;
+        post.CommentsCount = entity.CommentsCount;
         post.AudioURLs = entity.AudioURLs;
         post.PictureURLs = entity.PictureURLs;
         post.VideoURLs = entity.VideoURLs;
