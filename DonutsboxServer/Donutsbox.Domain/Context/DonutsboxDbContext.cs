@@ -27,70 +27,66 @@ public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : 
             new UserType { Id = 3, Name = "Administrator" }
         );
 
-        modelBuilder.Entity<UserType>()
-            .HasMany<User>()
-            .WithOne(u => u.Type)
-            .HasForeignKey("type_id")
-            .OnDelete(DeleteBehavior.Cascade);
+        //modelBuilder.Entity<UserType>()
+        //    .HasMany<User>()
+        //    .WithOne(u => u.Type)
+        //    .HasForeignKey("type_id")
+        //    .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<UserAuth>()
-            .HasOne<User>()
-            .WithOne()
-            .HasForeignKey<User>(u => u.AuthId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<User>()
-            .HasOne<UserData>()
-            .WithOne()
-            .HasForeignKey<UserData>(ud => ud.UserId);
-
-        modelBuilder.Entity<User>()
-            .HasMany<UserSubscription>()
-            .WithOne()
-            .HasForeignKey(us => us.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<Subscription>()
-            .HasMany<UserSubscription>()
-            .WithOne()
-            .HasForeignKey(us => us.SubscriptionId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<CreatorPageData>()
-            .HasMany<Subscription>()
-            .WithOne()
-            .HasForeignKey(s => s.PageId)
-            .OnDelete(DeleteBehavior.Cascade);
-    
-        modelBuilder.Entity<CreatorPageData>()
-            .HasMany<ContentPost>()
-            .WithOne()
-            .HasForeignKey(cp => cp.PageId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<User>()
-            .HasOne<CreatorPageData>()
-            .WithOne()
-            .HasForeignKey<CreatorPageData>(cp => cp.GUID)
-            .OnDelete(DeleteBehavior.Cascade);
+        //modelBuilder.Entity<UserAuth>()
+        //    .HasOne<User>()
+        //    .WithOne()
+        //    .HasForeignKey<User>(u => u.AuthId)
+        //    .OnDelete(DeleteBehavior.Cascade);
 
         //modelBuilder.Entity<User>()
-        //    .HasOne(u => u.UserAuth)
-        //    .WithOne(ua => ua.User);
+        //    .HasOne<UserData>()
+        //    .WithOne()
+        //    .HasForeignKey<UserData>(ud => ud.UserId);
 
-        modelBuilder.Entity<PostComment>()
-            .HasKey(pc => pc.Id);
+        //modelBuilder.Entity<User>()
+        //    .HasMany<UserSubscription>()
+        //    .WithOne()
+        //    .HasForeignKey(us => us.UserId)
+        //    .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<PostComment>()
-            .HasOne<ContentPost>()
-            .WithMany()
-            .HasForeignKey(pc => pc.PostId)
-            .OnDelete(DeleteBehavior.Cascade);
+        //modelBuilder.Entity<Subscription>()
+        //    .HasMany<UserSubscription>()
+        //    .WithOne()
+        //    .HasForeignKey(us => us.SubscriptionId)
+        //    .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<PostComment>()
-            .HasOne<User>()
-            .WithMany()
-            .HasForeignKey(pc => pc.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+        //modelBuilder.Entity<CreatorPageData>()
+        //    .HasMany<Subscription>()
+        //    .WithOne()
+        //    .HasForeignKey(s => s.PageId)
+        //    .OnDelete(DeleteBehavior.Cascade);
+    
+        //modelBuilder.Entity<CreatorPageData>()
+        //    .HasMany<ContentPost>()
+        //    .WithOne()
+        //    .HasForeignKey(cp => cp.PageId)
+        //    .OnDelete(DeleteBehavior.Cascade);
+
+        //modelBuilder.Entity<User>()
+        //    .HasOne<CreatorPageData>()
+        //    .WithOne()
+        //    .HasForeignKey<CreatorPageData>(cp => cp.GUID)
+        //    .OnDelete(DeleteBehavior.Cascade);
+
+        //modelBuilder.Entity<PostComment>()
+        //    .HasKey(pc => pc.Id);
+
+        //modelBuilder.Entity<PostComment>()
+        //    .HasOne<ContentPost>()
+        //    .WithMany()
+        //    .HasForeignKey(pc => pc.PostId)
+        //    .OnDelete(DeleteBehavior.Cascade);
+
+        //modelBuilder.Entity<PostComment>()
+        //    .HasOne<User>()
+        //    .WithMany()
+        //    .HasForeignKey(pc => pc.UserId)
+        //    .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -1,6 +1,8 @@
-﻿namespace Donutsbox.Domain.Repositories;
+﻿using Donutsbox.Domain.Entities;
 
-public interface IProfileRepository<TUserData, Tuser>
+namespace Donutsbox.Domain.Repositories;
+
+public interface IProfileRepository
 {
-    Task<(TUserData?, Tuser?)> GetUserDataByIdAsync(Guid id);
+    Task<User?> GetUserDataByIdAsync(Guid id);
 }

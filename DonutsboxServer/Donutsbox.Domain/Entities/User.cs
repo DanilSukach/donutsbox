@@ -14,7 +14,7 @@ public class User
     /// </summary>
     [Key]
     [Column("id", TypeName = "uuid")]
-    public required Guid GUID { get; set; }
+    public required Guid Id { get; set; }
     /// <summary>
     /// Имя пользователя
     /// </summary>
@@ -25,17 +25,21 @@ public class User
     /// <summary>
     /// Тип пользователя
     /// </summary>
-    [Column("type_id")]
     [Required]
-    public required UserType Type { get; set; }
+    public required UserType UserType { get; set; }
+    [Required]
+    public required int UserTypeId { get; set; }
     /// <summary>
     /// Сущность для авторизации
     /// </summary>
-    [Column("auth_id", TypeName = "uuid")]
+    [Column("user_auth")]
     [Required]
-    public required Guid AuthId { get; set; }
-    /// <summary>
-    /// Сущность для авторизации
-    /// </summary>
     public required UserAuth UserAuth { get; set; }
+    [Required]
+    public required Guid UserAuthId { get; set; }
+    /// <summary>
+    /// Сущность с данными о себе
+    /// </summary>
+    [Column("user_data")]
+    public UserData? UserData { get; set; }
 }
