@@ -21,12 +21,14 @@ public class UserSubscription
     [Column("user_id", TypeName = "uuid")]
     [Required]
     public required Guid UserId { get; set; }
+    public required User User { get; set; }
     /// <summary>
     /// Идентификатор подписки (тип подписки)
     /// </summary>
     [Column("subscription_id", TypeName = "uuid")]
     [Required]
     public required Guid SubscriptionId { get; set; }
+    public required Subscription Subscription { get; set; }
     /// <summary>
     /// Дата начала подписки
     /// </summary>

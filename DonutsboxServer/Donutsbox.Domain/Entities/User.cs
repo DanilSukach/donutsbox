@@ -27,19 +27,21 @@ public class User
     /// </summary>
     [Required]
     public required UserType UserType { get; set; }
+    [Column("user_type_id")]
     [Required]
     public required int UserTypeId { get; set; }
     /// <summary>
     /// Сущность для авторизации
     /// </summary>
-    [Column("user_auth")]
     [Required]
     public required UserAuth UserAuth { get; set; }
+    [Column("user_auth_id", TypeName = "uuid")]
     [Required]
     public required Guid UserAuthId { get; set; }
     /// <summary>
     /// Сущность с данными о себе
     /// </summary>
-    [Column("user_data")]
     public UserData? UserData { get; set; }
+    public CreatorPageData? CreatorPageData { get; set; }
+    public List<UserSubscription> UserSubscriptions { get; set; } = [];
 }

@@ -37,7 +37,7 @@ public class ContentPostRepository(DonutsboxDbContext context) : IEntityReposito
     {
         var post = await GetByIdAsync(id);
         if (post == null) return false;
-        post.PageId = entity.PageId;
+        post.CreatorPageDataId = entity.CreatorPageDataId;
         post.Title = entity.Title;
         post.Text = entity.Text;
         post.CreatedAt = entity.CreatedAt;

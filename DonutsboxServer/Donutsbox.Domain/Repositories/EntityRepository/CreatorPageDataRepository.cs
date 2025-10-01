@@ -30,14 +30,14 @@ public class CreatorPageDataRepository(DonutsboxDbContext context) : IEntityRepo
     public async Task<CreatorPageData?> GetByIdAsync(Guid id)
     {
         return await context.CreatorsPageData
-                            .FirstOrDefaultAsync(c => c.GUID == id);
+                            .FirstOrDefaultAsync(c => c.UserId == id);
     }
 
     public async Task<bool> UpdateAsync(CreatorPageData entity, Guid id)
     {
         var pageData = await GetByIdAsync(id);
         if (pageData == null) return false;
-        pageData.GUID = entity.GUID;
+        pageData.UserId = entity.UserId;
         pageData.PageName = entity.PageName;
         pageData.AvatarURL = entity.AvatarURL;
         pageData.BannerURL = entity.BannerURL;

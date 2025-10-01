@@ -26,6 +26,10 @@ public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : 
             new UserType { Id = 2, Name = "Creator" },
             new UserType { Id = 3, Name = "Administrator" }
         );
+        modelBuilder.Entity<ReactionType>().HasData(
+            new ReactionType { Id = 1, Name = "Like" },
+            new ReactionType { Id = 2, Name = "Dislike" }
+        );
 
         //modelBuilder.Entity<UserType>()
         //    .HasMany<User>()
@@ -61,7 +65,7 @@ public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : 
         //    .WithOne()
         //    .HasForeignKey(s => s.PageId)
         //    .OnDelete(DeleteBehavior.Cascade);
-    
+
         //modelBuilder.Entity<CreatorPageData>()
         //    .HasMany<ContentPost>()
         //    .WithOne()
