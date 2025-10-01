@@ -20,7 +20,8 @@ public class CreatorPageData
     /// </summary>
     [Column("guid", TypeName = "uuid")]
     [Required]
-    public required Guid GUID { get; set; }
+    public required Guid UserId { get; set; }
+    public required User User { get; set; }
     /// <summary>
     /// Название страницы автора
     /// </summary>
@@ -51,4 +52,6 @@ public class CreatorPageData
     [Column("subscribers_count")]
     [Required]
     public required int SubscribersCount { get; set; }
+    public List<ContentPost> ContentPosts { get; set; } = [];
+    public List<Subscription> Subscriptions { get; set; } = [];
 }

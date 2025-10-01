@@ -38,7 +38,7 @@ public class SubscriptionRepository(DonutsboxDbContext context) : IEntityReposit
         var subscription = await GetByIdAsync(id);
         if (subscription == null) return false;
         subscription.Name = entity.Name;
-        subscription.PageId = entity.PageId;
+        subscription.CreatorPageDataId = entity.CreatorPageDataId;
         subscription.Price = entity.Price;
         subscription.Description = entity.Description;
         subscription.PictureURL = entity.PictureURL;

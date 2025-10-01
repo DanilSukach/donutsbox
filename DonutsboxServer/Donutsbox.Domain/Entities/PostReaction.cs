@@ -20,7 +20,8 @@ public class PostReaction
     /// </summary>
     [Column("post_id", TypeName = "uuid")]
     [Required]
-    public required Guid PostId { get; set; }
+    public required Guid ContentPostId { get; set; }
+    public required ContentPost ContentPost { get; set; }
     /// <summary>
     /// Идентификатор юзера
     /// </summary>

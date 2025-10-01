@@ -19,7 +19,8 @@ public class Subscription
     /// Идентификатор страницы автора
     /// </summary>
     [Column("page_id", TypeName = "uuid")]
-    public required Guid PageId { get; set; }
+    public required Guid CreatorPageDataId { get; set; }
+    public required CreatorPageData CreatorPageData { get; set; }
     /// <summary>
     /// Цена подписки
     /// </summary>
@@ -44,4 +45,5 @@ public class Subscription
     [Column("picture_url")]
     [Required]
     public required string PictureURL { get; set; }
+    public List<UserSubscription> UserSubscriptions { get; set; } = [];
 }

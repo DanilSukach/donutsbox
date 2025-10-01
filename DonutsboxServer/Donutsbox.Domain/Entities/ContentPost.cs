@@ -20,7 +20,8 @@ public class ContentPost
     /// </summary>
     [Column("page_id", TypeName = "uuid")]
     [Required]
-    public required Guid PageId { get; set; }
+    public required Guid CreatorPageDataId { get; set; }
+    public required CreatorPageData CreatorPageData { get; set; }
     /// <summary>
     /// Заголовок поста
     /// </summary>
@@ -75,4 +76,6 @@ public class ContentPost
     [Column("picture_urls")]
     [Required]
     public required List<string> PictureURLs { get; set; }
+    public List<PostReaction> PostReactions { get; set; } = [];
+    public List<PostComment> PostComments { get; set; } = [];
 }
