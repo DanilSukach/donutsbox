@@ -34,4 +34,6 @@ public class PostReaction
     [Column("reaction_type_id", TypeName = "int")]
     [Required]
     public required int ReactionTypeId { get; set; }
+    [Required]
+    public required ReactionType ReactionType { get; set; }
 }
