@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Donutsbox.Domain.Migrations
 {
     [DbContext(typeof(DonutsboxDbContext))]
-    [Migration("20250930164634_InitialCreate")]
+    [Migration("20251001083242_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -46,6 +46,10 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("timestamptz")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid>("CreatorPageDataId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("page_id");
+
                     b.Property<int>("DislikesCount")
                         .HasColumnType("integer")
                         .HasColumnName("dislikes_count");
@@ -53,10 +57,6 @@ namespace Donutsbox.Domain.Migrations
                     b.Property<int>("LikesCount")
                         .HasColumnType("integer")
                         .HasColumnName("likes_count");
-
-                    b.Property<Guid>("PageId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("page_id");
 
                     b.PrimitiveCollection<List<string>>("PictureURLs")
                         .IsRequired()
@@ -79,6 +79,8 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnName("video_urls");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatorPageDataId");
 
                     b.ToTable("content_post");
                 });
@@ -104,10 +106,6 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<Guid>("GUID")
-                        .HasColumnType("uuid")
-                        .HasColumnName("guid");
-
                     b.Property<string>("PageName")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -118,7 +116,14 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("subscribers_count");
 
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("guid");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("creator_page_data");
                 });
@@ -130,13 +135,13 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid>("ContentPostId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("created_at");
-
-                    b.Property<Guid>("PostId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("post_id");
 
                     b.Property<string>("Text")
                         .IsRequired()
@@ -149,6 +154,8 @@ namespace Donutsbox.Domain.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ContentPostId");
+
                     b.ToTable("post_comment");
                 });
 
@@ -159,7 +166,7 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("PostId")
+                    b.Property<Guid>("ContentPostId")
                         .HasColumnType("uuid")
                         .HasColumnName("post_id");
 
@@ -172,6 +179,10 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ContentPostId");
+
+                    b.HasIndex("ReactionTypeId");
 
                     b.ToTable("post_reaction");
                 });
@@ -194,6 +205,18 @@ namespace Donutsbox.Domain.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("reaction_type");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Like"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Dislike"
+                        });
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.Subscription", b =>
@@ -202,6 +225,10 @@ namespace Donutsbox.Domain.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<Guid>("CreatorPageDataId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("page_id");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -213,10 +240,6 @@ namespace Donutsbox.Domain.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasColumnName("name");
-
-                    b.Property<Guid>("PageId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("page_id");
 
                     b.Property<string>("PictureURL")
                         .IsRequired()
@@ -230,12 +253,14 @@ namespace Donutsbox.Domain.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatorPageDataId");
+
                     b.ToTable("subscription");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.User", b =>
                 {
-                    b.Property<Guid>("GUID")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
@@ -247,12 +272,14 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnName("name");
 
                     b.Property<Guid>("UserAuthId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_auth_id");
 
                     b.Property<int>("UserTypeId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("user_type_id");
 
-                    b.HasKey("GUID");
+                    b.HasKey("Id");
 
                     b.HasIndex("UserAuthId")
                         .IsUnique();
@@ -363,6 +390,10 @@ namespace Donutsbox.Domain.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("SubscriptionId");
+
+                    b.HasIndex("UserId");
+
                     b.ToTable("user_subscription");
                 });
 
@@ -403,6 +434,69 @@ namespace Donutsbox.Domain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Donutsbox.Domain.Entities.ContentPost", b =>
+                {
+                    b.HasOne("Donutsbox.Domain.Entities.CreatorPageData", "CreatorPageData")
+                        .WithMany("ContentPosts")
+                        .HasForeignKey("CreatorPageDataId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatorPageData");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.CreatorPageData", b =>
+                {
+                    b.HasOne("Donutsbox.Domain.Entities.User", "User")
+                        .WithOne("CreatorPageData")
+                        .HasForeignKey("Donutsbox.Domain.Entities.CreatorPageData", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.PostComment", b =>
+                {
+                    b.HasOne("Donutsbox.Domain.Entities.ContentPost", "ContentPost")
+                        .WithMany("PostComments")
+                        .HasForeignKey("ContentPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ContentPost");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.PostReaction", b =>
+                {
+                    b.HasOne("Donutsbox.Domain.Entities.ContentPost", "ContentPost")
+                        .WithMany("PostReactions")
+                        .HasForeignKey("ContentPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Donutsbox.Domain.Entities.ReactionType", "ReactionType")
+                        .WithMany()
+                        .HasForeignKey("ReactionTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ContentPost");
+
+                    b.Navigation("ReactionType");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.Subscription", b =>
+                {
+                    b.HasOne("Donutsbox.Domain.Entities.CreatorPageData", "CreatorPageData")
+                        .WithMany("Subscriptions")
+                        .HasForeignKey("CreatorPageDataId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatorPageData");
+                });
+
             modelBuilder.Entity("Donutsbox.Domain.Entities.User", b =>
                 {
                     b.HasOne("Donutsbox.Domain.Entities.UserAuth", "UserAuth")
@@ -433,9 +527,51 @@ namespace Donutsbox.Domain.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Donutsbox.Domain.Entities.UserSubscription", b =>
+                {
+                    b.HasOne("Donutsbox.Domain.Entities.Subscription", "Subscription")
+                        .WithMany("UserSubscriptions")
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Donutsbox.Domain.Entities.User", "User")
+                        .WithMany("UserSubscriptions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Subscription");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.ContentPost", b =>
+                {
+                    b.Navigation("PostComments");
+
+                    b.Navigation("PostReactions");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.CreatorPageData", b =>
+                {
+                    b.Navigation("ContentPosts");
+
+                    b.Navigation("Subscriptions");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.Subscription", b =>
+                {
+                    b.Navigation("UserSubscriptions");
+                });
+
             modelBuilder.Entity("Donutsbox.Domain.Entities.User", b =>
                 {
+                    b.Navigation("CreatorPageData");
+
                     b.Navigation("UserData");
+
+                    b.Navigation("UserSubscriptions");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.UserAuth", b =>
