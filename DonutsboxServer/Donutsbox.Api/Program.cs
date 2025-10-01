@@ -1,8 +1,10 @@
 using Donutsbox.Api.Dto;
 using Donutsbox.Api.Mapper;
 using Donutsbox.Api.Services;
+using Donutsbox.Api.Services.AuthorService;
 using Donutsbox.Domain.Context;
 using Donutsbox.Domain.Entities;
+using Donutsbox.Domain.Repositories.AuthorRepository;
 using Donutsbox.Domain.Repositories.EntityRepository;
 using Donutsbox.Domain.Repositories.ProfileRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -91,6 +93,8 @@ builder.Services.AddScoped<IEntityRepository<Subscription, Guid>, SubscriptionRe
 builder.Services.AddScoped<IEntityRepository<CreatorPageData, Guid>, CreatorPageDataRepository>();
 builder.Services.AddScoped<IEntityRepository<ContentPost, Guid>, ContentPostRepository>();
 
+builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
+
 builder.Services.AddScoped<IEntityService<UserDto, Guid>, UserService>();
 builder.Services.AddScoped<IEntityService<UserAuthDto, Guid>, UserAuthService>();
 builder.Services.AddScoped<IEntityService<UserDataDto, Guid>, UserDataService>();
@@ -99,6 +103,8 @@ builder.Services.AddScoped<IEntityService<UserTypeDto, int>, UserTypeService>();
 builder.Services.AddScoped<IEntityService<SubscriptionDto, Guid>, SubscriptionService>();
 builder.Services.AddScoped<IEntityService<CreatorPageDataDto, Guid>, CreatorPageDataService>();
 builder.Services.AddScoped<IEntityService<ContentPostDto, Guid>, ContentPostService>();
+
+builder.Services.AddScoped<IAuthorService, AuthorService>();
 
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => { policy.AllowAnyOrigin(); policy.AllowAnyMethod(); policy.AllowAnyHeader(); }));
 
