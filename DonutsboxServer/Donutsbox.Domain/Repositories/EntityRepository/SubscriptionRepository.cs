@@ -24,12 +24,15 @@ public class SubscriptionRepository(DonutsboxDbContext context) : IEntityReposit
 
     public async Task<IEnumerable<Subscription>> GetAllAsync()
     {
-        return await context.Subscriptions.ToListAsync();
+        return await context.Subscriptions
+                            .Include(s => s.SubscriptionPeriod)
+                            .ToListAsync();
     }
 
     public async Task<Subscription?> GetByIdAsync(Guid id)
     {
         return await context.Subscriptions
+                            .Include(s => s.SubscriptionPeriod)
                             .FirstOrDefaultAsync(s => s.Id == id);
     }
 

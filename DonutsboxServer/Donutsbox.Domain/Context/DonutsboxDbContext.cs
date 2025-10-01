@@ -16,6 +16,7 @@ public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : 
     public required DbSet<PostComment> PostComments { get; set; }
     public required DbSet<PostReaction> PostReactions { get; set; }
     public required DbSet<ReactionType> ReactionTypes { get; set; }
+    public required DbSet<SubscriptionPeriod> SubscriptionPeriods { get; set; } 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,67 +31,11 @@ public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : 
             new ReactionType { Id = 1, Name = "Like" },
             new ReactionType { Id = 2, Name = "Dislike" }
         );
-
-        //modelBuilder.Entity<UserType>()
-        //    .HasMany<User>()
-        //    .WithOne(u => u.Type)
-        //    .HasForeignKey("type_id")
-        //    .OnDelete(DeleteBehavior.Cascade);
-
-        //modelBuilder.Entity<UserAuth>()
-        //    .HasOne<User>()
-        //    .WithOne()
-        //    .HasForeignKey<User>(u => u.AuthId)
-        //    .OnDelete(DeleteBehavior.Cascade);
-
-        //modelBuilder.Entity<User>()
-        //    .HasOne<UserData>()
-        //    .WithOne()
-        //    .HasForeignKey<UserData>(ud => ud.UserId);
-
-        //modelBuilder.Entity<User>()
-        //    .HasMany<UserSubscription>()
-        //    .WithOne()
-        //    .HasForeignKey(us => us.UserId)
-        //    .OnDelete(DeleteBehavior.Cascade);
-
-        //modelBuilder.Entity<Subscription>()
-        //    .HasMany<UserSubscription>()
-        //    .WithOne()
-        //    .HasForeignKey(us => us.SubscriptionId)
-        //    .OnDelete(DeleteBehavior.Cascade);
-
-        //modelBuilder.Entity<CreatorPageData>()
-        //    .HasMany<Subscription>()
-        //    .WithOne()
-        //    .HasForeignKey(s => s.PageId)
-        //    .OnDelete(DeleteBehavior.Cascade);
-
-        //modelBuilder.Entity<CreatorPageData>()
-        //    .HasMany<ContentPost>()
-        //    .WithOne()
-        //    .HasForeignKey(cp => cp.PageId)
-        //    .OnDelete(DeleteBehavior.Cascade);
-
-        //modelBuilder.Entity<User>()
-        //    .HasOne<CreatorPageData>()
-        //    .WithOne()
-        //    .HasForeignKey<CreatorPageData>(cp => cp.GUID)
-        //    .OnDelete(DeleteBehavior.Cascade);
-
-        //modelBuilder.Entity<PostComment>()
-        //    .HasKey(pc => pc.Id);
-
-        //modelBuilder.Entity<PostComment>()
-        //    .HasOne<ContentPost>()
-        //    .WithMany()
-        //    .HasForeignKey(pc => pc.PostId)
-        //    .OnDelete(DeleteBehavior.Cascade);
-
-        //modelBuilder.Entity<PostComment>()
-        //    .HasOne<User>()
-        //    .WithMany()
-        //    .HasForeignKey(pc => pc.UserId)
-        //    .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<SubscriptionPeriod>().HasData(
+            new SubscriptionPeriod { Id = 1, Months = 1 },
+            new SubscriptionPeriod { Id = 2, Months = 3 },
+            new SubscriptionPeriod { Id = 3, Months = 6 },
+            new SubscriptionPeriod { Id = 4, Months = 12 }
+        );
     }
 }

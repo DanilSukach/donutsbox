@@ -2,12 +2,11 @@
 using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.AuthorRepository;
 using Donutsbox.Domain.Repositories.EntityRepository;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Donutsbox.Api.Services.AuthorService;
 
-public class AuthorService(IAuthorRepository authorRepository, IEntityRepository<User, Guid> userRepository, IEntityRepository<CreatorPageData, Guid> creatorRepository, IEntityRepository<Subscription, Guid> subcriptionRepository) :IAuthorService
+public class AuthorService(IAuthorRepository authorRepository, IEntityRepository<User, Guid> userRepository, IEntityRepository<CreatorPageData, Guid> creatorRepository, IEntityRepository<Subscription, Guid> subcriptionRepository, IEntityRepository<SubscriptionPeriod, int> subscriptionPeriodRepository) : IAuthorService
 {
     public async Task<CreatorPageDataDto> AddCreatorPageAsync(CreatorPageDataDto dto, ClaimsPrincipal user)
     {
@@ -26,9 +25,9 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
             SubscribersCount = dto.SubscribersCount,
             User = author!
         };
-            
+
         var creator = await creatorRepository.AddAsync(entity);
-        
+
         return new CreatorPageDataDto
         {
 
@@ -40,30 +39,55 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
         };
     }
 
-    public async Task<SubscriptionDto> AddSubscriptionAsync(SubscriptionDto dto, ClaimsPrincipal user)
+    public async Task<SubscriptionDto> AddSubscriptionAsync(SubscriptionCreateDto dto, ClaimsPrincipal user)
     {
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
         var userId = Guid.Parse(userIdClaim.Value);
         var author = await authorRepository.GetByIdAsync(userId);
 
-        var subcription = new Subscription
+        var periods = await subscriptionPeriodRepository.GetAllAsync();
+        Subscription? monthlySub = null;
+        foreach (var period in periods)
         {
-            Id = Guid.NewGuid(),
-            CreatorPageData = author!.CreatorPageData!,
-            CreatorPageDataId = author!.CreatorPageData!.Id,
-            Price = dto.Price,
-            Name = dto.Name,
-            Description = dto.Description,
-            PictureURL = dto.PictureURL!
-        };
-        var result = await subcriptionRepository.AddAsync(subcription);
+            var subscription = new Subscription
+            {
+                Id = Guid.NewGuid(),
+                CreatorPageData = author!.CreatorPageData!,
+                CreatorPageDataId = author!.CreatorPageData!.Id,
+                Price = CalculatePrice(period.Months, dto.Price),
+                Name = dto.Name,
+                Description = dto.Description,
+                PictureURL = dto.PictureURL!,
+                SubscriptionPeriodId = period.Id,
+                SubscriptionPeriod = period
+            };
+            await subcriptionRepository.AddAsync(subscription);
+            if (period.Months == 1)
+            {
+                monthlySub = subscription;
+            }
+        }
+
+        if (monthlySub == null)
+            throw new InvalidOperationException("Monthly subscription period not found");
         return new SubscriptionDto
         {
-            Description = result.Description,
-            PictureURL = result.PictureURL,
-            Price = result.Price,
-            Name = result.Name,
+            Id = monthlySub.Id,
+            Price = monthlySub.Price,
+            Name = monthlySub.Name,
+            Description = monthlySub.Description,
+            PictureURL = monthlySub.PictureURL,
         };
+    }
+
+    public string CalculatePrice(int periodInMonths, string monthlyPrice)
+    {
+        if (decimal.TryParse(monthlyPrice, out var priceDecimal))
+        {
+            var totalPrice = priceDecimal * periodInMonths;
+            return totalPrice.ToString("F2");
+        }
+        throw new ArgumentException("Invalid monthly price format");
     }
 
     public async Task<IEnumerable<AuthorRequestDto>> GetAuthorsAsync(int page, int pageSize, string? sortBy = null, bool descending = false)
