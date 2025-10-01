@@ -1,6 +1,6 @@
 ﻿using Auth.Api.Dto;
 using Donutsbox.Domain.Entities;
-using Donutsbox.Domain.Repositories;
+using Donutsbox.Domain.Repositories.AuthRepository;
 using System.Data;
 
 namespace Auth.Api.Services;
@@ -12,6 +12,11 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         if (dto.Password != dto.RepeatPassword)
         {
             throw new InvalidOperationException("Password doesn't match");
+        }
+
+        if (dto.Role.Equals("Administrator", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Administrator role cannot be created through registration");
         }
 
         var hash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
@@ -69,5 +74,28 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         return tokens;
     }
 
+    public async Task CreateAdminAsync(RegisterRequestDto dto)
+    {
+        if (dto.Password != dto.RepeatPassword)
+        {
+            throw new InvalidOperationException("Password doesn't match");
+        }
 
+        var emailExists = await repository.EmailExistsAsync(dto.AuthEmail);
+        if (emailExists)
+        {
+            throw new InvalidOperationException("User with this email already exists");
+        }
+
+        var hash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
+        var user = new UserAuth
+        {
+            Id = Guid.NewGuid(),
+            Password = hash,
+            AuthEmail = dto.AuthEmail,
+        };
+
+        await repository.AddAsync(user, "Administrator");
+    }
 }

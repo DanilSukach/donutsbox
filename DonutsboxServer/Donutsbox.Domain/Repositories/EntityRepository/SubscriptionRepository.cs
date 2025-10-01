@@ -2,7 +2,7 @@
 using Donutsbox.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Donutsbox.Domain.Repositories;
+namespace Donutsbox.Domain.Repositories.EntityRepository;
 
 public class SubscriptionRepository(DonutsboxDbContext context) : IEntityRepository<Subscription, Guid>
 {

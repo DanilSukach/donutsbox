@@ -1,4 +1,4 @@
-﻿namespace Donutsbox.Domain.Repositories;
+﻿namespace Donutsbox.Domain.Repositories.EntityRepository;
 
 public interface IEntityRepository<T, TId>
 {
