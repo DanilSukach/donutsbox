@@ -46,4 +46,11 @@ public class Subscription
     [Required]
     public required string PictureURL { get; set; }
     public List<UserSubscription> UserSubscriptions { get; set; } = [];
+    /// <summary>
+    /// Длительность подписки (месяц, год и т.д.)
+    /// </summary>
+    [Column("subscription_period_id", TypeName = "int")]
+    [Required]
+    public required int SubscriptionPeriodId { get; set; }
+    public required SubscriptionPeriod SubscriptionPeriod { get; set; }
 }

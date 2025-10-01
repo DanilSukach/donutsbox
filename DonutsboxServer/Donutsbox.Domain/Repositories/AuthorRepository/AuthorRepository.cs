@@ -40,6 +40,8 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
     {
         return await context.Users
             .Include(u => u.CreatorPageData)
+            .ThenInclude(s => s.Subscriptions)
+            .ThenInclude(sp => sp.SubscriptionPeriod)
             .FirstOrDefaultAsync(u => u.Id == id && u.UserTypeId == 2);
     }
 

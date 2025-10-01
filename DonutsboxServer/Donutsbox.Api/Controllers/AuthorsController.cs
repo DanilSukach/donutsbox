@@ -54,7 +54,7 @@ public class AuthorsController(IAuthorService authorService) : ControllerBase
     /// <returns>Страница автора</returns>
     [HttpPost("subscription")]
     [Authorize(Roles = "Creator")]
-    public async Task<ActionResult<SubscriptionDto>> AddSubscriptionAsync([FromBody] SubscriptionDto dto)
+    public async Task<ActionResult<SubscriptionDto>> AddSubscriptionAsync([FromBody] SubscriptionCreateDto dto)
     {
         try
         {

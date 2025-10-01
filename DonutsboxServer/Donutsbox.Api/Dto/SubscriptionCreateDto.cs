@@ -1,11 +1,7 @@
 ﻿namespace Donutsbox.Api.Dto;
 
-public class SubscriptionDto
+public class SubscriptionCreateDto
 {
-    /// <summary>
-    /// Идентификатор
-    /// </summary>
-    public required Guid Id { get; set; }
     /// <summary>
     /// Цена подписки
     /// </summary>

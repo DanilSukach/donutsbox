@@ -9,5 +9,5 @@ public interface IAuthorService
     Task<AuthorRequestDto?> GetAuthorByIdAsync(Guid id);
     Task<IEnumerable<AuthorRequestDto>> GetTopAuthorsAsync(int count);
     Task<CreatorPageDataDto> AddCreatorPageAsync(CreatorPageDataDto dto, ClaimsPrincipal user);
-    Task<SubscriptionDto> AddSubscriptionAsync(SubscriptionDto dto, ClaimsPrincipal user);
+    Task<SubscriptionDto> AddSubscriptionAsync(SubscriptionCreateDto dto, ClaimsPrincipal user);
 }
