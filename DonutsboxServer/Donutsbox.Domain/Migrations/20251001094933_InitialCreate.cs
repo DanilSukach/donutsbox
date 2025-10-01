@@ -90,8 +90,8 @@ namespace Donutsbox.Domain.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     guid = table.Column<Guid>(type: "uuid", nullable: false),
                     page_name = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
-                    avatar_url = table.Column<string>(type: "text", nullable: false),
-                    banner_url = table.Column<string>(type: "text", nullable: false),
+                    avatar_url = table.Column<string>(type: "text", nullable: true),
+                    banner_url = table.Column<string>(type: "text", nullable: true),
                     description = table.Column<string>(type: "text", nullable: true),
                     subscribers_count = table.Column<int>(type: "integer", nullable: false)
                 },

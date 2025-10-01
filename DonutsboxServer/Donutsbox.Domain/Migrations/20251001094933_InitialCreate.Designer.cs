@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Donutsbox.Domain.Migrations
 {
     [DbContext(typeof(DonutsboxDbContext))]
-    [Migration("20251001083242_InitialCreate")]
+    [Migration("20251001094933_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -93,12 +93,10 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnName("id");
 
                     b.Property<string>("AvatarURL")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("avatar_url");
 
                     b.Property<string>("BannerURL")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("banner_url");
 

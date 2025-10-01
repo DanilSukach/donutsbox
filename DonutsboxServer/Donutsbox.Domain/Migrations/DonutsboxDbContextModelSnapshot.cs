@@ -90,12 +90,10 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnName("id");
 
                     b.Property<string>("AvatarURL")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("avatar_url");
 
                     b.Property<string>("BannerURL")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("banner_url");
 

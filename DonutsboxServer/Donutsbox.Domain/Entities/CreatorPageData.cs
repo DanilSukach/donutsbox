@@ -33,14 +33,12 @@ public class CreatorPageData
     /// Ссылка на аватарку автора
     /// </summary>
     [Column("avatar_url")]
-    [Required]
-    public required string AvatarURL { get; set; }
+    public string? AvatarURL { get; set; }
     /// <summary>
     /// Ссылка на баннер автора
     /// </summary>
     [Column("banner_url")]
-    [Required]
-    public required string BannerURL { get; set; }
+    public string? BannerURL { get; set; }
     /// <summary>
     /// Описание страницы автора
     /// </summary>
@@ -51,7 +49,7 @@ public class CreatorPageData
     /// </summary>
     [Column("subscribers_count")]
     [Required]
-    public required int SubscribersCount { get; set; }
+    public required int SubscribersCount { get; set; } = 0;
     public List<ContentPost> ContentPosts { get; set; } = [];
     public List<Subscription> Subscriptions { get; set; } = [];
 }

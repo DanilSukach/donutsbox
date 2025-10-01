@@ -1,25 +1,29 @@
 ﻿namespace Donutsbox.Api.Dto;
 
-public class CreatorPageDataDto
+public class AuthorRequestDto
 {
+    /// <summary>
+    /// Идентификатор страницы автора
+    /// </summary>
+    public Guid Id { get; set; }
+
     /// <summary>
     /// Название страницы автора
     /// </summary>
-    public required string PageName { get; set; }
+    public string PageName { get; set; } = null!;
+
     /// <summary>
     /// Ссылка на аватарку автора
     /// </summary>
     public string? AvatarUrl { get; set; }
-    /// <summary>
-    /// Ссылка на баннер автора
-    /// </summary>
-    public string? BannerUrl { get; set; }
+
     /// <summary>
     /// Описание страницы автора
     /// </summary>
     public string? Description { get; set; }
+
     /// <summary>
     /// Количество подписчиков
     /// </summary>
-    public required int SubscribersCount { get; set; }
+    public int SubscribersCount { get; set; }
 }
