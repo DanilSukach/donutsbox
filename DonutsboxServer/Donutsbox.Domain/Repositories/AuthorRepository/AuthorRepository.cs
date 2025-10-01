@@ -6,24 +6,6 @@ namespace Donutsbox.Domain.Repositories.AuthorRepository;
 
 public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
 {
-    public async Task<(bool, string?)> AddAsync(CreatorPageData creatorPageData)
-    {
-        try
-        {
-            await context.CreatorsPageData.AddAsync(creatorPageData);
-            await context.SaveChangesAsync();
-            return (true, null);
-        }
-        catch (DbUpdateException dbEx)
-        {
-            return (false, dbEx.InnerException?.Message ?? dbEx.Message);
-        }
-        catch (Exception ex)
-        {
-            return (false, ex.Message);
-        }
-    }
-
     public async Task<IEnumerable<User>> GetAllAsync(
      int page,
      int pageSize,

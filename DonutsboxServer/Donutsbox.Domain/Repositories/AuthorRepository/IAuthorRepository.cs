@@ -7,5 +7,4 @@ public interface IAuthorRepository
     Task<IEnumerable<User>> GetAllAsync(int page, int pageSize, string? sortBy = null, bool descending = false);
     Task<User?> GetByIdAsync(Guid id);
     Task<IEnumerable<User>> GetTopBySubscribersAsync(int count);
-    Task<(bool, string?)> AddAsync(CreatorPageData creatorPageData);
 }
