@@ -6,8 +6,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using Donutsbox.Domain.Entities;
-using Donutsbox.Domain.Repositories;
 using Auth.Api.Services;
+using Donutsbox.Domain.Repositories.EntityRepository;
+using Donutsbox.Domain.Repositories.AuthRepository;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -89,6 +90,7 @@ builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IAdminInitializationService, AdminInitializationService>();
 
 var app = builder.Build();
 
@@ -105,6 +107,12 @@ app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+using (var scope = app.Services.CreateScope())
+{
+    var adminInitService = scope.ServiceProvider.GetRequiredService<IAdminInitializationService>();
+    await adminInitService.InitializeAdminAsync();
+}
 
 app.MapControllers();
 

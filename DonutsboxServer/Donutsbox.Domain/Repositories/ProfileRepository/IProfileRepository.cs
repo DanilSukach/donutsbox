@@ -1,6 +1,6 @@
 ﻿using Donutsbox.Domain.Entities;
 
-namespace Donutsbox.Domain.Repositories;
+namespace Donutsbox.Domain.Repositories.ProfileRepository;
 
 public interface IProfileRepository
 {

@@ -2,7 +2,7 @@
 using Donutsbox.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Donutsbox.Domain.Repositories;
+namespace Donutsbox.Domain.Repositories.EntityRepository;
 public class UserDataRepository(DonutsboxDbContext context) : IEntityRepository<UserData, Guid>
 {
     public async Task<UserData> AddAsync(UserData entity)

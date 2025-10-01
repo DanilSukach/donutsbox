@@ -1,8 +1,7 @@
 ﻿using AutoMapper;
 using Donutsbox.Api.Dto;
 using Donutsbox.Domain.Entities;
-using Donutsbox.Domain.Repositories;
-using System.Diagnostics.Contracts;
+using Donutsbox.Domain.Repositories.EntityRepository;
 
 namespace Donutsbox.Api.Services;
 

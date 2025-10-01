@@ -19,7 +19,7 @@ public class JwtService(IConfiguration config) : IJwtService
         var claims = new[]
         {
             new Claim(ClaimTypes.Email, user.AuthEmail),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.User!.Id.ToString()),
             new Claim(ClaimTypes.Role, user.User!.UserType.Name)
         };
 

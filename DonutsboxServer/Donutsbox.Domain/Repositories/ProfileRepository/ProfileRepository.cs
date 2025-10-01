@@ -2,7 +2,7 @@
 using Donutsbox.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Donutsbox.Domain.Repositories;
+namespace Donutsbox.Domain.Repositories.ProfileRepository;
 
 public class ProfileRepository(DonutsboxDbContext context) : IProfileRepository
 {
