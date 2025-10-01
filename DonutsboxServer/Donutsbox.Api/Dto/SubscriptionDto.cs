@@ -3,14 +3,6 @@
 public class SubscriptionDto
 {
     /// <summary>
-    /// Идентификатор подписки
-    /// </summary>
-    public required Guid SubscriptionId { get; set; }
-    /// <summary>
-    /// Идентификатор страницы автора
-    /// </summary>
-    public required Guid PageId { get; set; }
-    /// <summary>
     /// Цена подписки
     /// </summary>
     public required string Price { get; set; }
@@ -25,5 +17,5 @@ public class SubscriptionDto
     /// <summary>
     /// Ссылка на картинку подписки
     /// </summary>
-    public required string PictureURL { get; set; }
+    public string? PictureURL { get; set; }
 }

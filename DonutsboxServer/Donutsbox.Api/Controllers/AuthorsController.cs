@@ -32,8 +32,9 @@ public class AuthorsController(IAuthorService authorService) : ControllerBase
     /// </summary>
     /// <param name="dto"></param>
     /// <returns>Страница автора</returns>
-    [HttpPost]
-    public async Task<IActionResult> AddCreatorPage([FromBody] CreatorPageDataDto dto)
+    [HttpPost("creator")]
+    [Authorize (Roles = "Creator")]
+    public async Task<ActionResult<CreatorPageDataDto>> AddCreatorPage([FromBody] CreatorPageDataDto dto)
     {
         try
         {
@@ -45,6 +46,27 @@ public class AuthorsController(IAuthorService authorService) : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Добавление подписки автора
+    /// </summary>
+    /// <param name="dto"></param>
+    /// <returns>Страница автора</returns>
+    [HttpPost("subscription")]
+    [Authorize(Roles = "Creator")]
+    public async Task<ActionResult<SubscriptionDto>> AddSubscriptionAsync([FromBody] SubscriptionDto dto)
+    {
+        try
+        {
+            var page = await authorService.AddSubscriptionAsync(dto, User);
+            return Ok(page);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
 
     /// <summary>
     /// Получает информацию об авторе
