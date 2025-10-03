@@ -1,12 +1,41 @@
-<div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
-  <div class="sm:mx-auto sm:w-full sm:max-w-sm">
-    <h2 class="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-      Вход в аккаунт
-    </h2>
-  </div>
+<div class="min-h-screen bg-gradient-to-br from-pink-50 via-yellow-50 to-amber-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md w-full space-y-8">
+    <!-- Header -->
+    <div class="text-center">
+      <div class="flex justify-center mb-6">
+        <div class="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
+          <span class="text-white font-bold text-lg">🔐</span>
+        </div>
+      </div>
+      <h2 class="text-3xl font-extrabold text-amber-900 tracking-tight">
+        Вход в аккаунт
+      </h2>
+      <p class="mt-2 text-amber-800">
+        Войдите, чтобы получить доступ к вашей ленте
+      </p>
+    </div>
 
-  <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-    <app-login-form (login)="onLogin($event)"></app-login-form>
+    <!-- Form Container -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+      <app-login-form (login)="onLogin($event)"></app-login-form>
+
+      @if (errorMessage) {
+        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div class="text-center text-sm text-red-600">
+            {{ errorMessage }}
+          </div>
+        </div>
+      }
+
+      <div class="mt-8 text-center">
+        <p class="text-sm text-gray-600">
+          Нет аккаунта?
+          <a routerLink="/auth/register" class="font-semibold text-amber-600 hover:text-amber-700 transition-colors">
+            Зарегистрируйтесь
+          </a>
+        </p>
+      </div>
+    </div>
   </div>
 </div>
 

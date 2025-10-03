@@ -11,17 +11,22 @@ namespace Auth.Api.Services;
 
 public class JwtService(IConfiguration config) : IJwtService
 {
-    public string GenerateAccessToken(UserAuth user)
+    public string GenerateAccessToken(UserAuth user, bool isNewCreator = false)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.Email, user.AuthEmail),
-            new Claim(ClaimTypes.NameIdentifier, user.User!.Id.ToString()),
-            new Claim(ClaimTypes.Role, user.User!.UserType.Name)
+            new(ClaimTypes.Email, user.AuthEmail),
+            new(ClaimTypes.NameIdentifier, user.User!.Id.ToString()),
+            new(ClaimTypes.Role, user.User!.UserType.Name)
         };
+
+        if (isNewCreator)
+        {
+            claims.Add(new Claim("is_new_creator", "true"));
+        }
 
         var token = new JwtSecurityToken(
             issuer: config["Jwt:Issuer"],

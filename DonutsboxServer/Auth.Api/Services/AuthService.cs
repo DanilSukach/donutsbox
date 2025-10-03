@@ -1,7 +1,6 @@
 ﻿using Auth.Api.Dto;
 using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.AuthRepository;
-using System.Data;
 
 namespace Auth.Api.Services;
 
@@ -17,6 +16,11 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         if (dto.Role.Equals("Administrator", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Administrator role cannot be created through registration");
+        }
+
+        if (await repository.EmailExistsAsync(dto.AuthEmail))
+        {
+            throw new InvalidOperationException("Email exists");
         }
 
         var hash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
@@ -37,9 +41,18 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.Password))
             throw new UnauthorizedAccessException("Invalid credentials");
 
-        var accessToken = jwt.GenerateAccessToken(user);
+        string accessToken;
+        if (user.LastAuth == null && user.User!.UserType.Name == "Creator")
+        {
+            accessToken = jwt.GenerateAccessToken(user, true);
+        }
+        else
+        {
+            accessToken = jwt.GenerateAccessToken(user, false);
+        }
         var refreshToken = jwt.GenerateRefreshToken();
 
+        user.LastAuth = DateTime.UtcNow;
         user.RefreshToken = refreshToken;
         user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
 
@@ -57,11 +70,13 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
     public async Task<AuthResponseDto> RefreshTokenAsync(RefreshRequestDto dto)
     {
         var user = await repository.GetByEmailAsync(dto.RefreshToken) ?? throw new UnauthorizedAccessException("Invalid refresh token");
-        var newAccessToken = jwt.GenerateAccessToken(user);
+        var newAccessToken = jwt.GenerateAccessToken(user, false);
         var newRefreshToken = jwt.GenerateRefreshToken();
 
         user.RefreshToken = newRefreshToken;
         user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+        user.LastAuth = DateTime.UtcNow;
 
         await repository.UpdateAsync(user);
 

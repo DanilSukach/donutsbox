@@ -96,4 +96,24 @@ public class AuthorsController(IAuthorService authorService) : ControllerBase
         var authors = await authorService.GetTopAuthorsAsync(count);
         return Ok(authors);
     }
+
+    /// <summary>
+    /// Получает информацию о топе подписчиков, которые подписаны на автора
+    /// </summary>
+    /// <returns>Информация о топе поддерживаемых авторах</returns>
+    /// <response code="200">Информация получена</response>
+    /// <response code="401">Не авторизован</response>
+    [HttpGet("top-supported")]
+    public async Task<ActionResult<IEnumerable<UserRequestDto>>> GetTopSupportedUsers([FromQuery] int count = 10)
+    {
+        try
+        {
+            var authors = await authorService.GetTopSupportedUsersAsync(User, count);
+            return Ok(authors);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

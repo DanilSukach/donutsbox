@@ -1,0 +1,94 @@
+@if (isOpen && author) {
+  <div 
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    (click)="onBackdropClick($event)"
+  >
+    <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <!-- Header -->
+      <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-xl">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <img 
+              [src]="author.avatarUrl || defaultAvatar"
+              [alt]="author.pageName"
+              class="w-10 h-10 rounded-full object-cover"
+              (error)="onImageError($event)"
+            />
+            <div>
+              <h2 class="text-xl font-bold text-gray-900">{{ author.pageName }}</h2>
+              <p class="text-sm text-gray-600">Выберите подписку</p>
+            </div>
+          </div>
+          <button 
+            (click)="close()" 
+            class="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6">
+        @if (subscriptionError()) {
+          <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p class="text-red-600 text-sm">{{ subscriptionError() }}</p>
+          </div>
+        }
+
+        @if (author.subscriptions && author.subscriptions.length > 0) {
+          <div class="space-y-4">
+            @for (subscription of author.subscriptions; track subscription.id) {
+              <div class="border border-gray-200 rounded-lg p-4 hover:border-amber-300 transition-colors">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                      @if (subscription.pictureURL && subscription.pictureURL !== defaultSubscriptionImage) {
+                        <img 
+                          [src]="subscription.pictureURL"
+                          [alt]="subscription.name"
+                          class="w-12 h-12 rounded-lg object-cover"
+                          (error)="onSubscriptionImageError($event)"
+                        />
+                      }
+                      <div>
+                        <h3 class="font-semibold text-gray-900">{{ subscription.name }}</h3>
+                        <p class="text-2xl font-bold text-amber-600">{{ formatPrice(subscription.price) }}</p>
+                      </div>
+                    </div>
+                    @if (subscription.description) {
+                      <p class="text-gray-600 text-sm">{{ subscription.description }}</p>
+                    }
+                  </div>
+                  <button
+                    (click)="subscribeToSubscription(subscription)"
+                    [disabled]="isSubscribing()"
+                    class="ml-4 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition-colors font-medium"
+                  >
+                    @if (isSubscribing()) {
+                      <span class="flex items-center gap-2">
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Подписка...
+                      </span>
+                    } @else {
+                      Подписаться
+                    }
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="text-center py-8">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-2xl">💎</span>
+            </div>
+            <p class="text-gray-600">У этого автора пока нет доступных подписок</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

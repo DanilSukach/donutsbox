@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Donutsbox.Domain.Migrations
 {
     [DbContext(typeof(DonutsboxDbContext))]
-    [Migration("20251001094933_InitialCreate")]
+    [Migration("20251002082217_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -249,11 +249,57 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("text")
                         .HasColumnName("price");
 
+                    b.Property<int>("SubscriptionPeriodId")
+                        .HasColumnType("int")
+                        .HasColumnName("subscription_period_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatorPageDataId");
 
+                    b.HasIndex("SubscriptionPeriodId");
+
                     b.ToTable("subscription");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.SubscriptionPeriod", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Months")
+                        .HasColumnType("integer")
+                        .HasColumnName("months");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("subscription_period");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Months = 1
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Months = 3
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Months = 6
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Months = 12
+                        });
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.User", b =>
@@ -492,7 +538,15 @@ namespace Donutsbox.Domain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Donutsbox.Domain.Entities.SubscriptionPeriod", "SubscriptionPeriod")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionPeriodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("CreatorPageData");
+
+                    b.Navigation("SubscriptionPeriod");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.User", b =>

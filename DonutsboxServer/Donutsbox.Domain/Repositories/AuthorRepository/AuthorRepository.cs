@@ -40,7 +40,7 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
     {
         return await context.Users
             .Include(u => u.CreatorPageData)
-            .ThenInclude(s => s.Subscriptions)
+            .ThenInclude(s => s!.Subscriptions)
             .ThenInclude(sp => sp.SubscriptionPeriod)
             .FirstOrDefaultAsync(u => u.Id == id && u.UserTypeId == 2);
     }
@@ -49,11 +49,22 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
     {
         return await context.Users
             .Include(u => u.CreatorPageData)
+            .ThenInclude(c => c!.Subscriptions)
             .Where(u => u.UserTypeId == 2)
             .OrderByDescending(u => u.CreatorPageData!.SubscribersCount)
             .Take(count)
             .ToListAsync();
     }
 
-    
+    public async Task<IEnumerable<User>> GetTopSupportedUsersAsync(Guid creatorPageId, int count)
+    {
+        return await context.UsersSubscriptions
+            .Where(us => us.Subscription.CreatorPageDataId == creatorPageId) 
+            .Include(us => us.User)
+            .OrderByDescending(us => us.BeginDate)
+            .Take(count)
+            .Select(us => us.User)
+            .ToListAsync();
+    }
+
 }

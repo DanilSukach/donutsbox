@@ -29,6 +29,19 @@ namespace Donutsbox.Domain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "subscription_period",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    months = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_subscription_period", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "user_auth",
                 columns: table => new
                 {
@@ -165,7 +178,8 @@ namespace Donutsbox.Domain.Migrations
                     price = table.Column<string>(type: "text", nullable: false),
                     name = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     description = table.Column<string>(type: "text", nullable: false),
-                    picture_url = table.Column<string>(type: "text", nullable: false)
+                    picture_url = table.Column<string>(type: "text", nullable: false),
+                    subscription_period_id = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -174,6 +188,12 @@ namespace Donutsbox.Domain.Migrations
                         name: "FK_subscription_creator_page_data_page_id",
                         column: x => x.page_id,
                         principalTable: "creator_page_data",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_subscription_subscription_period_subscription_period_id",
+                        column: x => x.subscription_period_id,
+                        principalTable: "subscription_period",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -262,6 +282,17 @@ namespace Donutsbox.Domain.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "subscription_period",
+                columns: new[] { "id", "months" },
+                values: new object[,]
+                {
+                    { 1, 1 },
+                    { 2, 3 },
+                    { 3, 6 },
+                    { 4, 12 }
+                });
+
+            migrationBuilder.InsertData(
                 table: "user_type",
                 columns: new[] { "id", "name" },
                 values: new object[,]
@@ -301,6 +332,11 @@ namespace Donutsbox.Domain.Migrations
                 name: "IX_subscription_page_id",
                 table: "subscription",
                 column: "page_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_subscription_subscription_period_id",
+                table: "subscription",
+                column: "subscription_period_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_user_user_auth_id",
@@ -356,6 +392,9 @@ namespace Donutsbox.Domain.Migrations
 
             migrationBuilder.DropTable(
                 name: "creator_page_data");
+
+            migrationBuilder.DropTable(
+                name: "subscription_period");
 
             migrationBuilder.DropTable(
                 name: "user");

@@ -1,0 +1,60 @@
+<div class="min-h-screen bg-gradient-to-br from-pink-50 via-yellow-50 to-amber-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Top Bar -->
+    <div class="flex justify-between items-center mb-8">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
+          <span class="text-white font-bold text-sm">📰</span>
+        </div>
+        <h1 class="text-2xl font-extrabold text-amber-900 tracking-tight">Лента подписок</h1>
+      </div>
+      <app-user-profile-icon></app-user-profile-icon>
+    </div>
+
+    <!-- Header -->
+    <header class="text-center mb-12">
+      <p class="text-lg text-amber-800 max-w-2xl mx-auto">
+        Персональная лента контента от ваших подписок
+      </p>
+    </header>
+
+    <!-- Main Layout: Grid с центральной лентой и боковой панелью -->
+    <main class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <!-- Центральная лента контента (занимает 3 колонки из 4) -->
+      <section class="lg:col-span-3 order-2 lg:order-1">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+          <div class="border-b border-gray-200 pb-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Последние публикации</h2>
+            <p class="text-gray-600 mt-2">Свежий контент от ваших подписок</p>
+          </div>
+          
+          @if (isLoading()) {
+            <div class="text-center py-16">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600 mx-auto mb-4"></div>
+              <p class="text-gray-600">Загружаем ваш персональный контент...</p>
+            </div>
+          } @else {
+            <div class="text-center py-16">
+              <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-2xl">📝</span>
+              </div>
+              <p class="text-gray-600 text-lg mb-2">Ваш персональный контент будет отображаться здесь</p>
+              <p class="text-gray-500 text-sm mb-4">
+                Контент будет загружен на основе вашего ID: 
+                <code class="bg-gray-100 px-2 py-1 rounded text-xs">{{ userGuid() }}</code>
+              </p>
+              <p class="text-gray-500 text-sm">Подпишитесь на авторов справа, чтобы видеть их контент в ленте</p>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- Боковая панель справа (занимает 1 колонку из 4) -->
+      <aside class="lg:col-span-1 order-1 lg:order-2">
+        <div class="lg:sticky lg:top-8">
+          <app-top-authors></app-top-authors>
+        </div>
+      </aside>
+    </main>
+  </div>
+</div>

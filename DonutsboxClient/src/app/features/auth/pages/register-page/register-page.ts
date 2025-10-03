@@ -3,10 +3,11 @@ import { AuthFacade } from '../../services/auth-facade';
 import { RegisterRequestDto } from '@app/api/auth';
 import { CommonModule } from '@angular/common';
 import { RegisterForm } from '../../components/register-form/register-form';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-register-page',
-  imports: [CommonModule, RegisterForm],
+  imports: [CommonModule, RegisterForm, RouterModule],
   templateUrl: './register-page.html',
   styleUrl: './register-page.css',
 })

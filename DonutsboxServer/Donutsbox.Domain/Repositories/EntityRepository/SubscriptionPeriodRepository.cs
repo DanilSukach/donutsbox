@@ -1,9 +1,8 @@
 ﻿using Donutsbox.Domain.Context;
 using Donutsbox.Domain.Entities;
-using Donutsbox.Domain.Repositories.EntityRepository;
 using Microsoft.EntityFrameworkCore;
 
-namespace Donutsbox.Domain.Repositories;
+namespace Donutsbox.Domain.Repositories.EntityRepository;
 
 public class SubscriptionPeriodRepository(DonutsboxDbContext context) : IEntityRepository<SubscriptionPeriod, int>
 {

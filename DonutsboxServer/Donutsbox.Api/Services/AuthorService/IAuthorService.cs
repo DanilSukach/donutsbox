@@ -8,6 +8,7 @@ public interface IAuthorService
     Task<IEnumerable<AuthorRequestDto>> GetAuthorsAsync(int page, int pageSize, string? sortBy = null, bool descending = false);
     Task<AuthorRequestDto?> GetAuthorByIdAsync(Guid id);
     Task<IEnumerable<AuthorRequestDto>> GetTopAuthorsAsync(int count);
+    Task<IEnumerable<UserRequestDto>> GetTopSupportedUsersAsync(ClaimsPrincipal author, int count);
     Task<CreatorPageDataDto> AddCreatorPageAsync(CreatorPageDataDto dto, ClaimsPrincipal user);
     Task<SubscriptionDto> AddSubscriptionAsync(SubscriptionCreateDto dto, ClaimsPrincipal user);
 }
