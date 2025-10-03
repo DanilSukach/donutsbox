@@ -1,1 +1,20 @@
-<p>home-page works!</p>
+<div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-pink-100 via-yellow-100 to-amber-100">
+  <div class="text-center px-6">
+    <div class="flex items-center justify-center gap-3 mb-4">
+      <img src="/favicon.ico" alt="Donutsbox" class="h-10 w-10" />
+      <h1 class="text-4xl font-extrabold text-amber-900 tracking-tight">Donutsbox</h1>
+    </div>
+    <p class="text-lg text-amber-800 max-w-xl mx-auto">
+      Добро пожаловать! Платформа для авторов и их подписчиков.
+    </p>
+
+    <div class="mt-10 flex gap-4 justify-center flex-wrap">
+      <a routerLink="/auth/login" class="px-6 py-3 rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors duration-200">
+        Войти
+      </a>
+      <a routerLink="/auth/register" class="px-6 py-3 rounded-md bg-white text-amber-800 border border-amber-300 hover:bg-amber-50 transition-colors duration-200">
+        Зарегистрироваться
+      </a>
+    </div>
+  </div>
+</div>

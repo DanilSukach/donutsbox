@@ -1,0 +1,86 @@
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 lg:p-6">
+  <!-- Header -->
+  <div class="mb-6">
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-5 h-5 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
+        <span class="text-white text-xs">💎</span>
+      </div>
+      <h2 class="text-lg font-bold text-gray-900">Подписчики</h2>
+    </div>
+    <p class="text-sm text-gray-600">Подписчики, которые поддерживают этого создателя</p>
+  </div>
+
+  <!-- Состояние загрузки -->
+  @if (isLoading()) {
+    <div class="flex flex-col items-center justify-center py-8">
+      <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mb-3"></div>
+      <p class="text-sm text-gray-600">Загрузка...</p>
+    </div>
+  }
+
+  <!-- Состояние ошибки -->
+  @if (error() && !isLoading()) {
+    <div class="text-center py-8">
+      <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+        <span class="text-lg">⚠️</span>
+      </div>
+      <p class="text-red-600 text-sm mb-3">{{ error() }}</p>
+      <button 
+        (click)="loadSupporters()" 
+        class="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium"
+      >
+        Повторить
+      </button>
+    </div>
+  }
+
+  <!-- Список поддерживающих подписчиков -->
+  @if (supporters().length > 0) {
+    <div class="space-y-3">
+      @for (supporter of supporters(); track trackByUserId($index, supporter); let i = $index) {
+        <div class="flex items-start p-3 border border-gray-200 rounded-lg hover:border-green-300 hover:shadow-sm transition-all duration-200 bg-gray-50 hover:bg-white">
+          <!-- Rank -->
+          <div class="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
+            <span class="text-white font-bold text-xs">{{ i + 1 }}</span>
+          </div>
+          
+          <!-- Avatar -->
+          <div class="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden mr-3 ring-2 ring-gray-200 hover:ring-green-300 transition-all duration-200">
+            <img 
+              [src]="defaultAvatar" 
+              [alt]="supporter.userName || 'Пользователь'"
+              class="w-full h-full object-cover"
+              (error)="onImageError($event)"
+            />
+          </div>
+
+          <!-- Info -->
+          <div class="flex-1 min-w-0">
+            <h3 class="text-sm font-semibold text-gray-900 truncate hover:text-green-900 transition-colors duration-200 mb-1">
+              {{ supporter.userName || 'Пользователь' }}
+            </h3>
+            <p class="text-xs text-gray-600 line-clamp-2 mb-2">
+              ID: {{ supporter.id }}
+            </p>
+            <div class="flex items-center justify-between">
+              <span class="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
+                <span>💎</span>
+                Подписчик
+              </span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Пустое состояние -->
+  @if (supporters().length === 0 && !isLoading() && !error()) {
+    <div class="text-center py-8">
+      <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+        <span class="text-lg">💎</span>
+      </div>
+      <p class="text-sm text-gray-600">Пока нет поддерживающих подписчиков</p>
+    </div>
+  }
+</div>

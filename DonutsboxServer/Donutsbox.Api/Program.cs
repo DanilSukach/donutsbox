@@ -10,7 +10,6 @@ using Donutsbox.Domain.Repositories.EntityRepository;
 using Donutsbox.Domain.Repositories.ProfileRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
@@ -93,6 +92,7 @@ builder.Services.AddScoped<IEntityRepository<UserType, int>, UserTypeRepository>
 builder.Services.AddScoped<IEntityRepository<Subscription, Guid>, SubscriptionRepository>();
 builder.Services.AddScoped<IEntityRepository<CreatorPageData, Guid>, CreatorPageDataRepository>();
 builder.Services.AddScoped<IEntityRepository<ContentPost, Guid>, ContentPostRepository>();
+builder.Services.AddScoped<IEntityRepository<SubscriptionPeriod, int>, SubscriptionPeriodRepository>();
 
 builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
 

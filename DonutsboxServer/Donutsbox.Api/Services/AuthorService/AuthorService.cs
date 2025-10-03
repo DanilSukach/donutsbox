@@ -106,7 +106,15 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
                     PageName = user.CreatorPageData.PageName,
                     AvatarUrl = user.CreatorPageData.AvatarURL,
                     Description = user.CreatorPageData.Description,
-                    SubscribersCount = user.CreatorPageData.SubscribersCount
+                    SubscribersCount = user.CreatorPageData.SubscribersCount,
+                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(s => new SubscriptionDto
+                    {
+                        Id = s.Id,
+                        Price = s.Price,
+                        PictureURL = s.PictureURL,
+                        Description = s.Description,
+                        Name = s.Name,
+                    })]
                 });
             }
         }
@@ -127,7 +135,15 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
             PageName = user.CreatorPageData.PageName,
             AvatarUrl = user.CreatorPageData.AvatarURL,
             Description = user.CreatorPageData.Description,
-            SubscribersCount = user.CreatorPageData.SubscribersCount
+            SubscribersCount = user.CreatorPageData.SubscribersCount,
+            Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(s => new SubscriptionDto
+            {
+                Id = s.Id,
+                Price = s.Price,
+                PictureURL = s.PictureURL,
+                Description = s.Description,
+                Name = s.Name,
+            })]
         };
     }
 
@@ -147,9 +163,38 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
                     PageName = user.CreatorPageData.PageName,
                     AvatarUrl = user.CreatorPageData.AvatarURL,
                     Description = user.CreatorPageData.Description,
-                    SubscribersCount = user.CreatorPageData.SubscribersCount
+                    SubscribersCount = user.CreatorPageData.SubscribersCount,
+                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(s => new SubscriptionDto
+                    {
+                        Id = s.Id,
+                        Price = s.Price,
+                        PictureURL = s.PictureURL,
+                        Description = s.Description,
+                        Name = s.Name,
+                    })]
                 });
             }
+        }
+
+        return dtos;
+    }
+
+    public async Task<IEnumerable<UserRequestDto>> GetTopSupportedUsersAsync(ClaimsPrincipal author, int count)
+    {
+        var authorIdClaim = author.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
+        var authorId = Guid.Parse(authorIdClaim.Value);
+        var users = await authorRepository.GetTopSupportedUsersAsync(authorId, count);
+
+        var dtos = new List<UserRequestDto>();
+
+        foreach (var user in users)
+        {
+            dtos.Add(new UserRequestDto
+            {
+                Id = user.Id,
+                UserName = user.Name
+            });
+
         }
 
         return dtos;

@@ -5,12 +5,12 @@ public class AuthorRequestDto
     /// <summary>
     /// Идентификатор страницы автора
     /// </summary>
-    public Guid Id { get; set; }
+    public required Guid Id { get; set; }
 
     /// <summary>
     /// Название страницы автора
     /// </summary>
-    public string PageName { get; set; } = null!;
+    public required string PageName { get; set; } = null!;
 
     /// <summary>
     /// Ссылка на аватарку автора
@@ -25,5 +25,10 @@ public class AuthorRequestDto
     /// <summary>
     /// Количество подписчиков
     /// </summary>
-    public int SubscribersCount { get; set; }
+    public required int SubscribersCount { get; set; }
+
+    /// <summary>
+    /// Подписки
+    /// </summary>
+    public required List<SubscriptionDto> Subscriptions { get; set; } = [];
 }
