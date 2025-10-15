@@ -59,7 +59,7 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
     public async Task<IEnumerable<User>> GetTopSupportedUsersAsync(Guid creatorPageId, int count)
     {
         return await context.UsersSubscriptions
-            .Where(us => us.Subscription.CreatorPageDataId == creatorPageId) 
+            .Where(us => us.Subscription.CreatorPageDataId == creatorPageId)
             .Include(us => us.User)
             .OrderByDescending(us => us.BeginDate)
             .Take(count)

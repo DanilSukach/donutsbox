@@ -5,11 +5,13 @@ using Donutsbox.Api.Services.AuthorService;
 using Donutsbox.Api.Services.Kafka;
 using Donutsbox.Api.Services.MinioService;
 using Donutsbox.Api.Services.UserInteractionService;
+using Donutsbox.Api.Services.UserSubscriptionsService;
 using Donutsbox.Domain.Context;
 using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.AuthorRepository;
 using Donutsbox.Domain.Repositories.EntityRepository;
 using Donutsbox.Domain.Repositories.ProfileRepository;
+using Donutsbox.Domain.Repositories.UserSubscriptionsRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -91,7 +93,12 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
 builder.Services.AddDbContext<DonutsboxDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
-builder.Services.AddScoped<IEntityRepository<User, Guid>, UserRepository>();
+
+builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<IEntityRepository<User, Guid>>(sp => sp.GetRequiredService<UserRepository>());
+builder.Services.AddScoped<IUserSubscriptionsRepository>(sp => sp.GetRequiredService<UserRepository>());
+builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
+
 builder.Services.AddScoped<IEntityRepository<UserAuth, Guid>, UserAuthRepository>();
 builder.Services.AddScoped<IEntityRepository<UserData, Guid>, UserDataRepository>();
 builder.Services.AddScoped<IEntityRepository<UserSubscription, Guid>, UserSubscriptionRepository>();
@@ -101,7 +108,6 @@ builder.Services.AddScoped<IEntityRepository<CreatorPageData, Guid>, CreatorPage
 builder.Services.AddScoped<IEntityRepository<ContentPost, Guid>, ContentPostRepository>();
 builder.Services.AddScoped<IEntityRepository<SubscriptionPeriod, int>, SubscriptionPeriodRepository>();
 
-builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
 
 builder.Services.AddScoped<IEntityService<UserDto, Guid>, UserService>();
 builder.Services.AddScoped<IEntityService<UserAuthDto, Guid>, UserAuthService>();
@@ -112,6 +118,7 @@ builder.Services.AddScoped<IEntityService<SubscriptionDto, Guid>, SubscriptionSe
 builder.Services.AddScoped<IEntityService<CreatorPageDataDto, Guid>, CreatorPageDataService>();
 builder.Services.AddScoped<IEntityService<ContentPostDto, Guid>, ContentPostService>();
 
+builder.Services.AddScoped<IUserSubscriptionsService, UserSubscriptionsService>();
 builder.Services.AddScoped<IUserInteractionService, UserInteractionService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
 
@@ -122,7 +129,6 @@ builder.Services.AddScoped<IMessageProducer, KafkaMessageProducer>();
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => { policy.AllowAnyOrigin(); policy.AllowAnyMethod(); policy.AllowAnyHeader(); }));
 
 builder.Services.AddControllers();
-
 
 builder.Services.AddHostedService<VideoProcessedConsumer>();
 
