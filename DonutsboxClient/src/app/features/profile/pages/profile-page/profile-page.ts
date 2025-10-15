@@ -5,11 +5,13 @@ import { AuthFacade } from '../../../auth/services/auth-facade';
 import { TokenService } from '@app/core/services/token.service';
 import { JwtDecodeService } from '@app/core/services/jwt-decode.service';
 import { AuthorSupporters } from '../../components/author-supporters/author-supporters';
+import { CreatePostModal } from '../../components/create-post-modal/create-post-modal';
+import { PostsList } from "../../components/posts-list/posts-list";
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, AuthorSupporters],
+  imports: [CommonModule, AuthorSupporters, CreatePostModal, PostsList],
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.css'
 })
@@ -23,6 +25,7 @@ export class ProfilePage implements OnInit {
   readonly isOwnProfile = signal(false);
   readonly profileId = signal<string | null>(null);  
   readonly isCurrentUserCreator = signal(false);
+   readonly showCreatePostModal = signal(false);
 
   ngOnInit(): void {
     this.checkProfileOwnership();
@@ -48,10 +51,12 @@ export class ProfilePage implements OnInit {
   }
 
   onAddContent(): void {
-    console.log('Добавление нового контента...');
-    alert('Функция добавления контента будет реализована в следующих версиях!');
+    this.showCreatePostModal.set(true);  
   }
 
+  closeCreatePostModal(): void {
+    this.showCreatePostModal.set(false);  
+  }
   onLogout(): void {
     this.authFacade.logout();
   }

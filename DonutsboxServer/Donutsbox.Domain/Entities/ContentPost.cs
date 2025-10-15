@@ -35,11 +35,17 @@ public class ContentPost
     [Required]
     public string? Text { get; set; }
     /// <summary>
+    /// Статус поста
+    /// </summary>
+    [Column("is_published")]
+    [Required]
+    public bool IsPublished { get; set; } = false;
+    /// <summary>
     /// Дата создания поста
     /// </summary>
     [Column("created_at", TypeName = "timestamptz")]
     [Required]
-    public required DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? CreatedAt { get; set; }
     /// <summary>
     /// Кол-во лайков
     /// </summary>
@@ -63,19 +69,19 @@ public class ContentPost
     /// </summary>
     [Column("audio_urls")]
     [Required]
-    public required List<string> AudioURLs { get; set; }
+    public List<string> AudioURLs { get; set; } = [];
     /// <summary>
     /// Ссылки на видео
     /// </summary>
     [Column("video_urls")]
     [Required]
-    public required List<Video> Videos { get; set; } = [];
+    public List<Video> Videos { get; set; } = [];
     /// <summary>
     /// Ссылки на картинки  
     /// </summary>
     [Column("picture_urls")]
     [Required]
-    public required List<string> PictureURLs { get; set; }
+    public List<string> PictureURLs { get; set; } = [];
     public List<PostReaction> PostReactions { get; set; } = [];
     public List<PostComment> PostComments { get; set; } = [];
 }

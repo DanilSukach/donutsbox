@@ -3,9 +3,9 @@ using Donutsbox.Api.Services.Kafka;
 using Donutsbox.Api.Services.MinioService;
 using Donutsbox.Domain.Context;
 using Donutsbox.Domain.Entities;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Donutsbox.Api.Controllers;
@@ -15,31 +15,62 @@ namespace Donutsbox.Api.Controllers;
 public class FilesController(IMinioService minioService, ILogger<FilesController> logger, DonutsboxDbContext db, IMessageProducer kafka) : ControllerBase
 {
     /// <summary>
-    /// Загружает файл
+    /// Загружает видео (только для creator)
     /// </summary>
-    /// <returns>URL для загрузки файла</returns>
-    /// <response code="200">URL получен</response>
+    [Authorize(Roles = "Creator")]
     [HttpPost("upload")]
     [RequestSizeLimit(2L * 1024 * 1024 * 1024)] // 2 GB
-    public async Task<IActionResult> Upload([FromForm] VideoUploadRequestDto request)
+    public async Task<ActionResult<VideoUploadResponseDto>> Upload([FromForm] VideoUploadRequestDto request)
     {
         if (request.File == null || request.File.Length == 0)
             return BadRequest("No file uploaded");
 
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        var userId = Guid.Parse(userIdClaim!.Value);
+
+        var user = await db.Users
+            .Include(u => u.UserType)
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return Unauthorized();
+
+        if (user.CreatorPageData == null)
+            return BadRequest("Creator page not found");
+
+
+        var post = await db.ContentPosts.FirstOrDefaultAsync(p =>
+            p.Id == request.ContentPostId &&
+            p.CreatorPageDataId == user.CreatorPageData.Id);
+
+        if (post == null)
+            return BadRequest("Content post not found or does not belong to you");
+
+
         var videoId = Guid.NewGuid();
         var objectKey = $"{videoId}/{Path.GetFileName(request.File.FileName)}";
 
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        var userId = Guid.Parse(userIdClaim!.Value);
+        string? thumbnailUrl = null;
+        if (request.Thumbnail != null && request.Thumbnail.Length > 0)
+        {
+            var thumbnailKey = $"{videoId}/thumbnail_{Path.GetFileName(request.Thumbnail.FileName)}";
+            using var thumbStream = request.Thumbnail.OpenReadStream();
+            await minioService.UploadFileAsync(thumbnailKey, thumbStream, request.Thumbnail.ContentType);
+            thumbnailUrl = thumbnailKey;
+            logger.LogInformation("Thumbnail uploaded for video {VideoId}", videoId);
+        }
 
         var video = new Video
         {
             Id = videoId,
             Title = request.Title,
-            Description = request.Description,
-            UserId = userId!,
+            UserId = userId,
+            ContentPostId = request.ContentPostId,
+            ContentPost = post,
             Status = "UPLOADING",
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            ThumbnailUrl = thumbnailUrl 
         };
         db.Videos.Add(video);
         await db.SaveChangesAsync();
@@ -47,15 +78,105 @@ public class FilesController(IMinioService minioService, ILogger<FilesController
         using var stream = request.File.OpenReadStream();
         await minioService.UploadFileAsync(objectKey, stream, request.File.ContentType);
 
-        // 3️⃣ Обновляем статус
         video.Status = "UPLOADED";
         video.ObjectKey = objectKey;
         await db.SaveChangesAsync();
 
         await kafka.PublishVideoUploadedAsync(new VideoUploadedEvent(video.Id, objectKey));
 
-        logger.LogInformation("Video {VideoId} uploaded and published to Kafka", video.Id);
+        logger.LogInformation("Video {VideoId} uploaded by creator {UserId}", video.Id, userId);
 
-        return Ok(new { videoId = video.Id });
+        return Ok(new VideoUploadResponseDto
+        {
+            VideoId = video.Id,
+            Status = video.Status,
+            ThumbnailUrl = thumbnailUrl
+        });
+    }
+
+    /// <summary>
+    /// Получить список видео текущего creator'а
+    /// </summary>
+    [HttpGet("my-videos")]
+    public async Task<ActionResult<MyVideoResponseDto>> GetMyVideos(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? status = null)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        var userId = Guid.Parse(userIdClaim!.Value);
+
+        var query = db.Videos
+            .Where(v => v.UserId == userId)
+            .OrderByDescending(v => v.CreatedAt)
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(status))
+            query = query.Where(v => v.Status == status);
+
+        var total = await query.CountAsync();
+        var videos = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(v => new VideoDto
+                {
+                    Id = v.Id,
+                    Title = v.Title,
+                    Status = v.Status,
+                    CreatedAt = v.CreatedAt,
+                    ThumbnailUrl = v.ThumbnailUrl,
+                    ProcessedPath = v.ProcessedPath,
+                    ContentPostId = v.ContentPostId,
+                    HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
+                })
+                .ToListAsync();
+
+        return Ok(new MyVideoResponseDto
+        {
+            Total = total,
+            Page = page,
+            PageSize = pageSize,
+            Videos = videos
+        });
+    }
+
+    /// <summary>
+    /// Получить превью видео
+    /// </summary>
+    [HttpGet("{videoId:guid}/thumbnail")]
+    public async Task<ActionResult<byte[]>> GetThumbnail([FromRoute] Guid videoId)
+    {
+        var video = await db.Videos.FirstOrDefaultAsync(v => v.Id == videoId);
+        if (video == null || string.IsNullOrEmpty(video.ThumbnailUrl))
+            return NotFound();
+
+        var bytes = await minioService.GetProcessedObjectBytesAsync(video.ThumbnailUrl);
+        return File(bytes, "image/jpeg");
+    }
+
+
+    /// <summary>
+    /// HLS манифест
+    /// </summary>
+    [HttpGet("{videoId:guid}/hls/index.m3u8")]
+    public async Task<ActionResult<byte[]>> GetManifest([FromRoute] Guid videoId, CancellationToken ct)
+    {
+        var video = await db.Videos.FirstOrDefaultAsync(v => v.Id == videoId, ct);
+        if (video == null || string.IsNullOrWhiteSpace(video.ProcessedPath))
+            return NotFound();
+
+        var bytes = await minioService.GetProcessedObjectBytesAsync(video.ProcessedPath, ct);
+        return File(bytes, "application/vnd.apple.mpegurl");
+    }
+
+    [HttpGet("{videoId:guid}/hls/{segment}")]
+    public async Task<ActionResult<byte[]>> GetSegment([FromRoute] Guid videoId, [FromRoute] string segment, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(segment) || segment.Contains('/') || segment.Contains('\\'))
+            return BadRequest();
+        var key = $"processed/{videoId}/{segment}";
+        var bytes = await minioService.GetProcessedObjectBytesAsync(key, ct);
+        var contentType = segment.EndsWith(".ts", StringComparison.OrdinalIgnoreCase) ? "video/mp2t" : "application/octet-stream";
+        return File(bytes, contentType);
     }
 }

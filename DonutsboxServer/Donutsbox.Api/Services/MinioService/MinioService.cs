@@ -12,6 +12,7 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
         .Build();
 
     private readonly string _tempBucket = configuration["Minio:BucketTemp"] ?? "video-temp";
+    private readonly string _processedBucket = configuration["Minio:BucketProcessed"] ?? "video-processed";
 
     public async Task EnsureBucketAsync()
     {
@@ -50,5 +51,14 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
         await _client.PutObjectAsync(args);
 
         logger.LogInformation("File {ObjectKey} uploaded to MinIO bucket {Bucket}", objectKey, _tempBucket);
+    }
+    public async Task<byte[]> GetProcessedObjectBytesAsync(string objectKey, CancellationToken ct = default)
+    {
+        using var ms = new MemoryStream();
+        await _client.GetObjectAsync(new GetObjectArgs()
+            .WithBucket(_processedBucket)
+            .WithObject(objectKey)
+            .WithCallbackStream(s => s.CopyTo(ms)), ct);
+        return ms.ToArray();
     }
 }

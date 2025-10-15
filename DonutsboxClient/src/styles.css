@@ -1,1 +1,5 @@
 @import "tailwindcss";
+:root {
+  --media-brand: #d97706;
+  --media-focus-ring-color: #f59e0b;
+}
