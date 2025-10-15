@@ -155,7 +155,6 @@ namespace Donutsbox.Domain.Migrations
                     dislikes_count = table.Column<int>(type: "integer", nullable: false),
                     comments_count = table.Column<int>(type: "integer", nullable: false),
                     audio_urls = table.Column<List<string>>(type: "text[]", nullable: false),
-                    video_urls = table.Column<List<string>>(type: "text[]", nullable: false),
                     picture_urls = table.Column<List<string>>(type: "text[]", nullable: false)
                 },
                 constraints: table =>
@@ -243,6 +242,29 @@ namespace Donutsbox.Domain.Migrations
                         principalTable: "reaction_type",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Videos",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    ObjectKey = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ContentPostId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Videos", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Videos_content_post_ContentPostId",
+                        column: x => x.ContentPostId,
+                        principalTable: "content_post",
+                        principalColumn: "id");
                 });
 
             migrationBuilder.CreateTable(
@@ -364,6 +386,11 @@ namespace Donutsbox.Domain.Migrations
                 name: "IX_user_subscription_user_id",
                 table: "user_subscription",
                 column: "user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Videos_ContentPostId",
+                table: "Videos",
+                column: "ContentPostId");
         }
 
         /// <inheritdoc />
@@ -382,7 +409,7 @@ namespace Donutsbox.Domain.Migrations
                 name: "user_subscription");
 
             migrationBuilder.DropTable(
-                name: "content_post");
+                name: "Videos");
 
             migrationBuilder.DropTable(
                 name: "reaction_type");
@@ -391,10 +418,13 @@ namespace Donutsbox.Domain.Migrations
                 name: "subscription");
 
             migrationBuilder.DropTable(
-                name: "creator_page_data");
+                name: "content_post");
 
             migrationBuilder.DropTable(
                 name: "subscription_period");
+
+            migrationBuilder.DropTable(
+                name: "creator_page_data");
 
             migrationBuilder.DropTable(
                 name: "user");

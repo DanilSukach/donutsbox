@@ -52,6 +52,16 @@
                 }
               </p>
             </div>
+            @if (isOwnProfile() && isCurrentUserCreator()) {
+              <button 
+                type="button" 
+                (click)="onAddContent()" 
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+              >
+                <span class="text-lg">➕</span>
+                Добавить контент
+              </button>
+            }
             
             <div class="text-center py-16">
               <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -65,7 +75,7 @@
           </div>
         </div>
 
-        <!-- Боковая панель с поддерживающими авторами -->
+         @if (isOwnProfile() && isCurrentUserCreator()) {
         <div class="lg:col-span-1">
           @if (profileId()) {
             <div class="lg:sticky lg:top-8">
@@ -73,6 +83,7 @@
             </div>
           }
         </div>
+         }
       </div>
     </main>
   </div>

@@ -2,6 +2,8 @@ using Donutsbox.Api.Dto;
 using Donutsbox.Api.Mapper;
 using Donutsbox.Api.Services;
 using Donutsbox.Api.Services.AuthorService;
+using Donutsbox.Api.Services.Kafka;
+using Donutsbox.Api.Services.MinioService;
 using Donutsbox.Api.Services.UserInteractionService;
 using Donutsbox.Domain.Context;
 using Donutsbox.Domain.Entities;
@@ -107,6 +109,10 @@ builder.Services.AddScoped<IEntityService<ContentPostDto, Guid>, ContentPostServ
 
 builder.Services.AddScoped<IUserInteractionService, UserInteractionService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
+
+builder.Services.AddSingleton<IMinioService, MinioService>();
+
+builder.Services.AddScoped<IMessageProducer, KafkaMessageProducer>();
 
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => { policy.AllowAnyOrigin(); policy.AllowAnyMethod(); policy.AllowAnyHeader(); }));
 
