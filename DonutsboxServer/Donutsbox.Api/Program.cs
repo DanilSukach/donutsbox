@@ -82,6 +82,11 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.Configure<HostOptions>(o =>
+{
+    o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
+});
+
 builder.Services.AddAuthorization();
 
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
@@ -117,6 +122,10 @@ builder.Services.AddScoped<IMessageProducer, KafkaMessageProducer>();
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => { policy.AllowAnyOrigin(); policy.AllowAnyMethod(); policy.AllowAnyHeader(); }));
 
 builder.Services.AddControllers();
+
+
+builder.Services.AddHostedService<VideoProcessedConsumer>();
+
 
 var app = builder.Build();
 

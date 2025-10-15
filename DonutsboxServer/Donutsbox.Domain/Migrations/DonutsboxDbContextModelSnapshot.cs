@@ -51,6 +51,10 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("dislikes_count");
 
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_published");
+
                     b.Property<int>("LikesCount")
                         .HasColumnType("integer")
                         .HasColumnName("likes_count");
@@ -476,22 +480,24 @@ namespace Donutsbox.Domain.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("ContentPostId")
+                    b.Property<Guid>("ContentPostId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("ObjectKey")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ProcessedPath")
+                        .HasColumnType("text");
+
                     b.Property<string>("Status")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ThumbnailUrl")
                         .HasColumnType("text");
 
                     b.Property<string>("Title")
@@ -630,9 +636,13 @@ namespace Donutsbox.Domain.Migrations
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.Video", b =>
                 {
-                    b.HasOne("Donutsbox.Domain.Entities.ContentPost", null)
+                    b.HasOne("Donutsbox.Domain.Entities.ContentPost", "ContentPost")
                         .WithMany("Videos")
-                        .HasForeignKey("ContentPostId");
+                        .HasForeignKey("ContentPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ContentPost");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.ContentPost", b =>

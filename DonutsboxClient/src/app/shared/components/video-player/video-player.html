@@ -1,0 +1,11 @@
+<media-player
+  [title]="title()"
+  [src]="hlsUrl()"
+  [poster]="poster() || ''"
+  aspect-ratio="16/9"
+  crossorigin
+  playsinline
+>
+  <media-provider></media-provider>
+  <media-video-layout></media-video-layout>
+</media-player>

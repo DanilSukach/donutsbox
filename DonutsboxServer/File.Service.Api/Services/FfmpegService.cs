@@ -26,9 +26,24 @@ public class FfmpegService(ILogger<FfmpegService> logger, MinioService minio, IC
             // Скачиваем исходный файл
             await minio.DownloadFileAsync(objectKey, inputFile);
 
-            // Собираем аргументы для ffmpeg
-            var ffmpegArgs =
-                $"-y -i \"{inputFile}\" -profile:v baseline -level 3.0 -start_number 0 -hls_time 5 -hls_list_size 0 -f hls \"{outputIndex}\"";
+            var ffmpegArgs = string.Join(" ",
+            [
+                "-i", $"\"{inputFile}\"",
+                "-c:v", "libx264",
+                "-pix_fmt", "yuv420p",      
+                "-c:a", "aac",
+                "-b:a", "128k",
+                "-ar", "44100",
+                "-profile:v", "high",            
+                "-level", "4.0",
+                "-preset", "fast",
+                "-movflags", "+faststart",
+                "-hls_time", "6",
+                "-hls_list_size", "0",
+                "-hls_segment_filename", $"\"{Path.Combine(outputDir, "segment%03d.ts")}\"",
+                "-f", "hls",
+                $"\"{outputIndex}\""
+            ]);
 
             var psi = new ProcessStartInfo
             {

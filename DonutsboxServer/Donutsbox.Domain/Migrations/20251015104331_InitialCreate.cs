@@ -150,6 +150,7 @@ namespace Donutsbox.Domain.Migrations
                     page_id = table.Column<Guid>(type: "uuid", nullable: false),
                     title = table.Column<string>(type: "text", nullable: false),
                     text = table.Column<string>(type: "text", nullable: false),
+                    is_published = table.Column<bool>(type: "boolean", nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false),
                     likes_count = table.Column<int>(type: "integer", nullable: false),
                     dislikes_count = table.Column<int>(type: "integer", nullable: false),
@@ -251,11 +252,12 @@ namespace Donutsbox.Domain.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     Title = table.Column<string>(type: "text", nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
                     ObjectKey = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ContentPostId = table.Column<Guid>(type: "uuid", nullable: true)
+                    ProcessedPath = table.Column<string>(type: "text", nullable: true),
+                    ThumbnailUrl = table.Column<string>(type: "text", nullable: true),
+                    ContentPostId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -264,7 +266,8 @@ namespace Donutsbox.Domain.Migrations
                         name: "FK_Videos_content_post_ContentPostId",
                         column: x => x.ContentPostId,
                         principalTable: "content_post",
-                        principalColumn: "id");
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(

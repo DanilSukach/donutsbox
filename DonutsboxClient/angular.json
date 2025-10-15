@@ -22,7 +22,9 @@
               }
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.css",
+              "node_modules/vidstack/player/styles/default/theme.css",
+              "node_modules/vidstack/player/styles/default/layouts/video.css"
             ],
             "server": "src/main.server.ts",
             "outputMode": "server",
@@ -56,6 +58,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
           "configurations": {
             "production": {
               "buildTarget": "DonutsboxClient:build:production"
@@ -80,7 +85,9 @@
               }
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.css",
+              "node_modules/vidstack/player/styles/default/theme.css",
+              "node_modules/vidstack/player/styles/default/layouts/video.css"
             ]
           }
         }
