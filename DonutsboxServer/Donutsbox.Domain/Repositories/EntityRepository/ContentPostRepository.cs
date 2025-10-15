@@ -46,7 +46,6 @@ public class ContentPostRepository(DonutsboxDbContext context) : IEntityReposito
         post.CommentsCount = entity.CommentsCount;
         post.AudioURLs = entity.AudioURLs;
         post.PictureURLs = entity.PictureURLs;
-        post.VideoURLs = entity.VideoURLs;
         await context.SaveChangesAsync();
         return true;
     }

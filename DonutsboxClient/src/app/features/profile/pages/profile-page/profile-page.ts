@@ -21,10 +21,12 @@ export class ProfilePage implements OnInit {
   private jwtService = inject(JwtDecodeService);
 
   readonly isOwnProfile = signal(false);
-  readonly profileId = signal<string | null>(null);
+  readonly profileId = signal<string | null>(null);  
+  readonly isCurrentUserCreator = signal(false);
 
   ngOnInit(): void {
     this.checkProfileOwnership();
+    this.checkUserRole();
   }
 
   private checkProfileOwnership(): void {
@@ -37,6 +39,17 @@ export class ProfilePage implements OnInit {
     if (profileId && currentUserGuid && profileId === currentUserGuid) {
       this.isOwnProfile.set(true);
     }
+  }
+
+  private checkUserRole(): void {
+    const token = this.tokenService.getAccessToken();
+    const isCreator = this.jwtService.isCreator(token);
+    this.isCurrentUserCreator.set(isCreator);
+  }
+
+  onAddContent(): void {
+    console.log('Добавление нового контента...');
+    alert('Функция добавления контента будет реализована в следующих версиях!');
   }
 
   onLogout(): void {

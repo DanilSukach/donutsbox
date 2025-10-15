@@ -16,7 +16,8 @@ public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : 
     public required DbSet<PostComment> PostComments { get; set; }
     public required DbSet<PostReaction> PostReactions { get; set; }
     public required DbSet<ReactionType> ReactionTypes { get; set; }
-    public required DbSet<SubscriptionPeriod> SubscriptionPeriods { get; set; } 
+    public required DbSet<SubscriptionPeriod> SubscriptionPeriods { get; set; }
+    public required DbSet<Video> Videos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

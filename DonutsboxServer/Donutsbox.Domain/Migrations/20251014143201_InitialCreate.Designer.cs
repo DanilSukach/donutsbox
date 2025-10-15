@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Donutsbox.Domain.Migrations
 {
     [DbContext(typeof(DonutsboxDbContext))]
-    [Migration("20251002082217_InitialCreate")]
+    [Migration("20251014143201_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -72,11 +72,6 @@ namespace Donutsbox.Domain.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("title");
-
-                    b.PrimitiveCollection<List<string>>("VideoURLs")
-                        .IsRequired()
-                        .HasColumnType("text[]")
-                        .HasColumnName("video_urls");
 
                     b.HasKey("Id");
 
@@ -478,6 +473,44 @@ namespace Donutsbox.Domain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Donutsbox.Domain.Entities.Video", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ContentPostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContentPostId");
+
+                    b.ToTable("Videos");
+                });
+
             modelBuilder.Entity("Donutsbox.Domain.Entities.ContentPost", b =>
                 {
                     b.HasOne("Donutsbox.Domain.Entities.CreatorPageData", "CreatorPageData")
@@ -598,11 +631,20 @@ namespace Donutsbox.Domain.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Donutsbox.Domain.Entities.Video", b =>
+                {
+                    b.HasOne("Donutsbox.Domain.Entities.ContentPost", null)
+                        .WithMany("Videos")
+                        .HasForeignKey("ContentPostId");
+                });
+
             modelBuilder.Entity("Donutsbox.Domain.Entities.ContentPost", b =>
                 {
                     b.Navigation("PostComments");
 
                     b.Navigation("PostReactions");
+
+                    b.Navigation("Videos");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.CreatorPageData", b =>

@@ -69,7 +69,7 @@ public class ContentPost
     /// </summary>
     [Column("video_urls")]
     [Required]
-    public required List<string> VideoURLs { get; set; }
+    public required List<Video> Videos { get; set; } = [];
     /// <summary>
     /// Ссылки на картинки  
     /// </summary>
