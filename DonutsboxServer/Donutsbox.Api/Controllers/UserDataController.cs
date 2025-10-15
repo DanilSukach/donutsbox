@@ -1,14 +1,16 @@
 ﻿using Donutsbox.Api.Dto;
 using Donutsbox.Api.Services;
+using Donutsbox.Api.Services.UserSubscriptionsService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Donutsbox.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public class UserDataController(IEntityService<UserDataDto, Guid> service) : ControllerBase
+public class UserDataController(IEntityService<UserDataDto, Guid> service, IUserSubscriptionsService userSubsService) : ControllerBase
 {   /// <summary>
     /// Возвращает данные всех пользователей
     /// </summary>
@@ -78,5 +80,33 @@ public class UserDataController(IEntityService<UserDataDto, Guid> service) : Con
         var result = await service.DeleteAsync(id);
         if (!result) return NotFound();
         return Ok();
+    }
+
+    /// <summary>
+    /// Возвращает данные о себе.
+    /// </summary>
+    /// <returns>Объект <see cref="UserDataDto"/>.</returns>
+    /// <response code="200">Даныне найдены.</response>
+    /// <response code="404">Данные о пользователе с указанным ID не найден.</response>
+    [HttpGet("me")]
+    public async Task<ActionResult<UserDataDto>> GetInfoAboutMe()
+    {
+        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var user = await service.GetByIdAsync(userId);
+        if (user == null) return NotFound();
+        return Ok(user);
+    }
+
+    /// <summary>
+    /// Возвращает страницы авторов, на которые подписан текущий пользователь.
+    /// </summary>
+    /// <returns>Коллекция объектов <see cref="AuthorPreviewDto"/>.</returns>
+    /// <response code="200">Список подписок успешно получен.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
+    [HttpGet("subscriptions")]
+    public async Task<ActionResult<IEnumerable<AuthorPreviewDto>>> GetUserSubscriptions()
+    {
+        var subscriptions = await userSubsService.GetAuthorPagesFromUserSubscribes(User);
+        return Ok(subscriptions);
     }
 }

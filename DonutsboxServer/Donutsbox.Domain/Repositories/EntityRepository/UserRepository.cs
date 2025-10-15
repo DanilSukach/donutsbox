@@ -1,10 +1,11 @@
 ﻿using Donutsbox.Domain.Context;
 using Donutsbox.Domain.Entities;
+using Donutsbox.Domain.Repositories.UserSubscriptionsRepository;
 using Microsoft.EntityFrameworkCore;
 
 namespace Donutsbox.Domain.Repositories.EntityRepository;
 
-public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User, Guid>
+public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User, Guid>, IUserSubscriptionsRepository
 {
     public async Task<User> AddAsync(User entity)
     {
@@ -25,6 +26,8 @@ public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User
         return true;
     }
 
+    public async Task<User?> GetByIdUserWithSubscriptionsAsync(Guid id) => await context.Users.Include(u => u.UserSubscriptions).ThenInclude(us => us.Subscription).ThenInclude(s => s.CreatorPageData).FirstOrDefaultAsync(u => u.Id == id);
+
     public async Task<IEnumerable<User>> GetAllAsync() => await context.Users.ToListAsync();
 
     public async Task<User?> GetByIdAsync(Guid id) => await context.Users.FirstOrDefaultAsync(u => u.Id == id);
@@ -43,4 +46,3 @@ public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User
         return true;
     }
 }
-
