@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { PostCard } from './post-card';
+import { VideoProcessingIndicator } from './video-processing-indicator';
 
-describe('PostCard', () => {
-  let component: PostCard;
-  let fixture: ComponentFixture<PostCard>;
+describe('VideoProcessingIndicator', () => {
+  let component: VideoProcessingIndicator;
+  let fixture: ComponentFixture<VideoProcessingIndicator>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PostCard]
+      imports: [VideoProcessingIndicator]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(PostCard);
+    fixture = TestBed.createComponent(VideoProcessingIndicator);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
@@ -21,3 +21,4 @@ describe('PostCard', () => {
     expect(component).toBeTruthy();
   });
 });
+

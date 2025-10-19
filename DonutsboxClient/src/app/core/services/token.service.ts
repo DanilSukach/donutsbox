@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class TokenService {
-  private readonly accessKey = 'db_access_token';
+private readonly accessKey = 'db_access_token';
   private readonly refreshKey = 'db_refresh_token';
   private readonly isNewCreatorKey = 'db_is_new_creator';
 
@@ -42,6 +42,10 @@ export class TokenService {
 
   getAccessToken(): string | null {
     return this.safeGetItem(this.accessKey);
+  }
+
+  getRefreshToken(): string | null {
+    return this.safeGetItem(this.refreshKey);
   }
 
   clear(): void {

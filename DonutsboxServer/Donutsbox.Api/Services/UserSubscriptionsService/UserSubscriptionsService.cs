@@ -17,8 +17,8 @@ public class UserSubscriptionsService(IUserSubscriptionsRepository userRepositor
         {
             authorsPreviews.Add(new AuthorPreviewDto
             {
-                AvatarUrl = page.AvatarURL,
-                Id = page.Id,
+                AvatarUrl = page.AvatarURL!,
+                Id = page.UserId,
                 PageName = page.PageName
             });
         }

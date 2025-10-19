@@ -1,12 +1,14 @@
 import { inject, Injectable } from '@angular/core';
 import { AddVideosRequestDto, AddVideosResponseDto, CreateDraftRequestDto, CreatorPostService, CreatorPostsResponseDto, FilesService, MessageResponseDto, MyPostsResponseDto, MyVideoResponseDto, PostDraftResponseDto, PublishPostResponseDto, UploadImagesResponseDto, VideoUploadResponseDto } from '@app/api/donutsbox';
-import { Observable } from 'rxjs';
+import { catchError, Observable, tap, throwError } from 'rxjs';
+import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PostsFacade {
   private creatorPostService = inject(CreatorPostService);
+  private postsRefresh = inject(PostsRefresh)
   private filesService = inject(FilesService);
   
   createDraft(request: CreateDraftRequestDto): Observable<PostDraftResponseDto> {
@@ -80,4 +82,17 @@ export class PostsFacade {
   getPostImageUrl(imagePath: string): string {
   return `/api/creator/posts/images/${imagePath}`;
   }
+
+  deletePost(postId: string): Observable<any> {
+  return this.creatorPostService.apiCreatorPostPostIdDelete(postId).pipe(
+    tap(() => {
+      console.log('Пост удален, обновляем список');
+      this.postsRefresh.triggerRefresh();
+    }),
+    catchError((error) => {
+      console.error('Ошибка удаления поста:', error);
+      return throwError(() => error);
+    })
+  );
+}
 }

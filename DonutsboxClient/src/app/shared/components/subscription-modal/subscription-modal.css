@@ -1,1 +1,10 @@
-/* Дополнительные стили для модального окна, если нужны */
+/* Стили для модального окна подписок */
+.modal-backdrop {
+  z-index: 1000;
+  isolation: isolate;
+}
+
+.modal-content {
+  z-index: 1001;
+  isolation: isolate;
+}

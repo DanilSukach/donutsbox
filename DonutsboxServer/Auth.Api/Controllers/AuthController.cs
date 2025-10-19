@@ -18,7 +18,17 @@ public class AuthController(IAuthService auth) : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return ex.Message switch
+            {
+                "Email exists" => Conflict(new { message = ex.Message }),
+                "Password doesn't match" => BadRequest(new { message = ex.Message }),
+                "Administrator role cannot be created through registration" => Forbid(ex.Message),
+                _ => BadRequest(new { message = ex.Message })
+            };
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { message = "Internal server error" });
         }
     }
 

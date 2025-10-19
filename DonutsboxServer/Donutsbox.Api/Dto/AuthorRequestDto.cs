@@ -18,6 +18,11 @@ public class AuthorRequestDto
     public string? AvatarUrl { get; set; }
 
     /// <summary>
+    /// Ссылка на аватарку автора
+    /// </summary>
+    public string? BannerUrl { get; set; }
+
+    /// <summary>
     /// Описание страницы автора
     /// </summary>
     public string? Description { get; set; }

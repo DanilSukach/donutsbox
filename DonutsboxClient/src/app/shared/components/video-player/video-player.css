@@ -4,6 +4,7 @@
 :host {
   display: block;
   width: 100%;
+  isolation: isolate;
 }
 
 media-player {
@@ -13,4 +14,7 @@ media-player {
   width: 100%;
   border-radius: 0.5rem;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
 }

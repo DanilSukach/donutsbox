@@ -24,6 +24,10 @@ export interface AuthorRequestDto {
      */
     avatarUrl?: string | null;
     /**
+     * Ссылка на аватарку автора
+     */
+    bannerUrl?: string | null;
+    /**
      * Описание страницы автора
      */
     description?: string | null;

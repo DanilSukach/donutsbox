@@ -1,89 +1,120 @@
 <div class="min-h-screen bg-gradient-to-br from-pink-50 via-yellow-50 to-amber-50">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Top Bar -->
     <div class="flex justify-between items-center mb-8">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
+        <div
+          class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center"
+        >
           <span class="text-white font-bold text-sm">👤</span>
         </div>
         <h1 class="text-2xl font-extrabold text-amber-900 tracking-tight">Профиль пользователя</h1>
       </div>
       <div class="flex items-center gap-4">
-        <button 
-          type="button" 
-          (click)="navigateToFeed()" 
+        <button
+          type="button"
+          (click)="navigateToFeed()"
           class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium"
         >
           Перейти к ленте
         </button>
-          <button 
-            type="button" 
-            (click)="onLogout()" 
-            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-          >
-            Выйти
-          </button>
+        <button
+          type="button"
+          (click)="onLogout()"
+          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+        >
+          Выйти
+        </button>
       </div>
     </div>
 
-    <header class="text-center mb-12">
-      <p class="text-lg text-amber-800 max-w-2xl mx-auto">
-        @if (isOwnProfile()) {
-          Управление вашим профилем и настройками
-        } @else {
-          Профиль пользователя
-        }
-      </p>
-    </header>
+    @if (isCurrentUserCreator()){
+      <div class="mb-6">
+        <img
+          [src]="bannerSrc() || '/images/banner-placeholder.jpg'"
+          alt="Баннер автора"
+          class="w-full h-40 md:h-56 rounded-xl object-cover"
+          (error)="onBannerError($event)"
+        />
+      </div>
+    }
 
-    <!-- Main Content -->
     <main class="max-w-7xl mx-auto">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Основная информация профиля -->
+      @if (isOwnProfile()) {
+      <div class="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
+        <div class="xl:col-span-1">
+          <app-user-subscriptions></app-user-subscriptions>
+        </div>
+
+        <div class="xl:col-span-2">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+            <div class="border-b border-gray-200 pb-6 mb-6">
+              <h2 class="text-2xl font-bold text-gray-900">Информация профиля</h2>
+            <p class="text-gray-600 mt-2">
+              Здесь будет отображаться информация о вашем профиле и настройки
+            </p>
+          </div>
+          @if (isCurrentUserCreator()) {
+          <button
+            type="button"
+            (click)="onAddContent()"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+          >
+            <span class="text-lg">➕</span>
+            Добавить контент
+          </button>
+          } 
+          @if (profileId()) {
+          <app-posts-feed
+            [mode]="'creator'"
+            [creatorId]="profileId()!"
+            [loadPostsFunction]="loadCreatorPosts"
+            [showAuthorInfo]="false"
+          ></app-posts-feed>
+          }
+          </div>
+        </div>
+
+        @if (isCurrentUserCreator()) {
+        <div class="xl:col-span-1">
+          @if (profileId()) {
+          <app-author-supporters [authorId]="profileId()!" [count]="5"></app-author-supporters>
+          }
+        </div>
+        }
+      </div>
+      } @else {
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div class="lg:col-span-2">
           <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
             <div class="border-b border-gray-200 pb-6 mb-6">
               <h2 class="text-2xl font-bold text-gray-900">Информация профиля</h2>
               <p class="text-gray-600 mt-2">
-                @if (isOwnProfile()) {
-                  Здесь будет отображаться информация о вашем профиле и настройки
-                } @else {
-                  Здесь будет отображаться публичная информация о пользователе
-                }
+                Здесь будет отображаться публичная информация о пользователе
               </p>
             </div>
-            @if (isOwnProfile() && isCurrentUserCreator()) {
-              <button 
-                type="button" 
-                (click)="onAddContent()" 
-                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
-              >
-                <span class="text-lg">➕</span>
-                Добавить контент
-              </button>
-            }
-            
             @if (profileId()) {
-              <app-posts-list [creatorId]="profileId()!"></app-posts-list>
+            <app-posts-feed
+              [mode]="'creator'"
+              [creatorId]="profileId()!"
+              [loadPostsFunction]="loadCreatorPosts"
+              [showAuthorInfo]="false"
+            ></app-posts-feed>
             }
           </div>
         </div>
 
-         @if (isOwnProfile() && isCurrentUserCreator()) {
-        <div class="lg:col-span-1">
-          @if (profileId()) {
-            <div class="lg:sticky lg:top-8">
-              <app-author-supporters [authorId]="profileId()!" [count]="5"></app-author-supporters>
-            </div>
-          }
-        </div>
-         }
       </div>
+      }
     </main>
   </div>
 </div>
 
 @if (showCreatePostModal()) {
-  <app-create-post-modal (closed)="closeCreatePostModal()"></app-create-post-modal>
+<app-create-post-modal 
+  (published)="onPostPublished()" 
+  (closed)="closeCreatePostModal()"
+></app-create-post-modal>
 }
 
+<!-- Индикатор обработки видео -->
+<app-video-processing-indicator></app-video-processing-indicator>

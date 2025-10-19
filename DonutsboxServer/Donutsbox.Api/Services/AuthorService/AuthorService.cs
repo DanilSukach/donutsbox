@@ -105,6 +105,7 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
                     Id = user.Id,
                     PageName = user.CreatorPageData.PageName,
                     AvatarUrl = user.CreatorPageData.AvatarURL,
+                    BannerUrl = user.CreatorPageData.BannerURL,
                     Description = user.CreatorPageData.Description,
                     SubscribersCount = user.CreatorPageData.SubscribersCount,
                     Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(s => new SubscriptionDto
@@ -134,6 +135,7 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
             Id = user.Id,
             PageName = user.CreatorPageData.PageName,
             AvatarUrl = user.CreatorPageData.AvatarURL,
+            BannerUrl = user.CreatorPageData.BannerURL,
             Description = user.CreatorPageData.Description,
             SubscribersCount = user.CreatorPageData.SubscribersCount,
             Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(s => new SubscriptionDto
@@ -162,6 +164,7 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
                     Id = user.Id,
                     PageName = user.CreatorPageData.PageName,
                     AvatarUrl = user.CreatorPageData.AvatarURL,
+                    BannerUrl = user.CreatorPageData.BannerURL,
                     Description = user.CreatorPageData.Description,
                     SubscribersCount = user.CreatorPageData.SubscribersCount,
                     Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(s => new SubscriptionDto

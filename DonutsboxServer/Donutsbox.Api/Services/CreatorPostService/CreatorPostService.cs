@@ -1,0 +1,494 @@
+﻿using Donutsbox.Api.Dto;
+using Donutsbox.Api.Services.MinioService;
+using Donutsbox.Domain.Context;
+using Donutsbox.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+
+namespace Donutsbox.Api.Services.CreatorPostService;
+
+public class CreatorPostService(
+    DonutsboxDbContext db,
+    IMinioService minio,
+    ILogger<CreatorPostService> logger) : ICreatorPostService
+{
+    public async Task<PostDraftResponseDto> CreateDraftAsync(CreateDraftRequestDto request, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+
+        var currentUser = await db.Users
+            .Include(u => u.UserType)
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId) ?? throw new InvalidOperationException("User not found");
+
+        if (currentUser.UserType.Name != "Creator" && currentUser.UserTypeId != 2)
+            throw new InvalidOperationException("Only creators can create posts");
+
+        if (currentUser.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
+
+        var post = new ContentPost
+        {
+            Id = Guid.NewGuid(),
+            CreatorPageDataId = currentUser.CreatorPageData.Id,
+            CreatorPageData = currentUser.CreatorPageData,
+            Title = request.Title,
+            Text = request.Text,
+            CreatedAt = DateTimeOffset.UtcNow,
+            IsPublished = false,
+            LikesCount = 0,
+            DislikesCount = 0,
+            CommentsCount = 0,
+        };
+
+        db.ContentPosts.Add(post);
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("Creator {UserId} created draft post {PostId}", userId, post.Id);
+
+        return new PostDraftResponseDto
+        {
+            PostId = post.Id,
+            Title = post.Title ?? string.Empty,
+            IsPublished = post.IsPublished,
+            Message = "Draft created. Upload videos and then publish."
+        };
+    }
+
+    public async Task<AddVideosResponseDto> AddVideosToPostAsync(Guid postId, AddVideosRequestDto request, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+
+        var currentUser = await db.Users
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (currentUser?.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
+
+        var post = await db.ContentPosts
+            .Include(p => p.Videos)
+            .FirstOrDefaultAsync(p =>
+                p.Id == postId &&
+                p.CreatorPageDataId == currentUser.CreatorPageData.Id) ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
+        if (post.IsPublished)
+            throw new InvalidOperationException("Cannot add videos to published post");
+
+        var videos = await db.Videos
+            .Where(v => request.VideoIds.Contains(v.Id) && v.UserId == userId)
+            .ToListAsync();
+
+        if (videos.Count != request.VideoIds.Count)
+            throw new InvalidOperationException("Some videos not found or don't belong to you");
+
+        foreach (var video in videos)
+        {
+            video.ContentPostId = post.Id;
+            video.ContentPost = post;
+            post.Videos.Add(video);
+        }
+
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("Added {Count} videos to post {PostId}", videos.Count, postId);
+
+        return new AddVideosResponseDto
+        {
+            PostId = post.Id,
+            VideosAdded = videos.Count,
+            TotalVideos = post.Videos.Count,
+            Message = "Videos added. Ready to publish."
+        };
+    }
+
+    public async Task<PublishPostResponseDto> PublishPostAsync(Guid postId, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+
+        var currentUser = await db.Users
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (currentUser?.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
+
+        var post = await db.ContentPosts
+            .Include(p => p.Videos)
+            .FirstOrDefaultAsync(p =>
+                p.Id == postId &&
+                p.CreatorPageDataId == currentUser.CreatorPageData.Id) ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
+        if (post.IsPublished)
+            throw new InvalidOperationException("Post is already published");
+
+        post.IsPublished = true;
+        post.CreatedAt = DateTimeOffset.UtcNow;
+
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("Post {PostId} published by creator {UserId}", postId, userId);
+
+        return new PublishPostResponseDto
+        {
+            PostId = post.Id,
+            IsPublished = post.IsPublished,
+            PublishedAt = (DateTimeOffset)post.CreatedAt,
+            Message = "Post published successfully!"
+        };
+    }
+
+    public async Task<MessageResponseDto> UnpublishPostAsync(Guid postId, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+
+        var currentUser = await db.Users
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (currentUser?.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
+
+        var post = await db.ContentPosts
+            .FirstOrDefaultAsync(p =>
+                p.Id == postId &&
+                p.CreatorPageDataId == currentUser.CreatorPageData.Id) ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
+        post.IsPublished = false;
+        post.CreatedAt = null;
+
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("Post {PostId} unpublished by creator {UserId}", postId, userId);
+
+        return new MessageResponseDto { Message = "Post unpublished" };
+    }
+
+    public async Task<MyPostsResponseDto> GetMyPostsAsync(int page, int pageSize, bool? isPublished, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+
+        var currentUser = await db.Users
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (currentUser?.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
+
+        var query = db.ContentPosts
+            .Where(p => p.CreatorPageDataId == currentUser.CreatorPageData.Id)
+            .Include(p => p.Videos)
+            .AsQueryable();
+
+        if (isPublished.HasValue)
+            query = query.Where(p => p.IsPublished == isPublished.Value);
+
+        query = query.OrderByDescending(p => p.CreatedAt);
+
+        var total = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new PostDetailsDto
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Text = p.Text,
+                CreatedAt = (DateTimeOffset)p.CreatedAt!,
+                IsPublished = p.IsPublished,
+                LikesCount = p.LikesCount,
+                DislikesCount = p.DislikesCount,
+                CommentsCount = p.PostComments.Count,
+                Videos = p.Videos.Select(v => new PostVideoDto
+                {
+                    Id = v.Id,
+                    Title = v.Title,
+                    Status = v.Status,
+                    ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
+                    HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
+                }).ToList(),
+                PictureUrls = p.PictureURLs.Select(url => $"/api/creator/posts/images/{url}").ToList()
+            })
+            .ToListAsync();
+
+        return new MyPostsResponseDto
+        {
+            Total = total,
+            Page = page,
+            PageSize = pageSize,
+            Posts = posts
+        };
+    }
+
+    public async Task<CreatorPostsResponseDto> GetCreatorPublicPostsAsync(Guid creatorId, int page, int pageSize)
+    {
+        var creator = await db.Users
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == creatorId);
+
+        if (creator?.CreatorPageData == null)
+            throw new InvalidOperationException("Creator not found");
+
+        var query = db.ContentPosts
+            .Where(p =>
+                p.CreatorPageDataId == creator.CreatorPageData.Id &&
+                p.IsPublished == true)
+            .Include(p => p.Videos.Where(v => v.Status == "READY"))
+            .OrderByDescending(p => p.CreatedAt);
+
+        var total = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new PostDetailsDto
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Text = p.Text,
+                CreatedAt = (DateTimeOffset)p.CreatedAt!,
+                IsPublished = p.IsPublished,
+                LikesCount = p.LikesCount,
+                DislikesCount = p.DislikesCount,
+                CommentsCount = p.PostComments.Count,
+                Videos = p.Videos.Select(v => new PostVideoDto
+                {
+                    Id = v.Id,
+                    Title = v.Title,
+                    Status = v.Status,
+                    ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
+                    HlsUrl = $"/api/files/{v.Id}/hls/index.m3u8"
+                }).ToList(),
+                PictureUrls = p.PictureURLs.Select(url => $"/api/creator/posts/images/{url}").ToList()
+            })
+            .ToListAsync();
+
+        return new CreatorPostsResponseDto
+        {
+            Creator = new CreatorInfoDto
+            {
+                Id = creator.Id,
+                Name = creator.Name,
+                PageName = creator.CreatorPageData.PageName,
+                AvatarUrl = creator.CreatorPageData.AvatarURL,
+                Description = creator.CreatorPageData.Description,
+                SubscribersCount = creator.CreatorPageData.SubscribersCount
+            },
+            Total = total,
+            Page = page,
+            PageSize = pageSize,
+            Posts = posts
+        };
+    }
+
+    public async Task<MessageResponseDto> DeletePostAsync(Guid postId, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+
+        var currentUser = await db.Users
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (currentUser?.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
+
+        var post = await db.ContentPosts
+            .Include(p => p.Videos)
+            .FirstOrDefaultAsync(p =>
+                p.Id == postId &&
+                p.CreatorPageDataId == currentUser.CreatorPageData.Id) ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
+        logger.LogInformation("Starting deletion of post {PostId} with {VideoCount} videos and {ImageCount} images",
+            post.Id, post.Videos.Count, post.PictureURLs.Count);
+
+        foreach (var video in post.Videos)
+        {
+            try
+            {
+                await minio.DeleteDirectoryAsync($"{video.Id}/", minio.GetTempBucket());
+                await minio.DeleteDirectoryAsync($"processed/{video.Id}/", minio.GetProcessedBucket());
+                logger.LogDebug("Deleted files for video {VideoId}", video.Id);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to delete MinIO files for video {VideoId}", video.Id);
+            }
+
+            db.Videos.Remove(video);
+        }
+
+        foreach (var pictureUrl in post.PictureURLs)
+        {
+            if (!string.IsNullOrEmpty(pictureUrl))
+            {
+                try
+                {
+                    await minio.DeleteObjectAsync(pictureUrl, minio.GetImagesBucket());
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to delete image {ImageUrl}", pictureUrl);
+                }
+            }
+        }
+
+        db.ContentPosts.Remove(post);
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("Successfully deleted post {PostId} with {VideoCount} videos and {ImageCount} images",
+            post.Id, post.Videos.Count, post.PictureURLs.Count);
+
+        return new MessageResponseDto { Message = "Post and all media files deleted successfully" };
+    }
+
+    public async Task<UploadImagesResponseDto> UploadImagesAsync(UploadImagesRequestDto request, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+
+        var currentUser = await db.Users
+            .Include(u => u.UserType)
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (currentUser?.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
+
+        if (currentUser.UserType.Name != "Creator")
+            throw new InvalidOperationException("Only creators can upload images");
+
+        if (request.Images == null || request.Images.Count == 0)
+            throw new InvalidOperationException("No images provided");
+
+        var uploadedUrls = new List<string>();
+
+        foreach (var image in request.Images)
+        {
+            if (image.Length == 0) continue;
+
+            var imageId = Guid.NewGuid();
+            var extension = Path.GetExtension(image.FileName);
+            var objectKey = $"posts/{currentUser.CreatorPageData.Id}/{imageId}{extension}";
+
+            using var stream = image.OpenReadStream();
+            await minio.UploadImageAsync(objectKey, stream, image.ContentType);
+
+            uploadedUrls.Add(objectKey);
+        }
+
+        logger.LogInformation("Creator {UserId} uploaded {Count} images", userId, uploadedUrls.Count);
+
+        return new UploadImagesResponseDto { ImageUrls = uploadedUrls };
+    }
+
+    public async Task<byte[]> GetImageAsync(string imagePath)
+    {
+        try
+        {
+            var bytes = await minio.GetProcessedObjectBytesAsync(imagePath);
+            logger.LogDebug("Retrieved image {ImagePath}", imagePath);
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to retrieve image {ImagePath}", imagePath);
+            throw new InvalidOperationException("Image not found");
+        }
+    }
+
+    public async Task<MyPostsResponseDto> GetSubscriptionFeedAsync(int page, int pageSize, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+
+        var userSubscriptions = await db.Set<UserSubscription>()
+            .Include(us => us.Subscription)
+                .ThenInclude(s => s.CreatorPageData)
+            .Where(us => us.UserId == userId)
+            .ToListAsync();
+
+        if (userSubscriptions.Count == 0)
+        {
+            return new MyPostsResponseDto
+            {
+                Total = 0,
+                Page = page,
+                PageSize = pageSize,
+                Posts = []
+            };
+        }
+
+        var creatorPageIds = userSubscriptions
+            .Select(us => us.Subscription.CreatorPageDataId)
+            .Distinct()
+            .ToList();
+
+        var query = db.ContentPosts
+            .Where(p => creatorPageIds.Contains(p.CreatorPageDataId) && p.IsPublished == true)
+            .Include(p => p.Videos.Where(v => v.Status == "READY"))
+            .Include(p => p.CreatorPageData)
+                .ThenInclude(cpd => cpd.User)
+            .OrderByDescending(p => p.CreatedAt);
+
+        var total = await query.CountAsync();
+        var posts = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new PostDetailsDto
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Text = p.Text,
+                CreatedAt = (DateTimeOffset)p.CreatedAt!,
+                IsPublished = p.IsPublished,
+                LikesCount = p.LikesCount,
+                DislikesCount = p.DislikesCount,
+                CommentsCount = p.PostComments.Count,
+                Videos = p.Videos.Select(v => new PostVideoDto
+                {
+                    Id = v.Id,
+                    Title = v.Title,
+                    Status = v.Status,
+                    ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
+                    HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
+                }).ToList(),
+                PictureUrls = p.PictureURLs.Select(url => $"/api/creator/posts/images/{url}").ToList(),
+                CreatorPageName = p.CreatorPageData.PageName,
+                CreatorId = p.CreatorPageData.UserId,
+                CreatorAvatarUrl = p.CreatorPageData.AvatarURL
+            })
+            .ToListAsync();
+
+        foreach (var post in posts)
+        {
+            if (!string.IsNullOrEmpty(post.CreatorAvatarUrl))
+            {
+                try
+                {
+                    post.CreatorAvatarUrl = await minio.GetPresignedGetUrlAsync(
+                        post.CreatorAvatarUrl,
+                        minio.GetImagesBucket(),
+                        300
+                    );
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to get avatar URL for creator {CreatorId}", post.CreatorId);
+                    post.CreatorAvatarUrl = null;
+                }
+            }
+        }
+
+        logger.LogInformation("User {UserId} requested feed: {PostCount} posts from {CreatorCount} creators",
+            userId, posts.Count, creatorPageIds.Count);
+
+        return new MyPostsResponseDto
+        {
+            Total = total,
+            Page = page,
+            PageSize = pageSize,
+            Posts = posts
+        };
+    }
+}

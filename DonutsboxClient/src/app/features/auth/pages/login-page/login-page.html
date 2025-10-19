@@ -1,6 +1,5 @@
 <div class="min-h-screen bg-gradient-to-br from-pink-50 via-yellow-50 to-amber-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
   <div class="max-w-md w-full space-y-8">
-    <!-- Header -->
     <div class="text-center">
       <div class="flex justify-center mb-6">
         <div class="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
@@ -15,17 +14,12 @@
       </p>
     </div>
 
-    <!-- Form Container -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-      <app-login-form (login)="onLogin($event)"></app-login-form>
-
-      @if (errorMessage) {
-        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <div class="text-center text-sm text-red-600">
-            {{ errorMessage }}
-          </div>
-        </div>
-      }
+      <app-login-form 
+        (login)="onLogin($event)"
+        [disabled]="isLoading"
+        [serverError]="serverError">
+      </app-login-form>
 
       <div class="mt-8 text-center">
         <p class="text-sm text-gray-600">
@@ -38,5 +32,3 @@
     </div>
   </div>
 </div>
-
-

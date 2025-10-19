@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
@@ -215,6 +217,12 @@ namespace Donutsbox.Domain.Migrations
                         principalTable: "content_post",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_post_comment_user_user_id",
+                        column: x => x.user_id,
+                        principalTable: "user",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -340,6 +348,11 @@ namespace Donutsbox.Domain.Migrations
                 name: "IX_post_comment_post_id",
                 table: "post_comment",
                 column: "post_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_post_comment_user_id",
+                table: "post_comment",
+                column: "user_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_post_reaction_post_id",

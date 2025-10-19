@@ -1,4 +1,4 @@
-import { Component, inject, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, inject, Input, Output, EventEmitter, signal, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthorRequestDto } from '@app/api/donutsbox/model/authorRequestDto';
@@ -38,6 +38,33 @@ export class SubscriptionModal {
     this.closeModal.emit();
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['isOpen']) {
+      if (this.isOpen) {
+        this.disableBodyScroll();
+      } else {
+        this.enableBodyScroll();
+      }
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.enableBodyScroll();
+  }
+    private disableBodyScroll(): void {
+    document.body.style.overflow = 'hidden';
+    document.body.style.paddingRight = this.getScrollbarWidth() + 'px';
+  }
+
+  private enableBodyScroll(): void {
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+  }
+
+    private getScrollbarWidth(): number {
+    return window.innerWidth - document.documentElement.clientWidth;
+  }
+
   subscribeToSubscription(subscription: SubscriptionDto): void {
     if (!subscription.id || this.isSubscribing()) return;
 
@@ -53,8 +80,6 @@ export class SubscriptionModal {
         this.isSubscribing.set(false);
         this.subscriptionSuccess.emit();
         this.close();
-        
-        // Переход на страницу автора после успешной подписки
         if (this.author?.id) {
           this.router.navigate(['/profile', this.author.id]);
         }

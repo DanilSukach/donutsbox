@@ -179,4 +179,51 @@ public class FilesController(IMinioService minioService, ILogger<FilesController
         var contentType = segment.EndsWith(".ts", StringComparison.OrdinalIgnoreCase) ? "video/mp2t" : "application/octet-stream";
         return File(bytes, contentType);
     }
+
+    [HttpPost("images/avatar")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<ImageUploadResponseDto>> UploadAvatar([FromForm] ImageUploadRequestDto request)
+    {
+        if (request.File == null || request.File.Length == 0)
+            return BadRequest(new { message = "No file" });
+        if (!request.File.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Invalid image type" });
+
+        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var ext = Path.GetExtension(request.File.FileName);
+        var key = $"avatars/{userId}/{Guid.NewGuid()}{ext}";
+
+        using var stream = request.File.OpenReadStream();
+        await minioService.UploadImageAsync(key, stream, request.File.ContentType);
+
+        return Ok(new ImageUploadResponseDto { Key = key });
+    }
+
+    [HttpPost("images/banner")]
+    [RequestSizeLimit(20 * 1024 * 1024)]
+    public async Task<ActionResult<ImageUploadResponseDto>> UploadBanner([FromForm] ImageUploadRequestDto request)
+    {
+        if (request.File == null || request.File.Length == 0)
+            return BadRequest(new { message = "No file" });
+        if (!request.File.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Invalid image type" });
+
+        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+        var ext = Path.GetExtension(request.File.FileName);
+        var key = $"banners/{userId}/{Guid.NewGuid()}{ext}";
+
+        using var stream = request.File.OpenReadStream();
+        await minioService.UploadImageAsync(key, stream, request.File.ContentType);
+
+        return Ok(new ImageUploadResponseDto { Key = key });
+    }
+
+
+    [HttpGet("images/url")]
+    public async Task<ActionResult<ImageUrlResponseDto>> GetImageUrl([FromQuery] string key, [FromQuery] int ttl = 300)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return BadRequest();
+        var url = await minioService.GetPresignedGetUrlAsync(key, "images", ttl);
+        return Ok(new ImageUrlResponseDto { Url = url, TtlSeconds = ttl });
+    }
 }

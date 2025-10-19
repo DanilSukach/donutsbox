@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LoginForm } from '../../components/login-form/login-form';
 import { AuthFacade } from '../../services/auth-facade';
@@ -17,15 +17,20 @@ import { Router } from '@angular/router';
 export class LoginPage {
   private authFacade = inject(AuthFacade);
   private readonly router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
-  protected errorMessage: string | null = null;
+  protected serverError: string | null = null;
+  protected isLoading = false;
 
   onLogin(data: LoginRequestDto): void {
-    this.errorMessage = null;
+    this.serverError = null;
+    this.isLoading = true;
+    this.cdr.detectChanges();
 
     this.authFacade.login(data).subscribe({
       next: ({ guid, isNewCreator }) => {
-        console.log('Успешный вход', { guid, isNewCreator });
+        this.isLoading = false;
+        this.cdr.detectChanges();
 
         if (isNewCreator) {
           this.router.navigate(['/profile/setup']);
@@ -36,12 +41,15 @@ export class LoginPage {
         }
       },
       error: (err: HttpErrorResponse) => {
-        console.error('Ошибка входа', err);
+        this.isLoading = false;
+        
         if (err.status === 401) {
-          this.errorMessage = 'Неверный email или пароль.';
+          this.serverError = 'Неверный email или пароль';
         } else {
-          this.errorMessage = 'Произошла ошибка. Попробуйте снова.';
+          this.serverError = 'Произошла ошибка. Попробуйте снова';
         }
+        
+        this.cdr.detectChanges();
       },
     });
   }

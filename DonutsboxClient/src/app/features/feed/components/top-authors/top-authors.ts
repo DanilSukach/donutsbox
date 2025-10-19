@@ -12,11 +12,16 @@ import { SubscriptionModal } from '@app/shared/components/subscription-modal/sub
 })
 export class TopAuthors {
   private readonly feedFacade = inject(FeedFacade);
-  
-  // Используем signals из facade
+
   readonly topAuthors = this.feedFacade.topAuthors;
   readonly loading = this.feedFacade.isLoadingTopAuthors;
   readonly error = this.feedFacade.topAuthorsError;
+
+  // подписанные URL через фасад
+  readonly authorAvatarUrlMap = this.feedFacade.authorAvatarUrlMap;
+  
+  // Список ID авторов, на которых подписан пользователь
+  readonly subscribedAuthorIds = this.feedFacade.userSubscribedAuthorIds;
 
   readonly selectedAuthor = signal<AuthorRequestDto | null>(null);
   readonly isModalOpen = signal(false);
@@ -29,25 +34,22 @@ export class TopAuthors {
 
   formatSubscribersCount(count?: number): string {
     if (!count) return '0';
-    
-    if (count >= 1000000) {
-      return (count / 1000000).toFixed(1) + 'M';
-    } else if (count >= 1000) {
-      return (count / 1000).toFixed(1) + 'K';
-    }
-    
+    if (count >= 1000000) return (count / 1000000).toFixed(1) + 'M';
+    if (count >= 1000) return (count / 1000).toFixed(1) + 'K';
     return count.toString();
   }
 
+  // Проверяет, подписан ли пользователь на автора
+  isSubscribed(author: AuthorRequestDto): boolean {
+    return this.subscribedAuthorIds().has(author.id);
+  }
+
   onAuthorClick(author: AuthorRequestDto): void {
-    if (author.id) {
-      this.feedFacade.navigateToAuthor(author.id);
-    }
+    if (author.id) this.feedFacade.navigateToAuthor(author.id);
   }
 
   onSubscribeClick(author: AuthorRequestDto, event: Event): void {
     event.stopPropagation();
-    
     this.selectedAuthor.set(author);
     this.isModalOpen.set(true);
   }
@@ -58,9 +60,9 @@ export class TopAuthors {
   }
 
   onSubscriptionSuccess(): void {
-    console.log('Успешная подписка на автора:', this.selectedAuthor()?.pageName);
-    // Можно обновить список авторов или показать уведомление
+    // Перезагружаем список топ авторов и подписки пользователя
     this.loadTopAuthors();
+    this.feedFacade.loadUserSubscriptions();
   }
 
   onImageError(event: Event): void {

@@ -1,0 +1,130 @@
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 lg:p-6">
+  <!-- Header -->
+  <div class="mb-6">
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-5 h-5 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
+        <span class="text-white text-xs">👥</span>
+      </div>
+      <h2 class="text-lg font-bold text-gray-900">Мои подписки</h2>
+    </div>
+    <p class="text-sm text-gray-600">Авторы, на которых вы подписаны</p>
+  </div>
+
+  <!-- Состояние загрузки -->
+  @if (isLoading()) {
+    <div class="flex flex-col items-center justify-center py-8">
+      <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-3"></div>
+      <p class="text-sm text-gray-600">Загрузка...</p>
+    </div>
+  }
+
+  <!-- Состояние ошибки -->
+  @if (error() && !isLoading()) {
+    <div class="text-center py-8">
+      <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+        <span class="text-lg">⚠️</span>
+      </div>
+      <p class="text-red-600 text-sm mb-3">{{ error() }}</p>
+      <button 
+        (click)="loadSubscriptions()" 
+        class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+      >
+        Повторить
+      </button>
+    </div>
+  }
+
+  <!-- Список подписок -->
+  @if (subscriptions().length > 0) {
+    <div class="space-y-3">
+      @for (author of subscriptions(); track trackByAuthorId($index, author)) {
+        <div class="relative">
+          <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all duration-200 bg-gray-50 hover:bg-white cursor-pointer"
+               (click)="navigateToAuthor(author)">
+            <!-- Avatar -->
+            <div class="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden mr-3 ring-2 ring-gray-200 hover:ring-blue-300 transition-all duration-200">
+              <img 
+                [src]="author.avatarUrl || defaultAvatar" 
+                [alt]="author.pageName || 'Автор'"
+                class="w-full h-full object-cover"
+                (error)="onImageError($event)"
+              />
+            </div>
+
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+              <h3 class="text-sm font-semibold text-gray-900 truncate hover:text-blue-900 transition-colors duration-200 mb-1">
+                {{ author.pageName || 'Автор' }}
+              </h3>
+              <p class="text-xs text-gray-500">
+                Создатель контента
+              </p>
+            </div>
+
+            <!-- Status -->
+            <div class="flex-shrink-0">
+              <span class="inline-flex items-center gap-1 text-xs text-blue-600 font-medium cursor-pointer hover:text-blue-800 transition-colors duration-200"
+                    (click)="openUnsubscribeModal(author, $event)">
+                <span>👥</span>
+                Подписка
+              </span>
+            </div>
+          </div>
+
+          <!-- Модальное окно отписки (показывается под кнопкой) -->
+          @if (showUnsubscribeModal() && selectedAuthor()?.id === author.id) {
+            <div class="unsubscribe-modal absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200" style="z-index: 100;">
+              <div class="p-4">
+                <div class="flex items-center mb-3">
+                  <div class="w-8 h-8 rounded-full overflow-hidden mr-2">
+                    <img 
+                      [src]="author.avatarUrl || defaultAvatar" 
+                      [alt]="author.pageName || 'Автор'"
+                      class="w-full h-full object-cover"
+                      (error)="onImageError($event)"
+                    />
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-medium text-gray-900">{{ author.pageName || 'Автор' }}</h4>
+                  </div>
+                </div>
+                
+                <p class="text-xs text-gray-600 mb-4">
+                  Отписаться от этого автора?
+                </p>
+                
+                <div class="flex gap-2">
+                  <button 
+                    type="button"
+                    (click)="closeUnsubscribeModal()"
+                    class="flex-1 px-3 py-1.5 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                  >
+                    Нет
+                  </button>
+                  <button 
+                    type="button"
+                    (click)="confirmUnsubscribe()"
+                    class="flex-1 px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                  >
+                    Да
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Пустое состояние -->
+  @if (subscriptions().length === 0 && !isLoading() && !error()) {
+    <div class="text-center py-8">
+      <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+        <span class="text-lg">👥</span>
+      </div>
+      <p class="text-sm text-gray-600">У вас пока нет подписок</p>
+      <p class="text-xs text-gray-500 mt-1">Найдите интересных авторов и подпишитесь на них</p>
+    </div>
+  }
+</div>

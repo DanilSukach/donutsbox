@@ -56,12 +56,24 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<User>> GetTopSupportedUsersAsync(Guid creatorPageId, int count)
+    public async Task<IEnumerable<User>> GetTopSupportedUsersAsync(Guid authorId, int count)
     {
+        var creatorPageData = await context.CreatorsPageData
+            .FirstOrDefaultAsync(cpd => cpd.UserId == authorId);
+        
+        if (creatorPageData == null)
+        {
+            return [];
+        }
+
         return await context.UsersSubscriptions
-            .Where(us => us.Subscription.CreatorPageDataId == creatorPageId)
+            .Where(us => us.Subscription.CreatorPageDataId == creatorPageData.Id)
             .Include(us => us.User)
-            .OrderByDescending(us => us.BeginDate)
+            .Include(us => us.Subscription)
+            .ThenInclude(s => s.SubscriptionPeriod)
+            .OrderByDescending(us => us.Subscription.SubscriptionPeriod.Months)
+            .ThenByDescending(us => us.Subscription.Price)
+            .ThenByDescending(us => us.BeginDate)
             .Take(count)
             .Select(us => us.User)
             .ToListAsync();

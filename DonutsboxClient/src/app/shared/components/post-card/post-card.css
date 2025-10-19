@@ -1,0 +1,11 @@
+:host {
+  display: block;
+}
+
+/* Контейнер карточки поста с изоляцией слоев */
+.post-card-container {
+  isolation: isolate;
+  position: relative;
+  z-index: auto;
+}
+

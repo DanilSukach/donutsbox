@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Donutsbox.Domain.Migrations
 {
     [DbContext(typeof(DonutsboxDbContext))]
-    [Migration("20251015104331_InitialCreate")]
+    [Migration("20251016095430_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -152,6 +152,8 @@ namespace Donutsbox.Domain.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ContentPostId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("post_comment");
                 });
@@ -547,7 +549,15 @@ namespace Donutsbox.Domain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Donutsbox.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("ContentPost");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.PostReaction", b =>

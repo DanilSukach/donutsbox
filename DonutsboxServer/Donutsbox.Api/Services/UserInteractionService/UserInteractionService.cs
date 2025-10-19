@@ -1,11 +1,15 @@
 ﻿using Donutsbox.Api.Dto;
 using Donutsbox.Domain.Entities;
+using Donutsbox.Domain.Repositories.AuthorRepository;
 using Donutsbox.Domain.Repositories.EntityRepository;
 using System.Security.Claims;
 
 namespace Donutsbox.Api.Services.UserInteractionService;
 
-public class UserInteractionService(IEntityRepository<UserSubscription, Guid> userSubscriptionRepository, IEntityRepository<User, Guid> userRepository, IEntityRepository<Subscription, Guid> subscriptionRepository) : IUserInteractionService
+public class UserInteractionService(
+    IEntityRepository<UserSubscription, Guid> userSubscriptionRepository, 
+    IEntityRepository<User, Guid> userRepository, 
+    IEntityRepository<Subscription, Guid> subscriptionRepository) : IUserInteractionService
 {
     public async Task<UserSubscriptionDto> SubscribeUserAsync(UserSubscriptionCreateDto userSubscription, ClaimsPrincipal user)
     {
@@ -33,5 +37,29 @@ public class UserInteractionService(IEntityRepository<UserSubscription, Guid> us
             BeginDate = result.BeginDate,
             EndDate = result.EndDate
         };
+    }
+
+    public async Task UnsubscribeUserAsync(Guid creatorUserId, ClaimsPrincipal user)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
+        var userId = Guid.Parse(userIdClaim.Value);
+
+        var creatorUser = await userRepository.GetByIdAsync(creatorUserId) ?? throw new ArgumentException("Creator user not found");
+
+        var userSubscriptions = await userSubscriptionRepository.GetAllAsync();
+        var activeSubscriptions = userSubscriptions
+            .Where(us => us.UserId == userId &&
+                        us.Subscription.CreatorPageData.UserId == creatorUserId)
+            .ToList();
+
+        if (activeSubscriptions.Count == 0)
+        {
+            throw new InvalidOperationException("No active subscription found for this creator");
+        }
+
+        foreach (var subscription in activeSubscriptions)
+        {
+            await userSubscriptionRepository.DeleteAsync(subscription.Id);
+        }
     }
 }
