@@ -25,7 +25,7 @@ public class UserSubscriptionRepository(DonutsboxDbContext context) : IEntityRep
         return true;
     }
 
-    public async Task<IEnumerable<UserSubscription>> GetAllAsync() => await context.UsersSubscriptions.ToListAsync();
+    public async Task<IEnumerable<UserSubscription>> GetAllAsync() => await context.UsersSubscriptions.Include(s => s.Subscription).ThenInclude(p => p.CreatorPageData).ToListAsync();
 
     public async Task<UserSubscription?> GetByIdAsync(Guid id) => await context.UsersSubscriptions.FirstOrDefaultAsync(us => us.Id == id);
 

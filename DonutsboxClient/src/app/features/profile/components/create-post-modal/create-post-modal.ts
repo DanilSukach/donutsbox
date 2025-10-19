@@ -1,5 +1,7 @@
 import { Component, inject, output, signal } from '@angular/core';
 import { PostsFacade } from '../../services/posts-facade';
+import { PostsRefresh } from '@app/core/services/posts-refresh.service';
+import { VideoStatusPollService } from '../../services/video-status-poll.service';
 
 type ModalStep = 'create' | 'upload-video' | 'publish' | 'done';
 
@@ -18,18 +20,21 @@ interface UploadedVideo {
 })
 export class CreatePostModal {
   private postsFacade = inject(PostsFacade);
+  private postsRefreshService = inject(PostsRefresh);
+  private videoStatusPollService = inject(VideoStatusPollService);
 
   readonly closed = output<void>();
+  readonly published = output<void>();
+  
   readonly currentStep = signal<ModalStep>('create');
   readonly isLoading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly wasPublished = signal(false);
 
-  // Данные поста
   readonly postTitle = signal('');
   readonly postText = signal('');
   readonly postId = signal<string | null>(null);
 
-  // Видео
   readonly videos = signal<UploadedVideo[]>([]);
   readonly videoTitle = signal('');
   readonly videoDescription = signal('');
@@ -111,7 +116,6 @@ export class CreatePostModal {
       )
       .subscribe({
         next: (response) => {
-          // ✅ Добавляем проверку на undefined
           if (!response.videoId) {
             this.error.set('Не получен ID видео от сервера');
             this.isLoading.set(false);
@@ -124,7 +128,7 @@ export class CreatePostModal {
               videoId: response.videoId!,
               title: this.videoTitle(),
               file: file,
-              thumbnailUrl: response.thumbnailUrl || undefined, // ✅ Преобразуем null в undefined
+              thumbnailUrl: response.thumbnailUrl || undefined,
             },
           ]);
 
@@ -166,6 +170,14 @@ export class CreatePostModal {
       next: () => {
         this.currentStep.set('done');
         this.isLoading.set(false);
+        console.log('✅ Пост опубликован');
+        
+        // Сразу обновляем список постов
+        this.postsRefreshService.triggerRefresh();
+        
+        // Запускаем polling для автоматического обновления после обработки видео
+        console.log('🎬 Запускаю polling статуса видео...');
+        this.videoStatusPollService.startPollingAfterPublish();
       },
       error: (err) => {
         this.error.set(err.error?.message || 'Ошибка публикации поста');
@@ -175,7 +187,23 @@ export class CreatePostModal {
   }
 
   closeModal(): void {
+    console.log('🚪 Закрытие модалки');
     this.closed.emit();
+    this.resetModal();
+  }
+
+  private resetModal(): void {
+    this.currentStep.set('create');
+    this.postTitle.set('');
+    this.postText.set('');
+    this.postId.set(null);
+    this.videos.set([]);
+    this.videoTitle.set('');
+    this.videoDescription.set('');
+    this.selectedVideoFile.set(null);
+    this.selectedThumbnail.set(null);
+    this.error.set(null);
+    this.wasPublished.set(false);
   }
 
   goBack(): void {

@@ -29,6 +29,11 @@ public class PostComment
     [Required]
     public required Guid UserId { get; set; }
     /// <summary>
+    /// Юзер который оставил комментарии
+    /// </summary>
+    [Required]
+    public required User User { get; set; }
+    /// <summary>
     /// Текст комментария
     /// </summary>
     [Column("text", TypeName = "text")]

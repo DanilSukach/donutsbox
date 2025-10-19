@@ -1,6 +1,7 @@
 import { Component, inject, input, signal } from '@angular/core';
-import { PostsFacade } from '../../services/posts-facade';
+import { PostsFacade } from '@app/features/profile/services/posts-facade';
 import { VideoPlayer } from '@app/shared/components/video-player/video-player';
+import { PostComments } from "@app/shared/components/post-comments/post-comments";
 
 interface PostVideo {
   id: string;
@@ -25,13 +26,16 @@ interface Post {
 
 @Component({
   selector: 'app-post-card',
-  imports: [VideoPlayer],
+  imports: [VideoPlayer, PostComments],
   templateUrl: './post-card.html',
   styleUrl: './post-card.css',
 })
 export class PostCard {
   readonly post = input.required<Post>();
   readonly selectedVideoIndex = signal(0);
+  readonly showComments = signal(false);
+  readonly isOwner = input<boolean>(false); 
+  readonly showDeleteModal = signal(false);
 
   private postsFacade = inject(PostsFacade);
 
@@ -40,10 +44,6 @@ export class PostCard {
     if (!videos || videos.length === 0) return null;
 
     const video = videos[this.selectedVideoIndex()];
-
-    console.log('Current video:', video);
-    console.log('HLS URL from backend:', video.hlsUrl);
-    console.log('HLS URL from facade:', this.getVideoHlsUrl(video.id));
 
     return video;
   }
@@ -64,6 +64,28 @@ export class PostCard {
     return this.postsFacade.getPostImageUrl(imagePath);
   }
 
+  openDeleteModal(event: Event): void {
+    event.stopPropagation();
+    this.showDeleteModal.set(true);
+  }
+  
+  closeDeleteModal(): void {
+    this.showDeleteModal.set(false);
+  }
+
+  confirmDelete(): void {
+    this.postsFacade.deletePost(this.post().id).subscribe({
+      next: () => {
+        console.log('Пост удален успешно:', this.post().id);
+        this.closeDeleteModal();
+      },
+      error: (error) => {
+        console.error('Ошибка удаления поста:', error);
+        this.closeDeleteModal();
+      }
+    });
+  }
+
   formatDate(date: string): string {
     return new Date(date).toLocaleDateString('ru-RU', {
       year: 'numeric',
@@ -71,4 +93,9 @@ export class PostCard {
       day: 'numeric',
     });
   }
+
+  toggleComments(): void {
+    this.showComments.update(show => !show);
+  }
 }
+

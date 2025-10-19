@@ -12,4 +12,7 @@ public class PostDetailsDto
     public int CommentsCount { get; set; }
     public List<PostVideoDto> Videos { get; set; } = [];
     public List<string> PictureUrls { get; set; } = [];
+    public string? CreatorPageName { get; set; }
+    public Guid? CreatorId { get; set; }
+    public string? CreatorAvatarUrl { get; set; }
 }

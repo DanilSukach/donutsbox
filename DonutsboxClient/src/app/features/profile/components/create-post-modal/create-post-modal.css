@@ -1,0 +1,11 @@
+/* Стили для модального окна создания поста */
+.modal-backdrop {
+  z-index: 1000;
+  isolation: isolate;
+}
+
+.modal-content {
+  z-index: 1001;
+  isolation: isolate;
+}
+

@@ -1,9 +1,12 @@
 using Donutsbox.Api.Dto;
+using Donutsbox.Api.Hubs;
 using Donutsbox.Api.Mapper;
 using Donutsbox.Api.Services;
 using Donutsbox.Api.Services.AuthorService;
+using Donutsbox.Api.Services.CreatorPostService;
 using Donutsbox.Api.Services.Kafka;
 using Donutsbox.Api.Services.MinioService;
+using Donutsbox.Api.Services.PostCommentService;
 using Donutsbox.Api.Services.UserInteractionService;
 using Donutsbox.Api.Services.UserSubscriptionsService;
 using Donutsbox.Domain.Context;
@@ -82,6 +85,23 @@ builder.Services.AddAuthentication(options =>
 
         RoleClaimType = ClaimTypes.Role
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) &&
+                path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.Configure<HostOptions>(o =>
@@ -107,6 +127,7 @@ builder.Services.AddScoped<IEntityRepository<Subscription, Guid>, SubscriptionRe
 builder.Services.AddScoped<IEntityRepository<CreatorPageData, Guid>, CreatorPageDataRepository>();
 builder.Services.AddScoped<IEntityRepository<ContentPost, Guid>, ContentPostRepository>();
 builder.Services.AddScoped<IEntityRepository<SubscriptionPeriod, int>, SubscriptionPeriodRepository>();
+builder.Services.AddScoped<IEntityRepository<PostComment, Guid>, PostCommentRepository>();
 
 
 builder.Services.AddScoped<IEntityService<UserDto, Guid>, UserService>();
@@ -118,15 +139,20 @@ builder.Services.AddScoped<IEntityService<SubscriptionDto, Guid>, SubscriptionSe
 builder.Services.AddScoped<IEntityService<CreatorPageDataDto, Guid>, CreatorPageDataService>();
 builder.Services.AddScoped<IEntityService<ContentPostDto, Guid>, ContentPostService>();
 
+
 builder.Services.AddScoped<IUserSubscriptionsService, UserSubscriptionsService>();
 builder.Services.AddScoped<IUserInteractionService, UserInteractionService>();
+builder.Services.AddScoped<ICreatorPostService, CreatorPostService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
+builder.Services.AddScoped<IPostCommentService, PostCommentService>();
 
 builder.Services.AddSingleton<IMinioService, MinioService>();
 
 builder.Services.AddScoped<IMessageProducer, KafkaMessageProducer>();
 
-builder.Services.AddCors(options => options.AddDefaultPolicy(policy => { policy.AllowAnyOrigin(); policy.AllowAnyMethod(); policy.AllowAnyHeader(); }));
+builder.Services.AddSignalR();
+
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy => { policy.WithOrigins("http://localhost:4200"); policy.AllowAnyMethod(); policy.AllowAnyHeader(); policy.AllowCredentials(); }));
 
 builder.Services.AddControllers();
 
@@ -134,6 +160,7 @@ builder.Services.AddHostedService<VideoProcessedConsumer>();
 
 
 var app = builder.Build();
+
 
 if (app.Environment.IsDevelopment())
 {
@@ -151,4 +178,7 @@ app.UseAuthorization();
 
 app.UseHttpsRedirection();
 app.MapControllers();
+
+app.MapHub<CommentsHub>("/hubs/comments");
+
 app.Run();

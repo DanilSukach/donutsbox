@@ -21,5 +21,8 @@ export interface PostDetailsDto {
     commentsCount?: number;
     videos?: Array<PostVideoDto> | null;
     pictureUrls?: Array<string> | null;
+    creatorPageName?: string | null;
+    creatorId?: string | null;
+    creatorAvatarUrl?: string | null;
 }
 

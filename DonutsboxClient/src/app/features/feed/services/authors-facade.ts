@@ -11,7 +11,6 @@ export class AuthorsFacade {
   private readonly authorsService = inject(AuthorsService);
   private readonly router = inject(Router);
 
-  // Signals для состояния авторов
   readonly authors = signal<AuthorRequestDto[]>([]);
   readonly isLoadingAuthors = signal(false);
   readonly authorsError = signal<string | null>(null);
@@ -19,9 +18,6 @@ export class AuthorsFacade {
   readonly selectedAuthor = signal<AuthorRequestDto | null>(null);
   readonly isLoadingAuthor = signal(false);
 
-  /**
-   * Загрузка всех авторов с пагинацией
-   */
   loadAuthors(
     page: number = 1,
     pageSize: number = 20,
@@ -45,9 +41,6 @@ export class AuthorsFacade {
     );
   }
 
-  /**
-   * Загрузка конкретного автора по ID
-   */
   loadAuthorById(id: string): Observable<AuthorRequestDto | null> {
     this.isLoadingAuthor.set(true);
 
@@ -65,34 +58,23 @@ export class AuthorsFacade {
     );
   }
 
-  /**
-   * Навигация к профилю автора
-   */
   navigateToAuthor(authorId: string): void {
     this.router.navigate(['/profile', authorId]);
   }
 
-  /**
-   * Поиск авторов (заготовка)
-   */
   searchAuthors(query: string): Observable<AuthorRequestDto[]> {
     console.log('Поиск авторов по запросу:', query);
-    // Здесь будет логика поиска через API
     return of([]);
   }
 
-  /**
-   * Получение рекомендованных авторов (заготовка)
-   */
+  
   getRecommendedAuthors(userId: string): Observable<AuthorRequestDto[]> {
     console.log('Загрузка рекомендованных авторов для пользователя:', userId);
     // Здесь будет логика получения рекомендаций
     return of([]);
   }
 
-  /**
-   * Очистка состояния
-   */
+
   clearState(): void {
     this.authors.set([]);
     this.selectedAuthor.set(null);

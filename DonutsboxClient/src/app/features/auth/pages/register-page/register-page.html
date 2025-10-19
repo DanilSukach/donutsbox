@@ -15,9 +15,12 @@
       </p>
     </div>
 
-    <!-- Form Container -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-      <app-register-form (register)="onRegister($event)"></app-register-form>
+      <app-register-form 
+        (register)="onRegister($event)" 
+        [disabled]="isLoading"
+        [serverError]="serverError">
+      </app-register-form>
       
       <div class="mt-8 text-center">
         <p class="text-sm text-gray-600">

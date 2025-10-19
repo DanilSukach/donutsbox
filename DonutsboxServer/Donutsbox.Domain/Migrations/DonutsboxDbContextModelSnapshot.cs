@@ -150,6 +150,8 @@ namespace Donutsbox.Domain.Migrations
 
                     b.HasIndex("ContentPostId");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("post_comment");
                 });
 
@@ -544,7 +546,15 @@ namespace Donutsbox.Domain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Donutsbox.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("ContentPost");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.PostReaction", b =>

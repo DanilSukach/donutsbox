@@ -1,0 +1,79 @@
+<div class="space-y-6">
+  @if (posts().length === 0 && !isLoading() && !error()) {
+    <div class="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-300">
+      <span class="text-6xl mb-4 block">📭</span>
+      <p class="text-gray-600 text-lg">Постов пока нет</p>
+      @if (mode() === 'subscriptions') {
+        <p class="text-gray-500 text-sm mt-2">Подпишитесь на авторов, чтобы видеть их контент</p>
+      }
+    </div>
+  }
+
+  @if (error()) {
+    <div class="text-center py-12 bg-red-50 rounded-xl border-2 border-red-200">
+      <span class="text-6xl mb-4 block">⚠️</span>
+      <p class="text-red-600 text-lg mb-4">{{ error() }}</p>
+      <button 
+        (click)="resetAndLoad()"
+        class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+      >
+        Попробовать снова
+      </button>
+    </div>
+  }
+
+  <!-- Посты -->
+  @for (post of posts(); track post.id) {
+    <div class="relative">
+      <!-- Информация об авторе (только для feed) -->
+      @if (showAuthorInfo()) {
+        <div class="flex items-center gap-3 mb-3 px-4 py-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-t-xl border-b-2 border-amber-200">
+          @if (post.creatorAvatarUrl) {
+            <img 
+              [src]="post.creatorAvatarUrl" 
+              [alt]="post.creatorPageName"
+              class="w-12 h-12 rounded-full object-cover border-2 border-amber-300 shadow-sm"
+            />
+          } @else {
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-sm">
+              <span class="text-white font-bold text-lg">👤</span>
+            </div>
+          }
+          <div class="flex-1">
+            <h4 class="font-semibold text-gray-900">{{ post.creatorPageName || 'Автор' }}</h4>
+            <p class="text-xs text-gray-500">{{ formatDate(post.createdAt) }}</p>
+          </div>
+        </div>
+      }
+      
+      <!-- Карточка поста -->
+      <app-post-card 
+        [post]="post" 
+        [isOwner]="isPostOwner(post)"
+      ></app-post-card>
+    </div>
+  }
+
+  <!-- Индикатор загрузки при первой загрузке -->
+  @if (isLoading() && posts().length === 0) {
+    <div class="text-center py-12">
+      <div class="animate-spin text-4xl mb-4">⏳</div>
+      <p class="text-gray-600">Загрузка постов...</p>
+    </div>
+  }
+
+  <!-- Sentinel для бесконечной прокрутки -->
+  <div #sentinel class="h-20 flex items-center justify-center">
+    @if (isLoading() && posts().length > 0) {
+      <div class="flex items-center gap-2 text-gray-600">
+        <div class="animate-spin text-2xl">⏳</div>
+        <span>Загрузка...</span>
+      </div>
+    } @else if (!hasMore() && posts().length > 0) {
+      <div class="text-gray-500 text-sm py-4">
+        ✨ Вы просмотрели все посты
+      </div>
+    }
+  </div>
+</div>
+
