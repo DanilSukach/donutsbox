@@ -154,7 +154,6 @@ public class FilesController(IMinioService minioService, ILogger<FilesController
         return File(bytes, "image/jpeg");
     }
 
-
     /// <summary>
     /// HLS манифест
     /// </summary>

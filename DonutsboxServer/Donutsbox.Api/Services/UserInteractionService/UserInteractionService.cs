@@ -9,7 +9,10 @@ namespace Donutsbox.Api.Services.UserInteractionService;
 public class UserInteractionService(
     IEntityRepository<UserSubscription, Guid> userSubscriptionRepository, 
     IEntityRepository<User, Guid> userRepository, 
-    IEntityRepository<Subscription, Guid> subscriptionRepository) : IUserInteractionService
+    IEntityRepository<Subscription, Guid> subscriptionRepository,
+    IEntityRepository<ContentPost, Guid> contentPostRepository,
+    IEntityRepository<PostReaction, Guid> postReactionRepository,
+    IEntityRepository<ReactionType, int> reactionTypeRepository) : IUserInteractionService
 {
     public async Task<UserSubscriptionDto> SubscribeUserAsync(UserSubscriptionCreateDto userSubscription, ClaimsPrincipal user)
     {
@@ -61,5 +64,82 @@ public class UserInteractionService(
         {
             await userSubscriptionRepository.DeleteAsync(subscription.Id);
         }
+    }
+
+    public async Task<PostReactionDto> ChangeReaction(ClaimsPrincipal user, ContentPostReactionDto reaction)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
+        var userId = Guid.Parse(userIdClaim.Value);
+        var userEntity = await userRepository.GetByIdAsync(userId) ?? throw new InvalidOperationException("User not found");
+
+        var contentPost = await contentPostRepository.GetByIdAsync(reaction.PostId) ?? throw new InvalidOperationException("Post not found");
+        var newReactionType = await reactionTypeRepository.GetByIdAsync(reaction.ReactionTypeId) ?? throw new InvalidOperationException("Reaction type not found");
+
+        var allReactions = (await postReactionRepository.GetAllAsync()).ToList();
+        var existing = allReactions.FirstOrDefault(pr => pr.ContentPostId == reaction.PostId && pr.UserId == userId);
+
+        if (existing != null)
+        {
+            if (existing.ReactionType.Id == 1) contentPost.LikesCount = Math.Max(0, contentPost.LikesCount - 1);
+            else if (existing.ReactionType.Id == 2) contentPost.DislikesCount = Math.Max(0, contentPost.DislikesCount - 1);
+
+            if (existing.ReactionTypeId == reaction.ReactionTypeId) // если та же реакция - удаляем
+            {
+                // удаляем реакцию и обновляем счётчики
+                await postReactionRepository.DeleteAsync(existing.Id);
+                contentPost.PostReactions.Remove(existing);
+                return new PostReactionDto
+                {
+                    Id = existing.Id,
+                    UserId = existing.UserId,
+                    ContentPostId = existing.ContentPostId,
+                    ReactionTypeId = 0 // пока под вопросом что возвращать при удалении реакции, оставлю id типа реакции = 0, если удалена
+                };
+            }
+
+            if (newReactionType.Id == 1) contentPost.LikesCount++;
+            else if (newReactionType.Id == 2) contentPost.DislikesCount++;
+
+            existing.ReactionTypeId = reaction.ReactionTypeId;
+            existing.ReactionType = newReactionType;
+            await postReactionRepository.UpdateAsync(existing, existing.Id);
+
+            await contentPostRepository.UpdateAsync(contentPost, contentPost.Id);
+
+            return new PostReactionDto
+            {
+                Id = existing.Id,
+                UserId = existing.UserId,
+                ContentPostId = existing.ContentPostId,
+                ReactionTypeId = existing.ReactionTypeId
+            };
+        }
+
+        var postReactionEntity = new PostReaction
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            User = userEntity,
+            ContentPostId = reaction.PostId,
+            ReactionTypeId = reaction.ReactionTypeId,
+            ContentPost = contentPost,
+            ReactionType = newReactionType
+        };
+
+        var result = await postReactionRepository.AddAsync(postReactionEntity);
+
+        if (newReactionType.Name == "Like") contentPost.LikesCount++;
+        else if (newReactionType.Name == "Dislike") contentPost.DislikesCount++;
+
+        await contentPostRepository.UpdateAsync(contentPost, contentPost.Id);
+        contentPost.PostReactions.Add(result);
+
+        return new PostReactionDto
+        {
+            Id = result.Id,
+            UserId = result.UserId,
+            ContentPostId = result.ContentPostId,
+            ReactionTypeId = result.ReactionTypeId
+        };
     }
 }

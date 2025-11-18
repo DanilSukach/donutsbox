@@ -28,6 +28,8 @@ public class PostReaction
     [Column("user_id", TypeName = "uuid")]
     [Required]
     public required Guid UserId { get; set; }
+    [Required]
+    public required User User { get; set; }
     /// <summary>
     /// Разновидность реакции (лайк, дизлайк и т.д.)
     /// </summary>
