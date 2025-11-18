@@ -22,6 +22,12 @@ public class Subscription
     public required Guid CreatorPageDataId { get; set; }
     public required CreatorPageData CreatorPageData { get; set; }
     /// <summary>
+    /// Идентификатор уровня подписки (если null — пост публичный)
+    /// </summary>
+    [Column("subscription_id", TypeName = "uuid")]
+    public Guid? ParentSubscriptionId { get; set; }
+    public Subscription? ParentSubscription { get; set; }
+    /// <summary>
     /// Цена подписки
     /// </summary>
     [Column("price")]
@@ -53,4 +59,5 @@ public class Subscription
     [Required]
     public required int SubscriptionPeriodId { get; set; }
     public required SubscriptionPeriod SubscriptionPeriod { get; set; }
+    public List<ContentPost> ContentPosts { get; set; } = [];
 }

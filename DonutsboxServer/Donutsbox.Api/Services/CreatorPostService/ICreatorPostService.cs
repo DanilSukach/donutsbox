@@ -8,6 +8,8 @@ public interface ICreatorPostService
 {
     Task<PostDraftResponseDto> CreateDraftAsync(CreateDraftRequestDto request, ClaimsPrincipal user);
     Task<AddVideosResponseDto> AddVideosToPostAsync(Guid postId, AddVideosRequestDto request, ClaimsPrincipal user);
+    Task<AddImagesResponseDto> AddImagesToPostAsync(Guid postId, AddImagesRequestDto request, ClaimsPrincipal user);
+    Task<AddTextResponseDto> AddTextToPostAsync(Guid postId, AddTextRequestDto request, ClaimsPrincipal user);
     Task<PublishPostResponseDto> PublishPostAsync(Guid postId, ClaimsPrincipal user);
     Task<MessageResponseDto> UnpublishPostAsync(Guid postId, ClaimsPrincipal user);
     Task<UploadImagesResponseDto> UploadImagesAsync(UploadImagesRequestDto request, ClaimsPrincipal user);

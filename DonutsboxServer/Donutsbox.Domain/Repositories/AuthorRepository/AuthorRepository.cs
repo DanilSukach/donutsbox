@@ -6,11 +6,7 @@ namespace Donutsbox.Domain.Repositories.AuthorRepository;
 
 public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
 {
-    public async Task<IEnumerable<User>> GetAllAsync(
-     int page,
-     int pageSize,
-     string? sortBy = null,
-     bool descending = false)
+    public async Task<IEnumerable<User>> GetAllAsync(int page, int pageSize, string? sortBy = null, bool descending = false)
     {
         IQueryable<User> query = context.Users
             .Include(u => u.CreatorPageData)

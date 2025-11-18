@@ -103,6 +103,76 @@ public class CreatorPostService(
         };
     }
 
+    public async Task<AddImagesResponseDto> AddImagesToPostAsync(Guid postId, AddImagesRequestDto request, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+
+        var currentUser = await db.Users
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (currentUser?.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
+
+        var post = await db.ContentPosts
+            .Include(p => p.Videos)
+            .FirstOrDefaultAsync(p =>
+                p.Id == postId &&
+                p.CreatorPageDataId == currentUser.CreatorPageData.Id) ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
+        if (post.IsPublished)
+            throw new InvalidOperationException("Cannot add images to published post");
+
+        var images = await db.Videos
+            .Where(v => request.ImageIds.Contains(v.Id) && v.UserId == userId)
+            .ToListAsync();
+
+        if (images.Count != request.ImageIds.Count)
+            throw new InvalidOperationException("Some images not found or don't belong to you");
+
+        foreach (var image in images)
+        {
+            image.ContentPostId = post.Id;
+            image.ContentPost = post;
+            post.Videos.Add(image);
+        }
+
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("Added {Count} images to post {PostId}", images.Count, postId);
+
+        return new AddImagesResponseDto
+        {
+            PostId = post.Id,
+            ImagesAdded = images.Count,
+            TotalImages = post.Videos.Count,
+            Message = "Images added. Ready to publish."
+        };
+    }
+
+    public async Task<AddTextResponseDto> AddTextToPostAsync(Guid postId, AddTextRequestDto request, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+        var currentUser = await db.Users
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+        if (currentUser?.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
+        var post = await db.ContentPosts
+            .FirstOrDefaultAsync(p =>
+                p.Id == postId &&
+                p.CreatorPageDataId == currentUser.CreatorPageData.Id) ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
+        post.Text = request.Text;
+        await db.SaveChangesAsync();
+        logger.LogInformation("Updated text for post {PostId}", postId);
+        return new AddTextResponseDto
+        {
+            PostId = post.Id,
+            Message = "Post text updated successfully."
+        };
+    }
+
     public async Task<PublishPostResponseDto> PublishPostAsync(Guid postId, ClaimsPrincipal user)
     {
         var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -209,7 +279,7 @@ public class CreatorPostService(
                     ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
                     HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
                 }).ToList(),
-                PictureUrls = p.PictureURLs.Select(url => $"/api/creator/posts/images/{url}").ToList()
+                PictureUrls = p.Images.Select(url => $"/api/creator/posts/images/{url}").ToList()
             })
             .ToListAsync();
 
@@ -260,7 +330,7 @@ public class CreatorPostService(
                     ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
                     HlsUrl = $"/api/files/{v.Id}/hls/index.m3u8"
                 }).ToList(),
-                PictureUrls = p.PictureURLs.Select(url => $"/api/creator/posts/images/{url}").ToList()
+                PictureUrls = p.Images.Select(url => $"/api/creator/posts/images/{url}").ToList()
             })
             .ToListAsync();
 
@@ -300,7 +370,7 @@ public class CreatorPostService(
                 p.Id == postId &&
                 p.CreatorPageDataId == currentUser.CreatorPageData.Id) ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
         logger.LogInformation("Starting deletion of post {PostId} with {VideoCount} videos and {ImageCount} images",
-            post.Id, post.Videos.Count, post.PictureURLs.Count);
+            post.Id, post.Videos.Count, post.Images.Count);
 
         foreach (var video in post.Videos)
         {
@@ -318,7 +388,7 @@ public class CreatorPostService(
             db.Videos.Remove(video);
         }
 
-        foreach (var pictureUrl in post.PictureURLs)
+        foreach (var pictureUrl in post.Images)
         {
             if (!string.IsNullOrEmpty(pictureUrl))
             {
@@ -337,7 +407,7 @@ public class CreatorPostService(
         await db.SaveChangesAsync();
 
         logger.LogInformation("Successfully deleted post {PostId} with {VideoCount} videos and {ImageCount} images",
-            post.Id, post.Videos.Count, post.PictureURLs.Count);
+            post.Id, post.Videos.Count, post.Images.Count);
 
         return new MessageResponseDto { Message = "Post and all media files deleted successfully" };
     }
@@ -453,7 +523,7 @@ public class CreatorPostService(
                     ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
                     HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
                 }).ToList(),
-                PictureUrls = p.PictureURLs.Select(url => $"/api/creator/posts/images/{url}").ToList(),
+                PictureUrls = p.Images.Select(url => $"/api/creator/posts/images/{url}").ToList(),
                 CreatorPageName = p.CreatorPageData.PageName,
                 CreatorId = p.CreatorPageData.UserId,
                 CreatorAvatarUrl = p.CreatorPageData.AvatarURL

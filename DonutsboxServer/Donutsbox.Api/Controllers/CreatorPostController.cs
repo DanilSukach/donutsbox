@@ -50,6 +50,38 @@ public class CreatorPostController(ICreatorPostService creatorPostService) : Con
         }
     }
 
+    [HttpPost("{postId:guid}/images")]
+    public async Task<ActionResult<AddImagesResponseDto>> AddImagesToPost(
+      [FromRoute] Guid postId,
+      [FromBody] AddImagesRequestDto request)
+    {
+        try
+        {
+            var result = await creatorPostService.AddImagesToPostAsync(postId, request, User);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{postId:guid}/text")]
+    public async Task<ActionResult<AddTextResponseDto>> AddTextToPost(
+      [FromRoute] Guid postId,
+      [FromBody] AddTextRequestDto request)
+    {
+        try
+        {
+            var result = await creatorPostService.AddTextToPostAsync(postId, request, User);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     /// <summary>
     /// Шаг 3: Опубликовать пост (сделать видимым)
     /// </summary>

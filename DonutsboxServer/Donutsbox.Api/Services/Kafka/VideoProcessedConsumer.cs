@@ -1,5 +1,4 @@
-﻿// DonutsboxServer/Donutsbox.Api/Services/Kafka/VideoProcessedConsumer.cs
-using Confluent.Kafka;
+﻿using Confluent.Kafka;
 using Donutsbox.Domain.Context;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
