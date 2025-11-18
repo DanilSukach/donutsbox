@@ -2,6 +2,7 @@
 using Donutsbox.Api.Services.MinioService;
 using Donutsbox.Domain.Context;
 using Donutsbox.Domain.Entities;
+using Donutsbox.Domain.Repositories.EntityRepository;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -292,8 +293,12 @@ public class CreatorPostService(
         };
     }
 
-    public async Task<CreatorPostsResponseDto> GetCreatorPublicPostsAsync(Guid creatorId, int page, int pageSize)
+    public async Task<CreatorPostsResponseDto> GetCreatorPublicPostsAsync(Guid creatorId, ClaimsPrincipal user, int page, int pageSize)
     {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
+        var userId = Guid.Parse(userIdClaim.Value);
+        var userEntity = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
         var creator = await db.Users
             .Include(u => u.CreatorPageData)
             .FirstOrDefaultAsync(u => u.Id == creatorId);
@@ -330,7 +335,11 @@ public class CreatorPostService(
                     ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
                     HlsUrl = $"/api/files/{v.Id}/hls/index.m3u8"
                 }).ToList(),
-                PictureUrls = p.Images.Select(url => $"/api/creator/posts/images/{url}").ToList()
+                PictureUrls = p.Images.Select(url => $"/api/creator/posts/images/{url}").ToList(),
+                ReactionTypeId = p.PostReactions
+                                    .Where(pr => pr.UserId == userId)
+                                    .Select(pr => (int?)pr.ReactionTypeId)
+                                    .FirstOrDefault() ?? 0
             })
             .ToListAsync();
 

@@ -66,7 +66,7 @@ public class UserInteractionService(
         }
     }
 
-    public async Task<PostReactionDto> ChangeReaction(ClaimsPrincipal user, ContentPostReactionDto reaction)
+    public async Task<bool> ChangeReaction(ClaimsPrincipal user, ContentPostReactionDto reaction)
     {
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
         var userId = Guid.Parse(userIdClaim.Value);
@@ -88,13 +88,7 @@ public class UserInteractionService(
                 // удаляем реакцию и обновляем счётчики
                 await postReactionRepository.DeleteAsync(existing.Id);
                 contentPost.PostReactions.Remove(existing);
-                return new PostReactionDto
-                {
-                    Id = existing.Id,
-                    UserId = existing.UserId,
-                    ContentPostId = existing.ContentPostId,
-                    ReactionTypeId = 0 // пока под вопросом что возвращать при удалении реакции, оставлю id типа реакции = 0, если удалена
-                };
+                return true;
             }
 
             if (newReactionType.Id == 1) contentPost.LikesCount++;
@@ -106,13 +100,7 @@ public class UserInteractionService(
 
             await contentPostRepository.UpdateAsync(contentPost, contentPost.Id);
 
-            return new PostReactionDto
-            {
-                Id = existing.Id,
-                UserId = existing.UserId,
-                ContentPostId = existing.ContentPostId,
-                ReactionTypeId = existing.ReactionTypeId
-            };
+            return true;
         }
 
         var postReactionEntity = new PostReaction
@@ -134,12 +122,6 @@ public class UserInteractionService(
         await contentPostRepository.UpdateAsync(contentPost, contentPost.Id);
         contentPost.PostReactions.Add(result);
 
-        return new PostReactionDto
-        {
-            Id = result.Id,
-            UserId = result.UserId,
-            ContentPostId = result.ContentPostId,
-            ReactionTypeId = result.ReactionTypeId
-        };
+        return true;
     }
 }

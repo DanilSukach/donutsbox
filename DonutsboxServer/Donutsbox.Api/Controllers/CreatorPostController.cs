@@ -149,7 +149,7 @@ public class CreatorPostController(ICreatorPostService creatorPostService) : Con
     {
         try
         {
-            var result = await creatorPostService.GetCreatorPublicPostsAsync(creatorId, page, pageSize);
+            var result = await creatorPostService.GetCreatorPublicPostsAsync(creatorId, User, page, pageSize);
             return Ok(result);
         }
         catch (InvalidOperationException ex)

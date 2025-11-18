@@ -14,7 +14,7 @@ public interface ICreatorPostService
     Task<MessageResponseDto> UnpublishPostAsync(Guid postId, ClaimsPrincipal user);
     Task<UploadImagesResponseDto> UploadImagesAsync(UploadImagesRequestDto request, ClaimsPrincipal user);
     Task<MyPostsResponseDto> GetMyPostsAsync(int page, int pageSize, bool? isPublished, ClaimsPrincipal user);
-    Task<CreatorPostsResponseDto> GetCreatorPublicPostsAsync(Guid creatorId, int page, int pageSize);
+    Task<CreatorPostsResponseDto> GetCreatorPublicPostsAsync(Guid creatorId, ClaimsPrincipal user, int page, int pageSize);
     Task<byte[]> GetImageAsync(string imagePath);
     Task<MessageResponseDto> DeletePostAsync(Guid postId, ClaimsPrincipal user);
     Task<MyPostsResponseDto> GetSubscriptionFeedAsync(int page, int pageSize, ClaimsPrincipal user);
