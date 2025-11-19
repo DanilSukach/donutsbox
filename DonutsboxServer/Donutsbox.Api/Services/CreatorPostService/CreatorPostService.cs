@@ -535,7 +535,11 @@ public class CreatorPostService(
                 PictureUrls = p.Images.Select(url => $"/api/creator/posts/images/{url}").ToList(),
                 CreatorPageName = p.CreatorPageData.PageName,
                 CreatorId = p.CreatorPageData.UserId,
-                CreatorAvatarUrl = p.CreatorPageData.AvatarURL
+                CreatorAvatarUrl = p.CreatorPageData.AvatarURL,
+                ReactionTypeId = p.PostReactions
+                                    .Where(pr => pr.UserId == userId)
+                                    .Select(pr => (int?)pr.ReactionTypeId)
+                                    .FirstOrDefault() ?? 0
             })
             .ToListAsync();
 
