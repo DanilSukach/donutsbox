@@ -123,6 +123,39 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
         return dtos;
     }
 
+    public async Task<IEnumerable<AuthorRequestDto>> GetAuthorsAsync()
+    {
+        var users = await authorRepository.GetAllAsync();
+
+        var dtos = new List<AuthorRequestDto>();
+
+        foreach (var user in users)
+        {
+            if (user.CreatorPageData != null)
+            {
+                dtos.Add(new AuthorRequestDto
+                {
+                    Id = user.Id,
+                    PageName = user.CreatorPageData.PageName,
+                    AvatarUrl = user.CreatorPageData.AvatarURL,
+                    BannerUrl = user.CreatorPageData.BannerURL,
+                    Description = user.CreatorPageData.Description,
+                    SubscribersCount = user.CreatorPageData.SubscribersCount,
+                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(s => new SubscriptionDto
+                    {
+                        Id = s.Id,
+                        Price = s.Price,
+                        PictureURL = s.PictureURL,
+                        Description = s.Description,
+                        Name = s.Name,
+                    })]
+                });
+            }
+        }
+
+        return dtos;
+    }
+
     public async Task<AuthorRequestDto?> GetAuthorByIdAsync(Guid id)
     {
         var user = await authorRepository.GetByIdAsync(id);

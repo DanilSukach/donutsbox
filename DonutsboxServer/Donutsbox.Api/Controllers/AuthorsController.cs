@@ -121,18 +121,13 @@ public class AuthorsController(IAuthorService authorService) : ControllerBase
     /// Поиск авторов по имени страницы
     /// </summary>
     /// <param name="query">Текст поиска</param>
-    /// <param name="page">Номер страницы</param>
-    /// <param name="pageSize">Размер страницы</param>
     [HttpGet("search")]
-    public async Task<ActionResult<IEnumerable<AuthorRequestDto>>> SearchAuthors(
-        [FromQuery] string query,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+    public async Task<ActionResult<IEnumerable<AuthorRequestDto>>> SearchAuthors([FromQuery] string query)
     {
         if (string.IsNullOrWhiteSpace(query))
             return BadRequest(new { message = "Query is required" });
 
-        var authors = await authorService.GetAuthorsAsync(page, pageSize, null, false);
+        var authors = await authorService.GetAuthorsAsync();
 
         var matched = authors
             .Where(a => !string.IsNullOrEmpty(a.PageName) &&

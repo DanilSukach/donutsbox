@@ -32,6 +32,15 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<User>> GetAllAsync()
+    {
+        IQueryable<User> query = context.Users
+            .Include(u => u.CreatorPageData)
+            .Where(u => u.UserTypeId == 2);
+
+        return await query.ToListAsync();
+    }
+
     public async Task<User?> GetByIdAsync(Guid id)
     {
         return await context.Users
