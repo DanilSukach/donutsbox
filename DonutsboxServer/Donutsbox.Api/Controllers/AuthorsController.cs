@@ -116,4 +116,29 @@ public class AuthorsController(IAuthorService authorService) : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Поиск авторов по имени страницы
+    /// </summary>
+    /// <param name="query">Текст поиска</param>
+    /// <param name="page">Номер страницы</param>
+    /// <param name="pageSize">Размер страницы</param>
+    [HttpGet("search")]
+    public async Task<ActionResult<IEnumerable<AuthorRequestDto>>> SearchAuthors(
+        [FromQuery] string query,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return BadRequest(new { message = "Query is required" });
+
+        var authors = await authorService.GetAuthorsAsync(page, pageSize, null, false);
+
+        var matched = authors
+            .Where(a => !string.IsNullOrEmpty(a.PageName) &&
+                        a.PageName.Contains(query, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        return Ok(matched);
+    }
 }
