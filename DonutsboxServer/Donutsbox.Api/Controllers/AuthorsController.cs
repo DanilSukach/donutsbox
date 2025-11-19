@@ -120,10 +120,11 @@ public class AuthorsController(IAuthorService authorService) : ControllerBase
     /// <summary>
     /// Поиск авторов по имени страницы
     /// </summary>
-    /// <param name="query">Текст поиска</param>
+    /// <param name="dto">Текст поиска</param>
     [HttpGet("search")]
-    public async Task<ActionResult<IEnumerable<AuthorRequestDto>>> SearchAuthors([FromQuery] string query)
+    public async Task<ActionResult<IEnumerable<AuthorRequestDto>>> SearchAuthors([FromQuery] SearchAuthorQueryDto dto)
     {
+        var query = dto.Query;
         if (string.IsNullOrWhiteSpace(query))
             return BadRequest(new { message = "Query is required" });
 
