@@ -66,7 +66,7 @@ public class UserInteractionService(
         }
     }
 
-    public async Task<bool> ChangeReaction(ClaimsPrincipal user, ContentPostReactionDto reaction)
+    public async Task<bool> ChangeReactionAsync(ClaimsPrincipal user, ContentPostReactionDto reaction)
     {
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
         var userId = Guid.Parse(userIdClaim.Value);
@@ -85,7 +85,6 @@ public class UserInteractionService(
 
             if (existing.ReactionTypeId == reaction.ReactionTypeId) // если та же реакция - удаляем
             {
-                // удаляем реакцию и обновляем счётчики
                 await postReactionRepository.DeleteAsync(existing.Id);
                 contentPost.PostReactions.Remove(existing);
                 return true;
