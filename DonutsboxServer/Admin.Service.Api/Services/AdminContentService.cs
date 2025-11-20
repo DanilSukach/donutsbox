@@ -35,7 +35,7 @@ public class AdminContentService(DonutsboxDbContext context,
             LikesCount = p.LikesCount,
             DislikesCount = p.DislikesCount,
             CommentsCount = p.CommentsCount,
-            MediaCount = p.AudioURLs.Count + p.Videos.Count + p.PictureURLs.Count
+            MediaCount = p.AudioURLs.Count + p.Videos.Count + p.Images.Count
         });
     }
 
@@ -62,7 +62,7 @@ public class AdminContentService(DonutsboxDbContext context,
             LikesCount = post.LikesCount,
             DislikesCount = post.DislikesCount,
             CommentsCount = post.CommentsCount,
-            MediaCount = post.AudioURLs.Count + post.Videos.Count + post.PictureURLs.Count
+            MediaCount = post.AudioURLs.Count + post.Videos.Count + post.Images.Count
         };
     }
 

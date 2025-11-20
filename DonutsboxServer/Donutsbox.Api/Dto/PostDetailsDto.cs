@@ -15,4 +15,5 @@ public class PostDetailsDto
     public string? CreatorPageName { get; set; }
     public Guid? CreatorId { get; set; }
     public string? CreatorAvatarUrl { get; set; }
+    public int ReactionTypeId { get; set; }
 }

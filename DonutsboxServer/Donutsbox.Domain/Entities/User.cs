@@ -44,4 +44,5 @@ public class User
     public UserData? UserData { get; set; }
     public CreatorPageData? CreatorPageData { get; set; }
     public List<UserSubscription> UserSubscriptions { get; set; } = [];
+    public List<PostReaction> PostReactions { get; set; } = [];
 }

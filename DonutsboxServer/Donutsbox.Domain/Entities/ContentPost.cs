@@ -81,7 +81,8 @@ public class ContentPost
     /// </summary>
     [Column("picture_urls")]
     [Required]
-    public List<string> PictureURLs { get; set; } = [];
+    public List<string> Images { get; set; } = [];
     public List<PostReaction> PostReactions { get; set; } = [];
     public List<PostComment> PostComments { get; set; } = [];
+    public List<Subscription> Subscriptions { get; set; } = [];
 }

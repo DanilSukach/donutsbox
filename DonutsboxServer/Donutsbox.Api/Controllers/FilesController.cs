@@ -154,7 +154,6 @@ public class FilesController(IMinioService minioService, ILogger<FilesController
         return File(bytes, "image/jpeg");
     }
 
-
     /// <summary>
     /// HLS манифест
     /// </summary>
@@ -225,5 +224,64 @@ public class FilesController(IMinioService minioService, ILogger<FilesController
         if (string.IsNullOrWhiteSpace(key)) return BadRequest();
         var url = await minioService.GetPresignedGetUrlAsync(key, "images", ttl);
         return Ok(new ImageUrlResponseDto { Url = url, TtlSeconds = ttl });
+    }
+
+    [Authorize(Roles = "Creator")]
+    [HttpPost("images/post")]
+    [RequestSizeLimit(100 * 1024 * 1024)] // 100 MB
+    public async Task<ActionResult<ImageUploadResponseDto>> UploadPostImage([FromForm] IFormFile file, [FromForm] Guid contentPostId, [FromForm] string? title)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "No file" });
+        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "Invalid image type" });
+
+        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+        var user = await db.Users
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return Unauthorized();
+
+        if (user.CreatorPageData == null)
+            return BadRequest(new { message = "Creator page not found" });
+
+        var post = await db.ContentPosts.FirstOrDefaultAsync(p =>
+            p.Id == contentPostId &&
+            p.CreatorPageDataId == user.CreatorPageData.Id);
+
+        if (post == null)
+            return BadRequest(new { message = "Content post not found or does not belong to you" });
+
+        var imageId = Guid.NewGuid();
+        var ext = Path.GetExtension(file.FileName);
+        var key = $"content_images/{userId}/{imageId}{ext}";
+
+        using (var stream = file.OpenReadStream())
+        {
+            await minioService.UploadImageAsync(key, stream, file.ContentType);
+        }
+
+        var image = new Image
+        {
+            Id = imageId,
+            UserId = userId,
+            Title = title,
+            Status = "UPLOADED",
+            ObjectKey = key,
+            CreatedAt = DateTime.UtcNow,
+            ProcessedPath = null,
+            ContentPostId = contentPostId,
+            ContentPost = post
+        };
+
+        db.Images.Add(image);
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("Image {ImageId} uploaded by creator {UserId} for post {PostId}", image.Id, userId, contentPostId);
+
+        return Ok(new ImageUploadResponseDto { Key = key });
     }
 }

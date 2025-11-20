@@ -51,4 +51,34 @@ public class UserInteractionController(IUserInteractionService userInteractionSe
             return NotFound(new { message = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Оставляет реакцию на пост
+    /// </summary>
+    /// <param name="dto">DTO которое содержит id поста и тип реакции</param>
+    /// <returns></returns>
+    [HttpPost("change-reaction")]
+    public async Task<ActionResult> ChangeReactionAsync([FromBody] ContentPostReactionDto dto)
+    {
+        try
+        {
+            if (dto == null)
+                return BadRequest(new { message = "Request body is required" });
+
+            var changed = await userInteractionService.ChangeReactionAsync(User, dto);
+
+            if (changed)
+                return Ok(new { message = "Reaction saved" });
+            else
+                return NotFound(new { message = "Post or reaction type not found" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 }

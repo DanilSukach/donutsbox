@@ -6,11 +6,7 @@ namespace Donutsbox.Domain.Repositories.AuthorRepository;
 
 public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
 {
-    public async Task<IEnumerable<User>> GetAllAsync(
-     int page,
-     int pageSize,
-     string? sortBy = null,
-     bool descending = false)
+    public async Task<IEnumerable<User>> GetAllAsync(int page, int pageSize, string? sortBy = null, bool descending = false)
     {
         IQueryable<User> query = context.Users
             .Include(u => u.CreatorPageData)
@@ -34,6 +30,15 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+    }
+
+    public async Task<IEnumerable<User>> GetAllAsync()
+    {
+        IQueryable<User> query = context.Users
+            .Include(u => u.CreatorPageData)
+            .Where(u => u.UserTypeId == 2);
+
+        return await query.ToListAsync();
     }
 
     public async Task<User?> GetByIdAsync(Guid id)
