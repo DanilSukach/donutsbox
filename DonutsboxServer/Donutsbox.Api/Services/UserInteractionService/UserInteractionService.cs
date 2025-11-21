@@ -10,6 +10,7 @@ public class UserInteractionService(
     IEntityRepository<UserSubscription, Guid> userSubscriptionRepository, 
     IEntityRepository<User, Guid> userRepository, 
     IEntityRepository<Subscription, Guid> subscriptionRepository,
+    IEntityRepository<CreatorPageData, Guid> creatorPageRepository,
     IEntityRepository<ContentPost, Guid> contentPostRepository,
     IEntityRepository<PostReaction, Guid> postReactionRepository,
     IEntityRepository<ReactionType, int> reactionTypeRepository) : IUserInteractionService
@@ -20,6 +21,8 @@ public class UserInteractionService(
         var userId = Guid.Parse(userIdClaim.Value);
         var userEntity = await userRepository.GetByIdAsync(userId);
         var subscription = await subscriptionRepository.GetByIdAsync(userSubscription.SubscriptionId);
+        if (subscription?.CreatorPageDataId == null)
+            throw new InvalidOperationException("Subscription has no creator page");
 
         var userSubscriptionEntity = new UserSubscription
         {
@@ -32,6 +35,13 @@ public class UserInteractionService(
             EndDate = DateTime.UtcNow.AddMonths(subscription!.SubscriptionPeriod.Months)
         };
         var result = await userSubscriptionRepository.AddAsync(userSubscriptionEntity);
+
+        var creatorPage = await creatorPageRepository.GetByIdAsync(subscription.CreatorPageDataId);
+        if (creatorPage != null)
+        {
+            creatorPage.SubscribersCount++;
+            await creatorPageRepository.UpdateAsync(creatorPage, creatorPage.Id);
+        }
         return new UserSubscriptionDto
         {
             Id = result.Id,
@@ -63,6 +73,13 @@ public class UserInteractionService(
         foreach (var subscription in activeSubscriptions)
         {
             await userSubscriptionRepository.DeleteAsync(subscription.Id);
+
+            var creatorPage = await creatorPageRepository.GetByIdAsync(subscription.Subscription.CreatorPageDataId);
+            if (creatorPage != null)
+            {
+                creatorPage.SubscribersCount = Math.Max(0, creatorPage.SubscribersCount - 1);
+                await creatorPageRepository.UpdateAsync(creatorPage, creatorPage.Id);
+            }
         }
     }
 
@@ -73,32 +90,45 @@ public class UserInteractionService(
         var userEntity = await userRepository.GetByIdAsync(userId) ?? throw new InvalidOperationException("User not found");
 
         var contentPost = await contentPostRepository.GetByIdAsync(reaction.PostId) ?? throw new InvalidOperationException("Post not found");
-        var newReactionType = await reactionTypeRepository.GetByIdAsync(reaction.ReactionTypeId) ?? throw new InvalidOperationException("Reaction type not found");
+
+        var removeReaction = reaction.ReactionTypeId == 0;
+        ReactionType? newReactionType = null;
+        if (!removeReaction)
+        {
+            newReactionType = await reactionTypeRepository.GetByIdAsync(reaction.ReactionTypeId)
+                ?? throw new InvalidOperationException("Reaction type not found");
+        }
 
         var allReactions = (await postReactionRepository.GetAllAsync()).ToList();
         var existing = allReactions.FirstOrDefault(pr => pr.ContentPostId == reaction.PostId && pr.UserId == userId);
 
         if (existing != null)
         {
-            if (existing.ReactionType.Id == 1) contentPost.LikesCount = Math.Max(0, contentPost.LikesCount - 1);
-            else if (existing.ReactionType.Id == 2) contentPost.DislikesCount = Math.Max(0, contentPost.DislikesCount - 1);
+            if (existing.ReactionTypeId == 1) contentPost.LikesCount = Math.Max(0, contentPost.LikesCount - 1);
+            else if (existing.ReactionTypeId == 2) contentPost.DislikesCount = Math.Max(0, contentPost.DislikesCount - 1);
 
-            if (existing.ReactionTypeId == reaction.ReactionTypeId) // если та же реакция - удаляем
+            if (removeReaction || existing.ReactionTypeId == reaction.ReactionTypeId) // если та же реакция - удаляем
             {
                 await postReactionRepository.DeleteAsync(existing.Id);
                 contentPost.PostReactions.Remove(existing);
+                await contentPostRepository.UpdateAsync(contentPost, contentPost.Id);
                 return true;
             }
 
-            if (newReactionType.Id == 1) contentPost.LikesCount++;
-            else if (newReactionType.Id == 2) contentPost.DislikesCount++;
+            if (reaction.ReactionTypeId == 1) contentPost.LikesCount++;
+            else if (reaction.ReactionTypeId == 2) contentPost.DislikesCount++;
 
             existing.ReactionTypeId = reaction.ReactionTypeId;
-            existing.ReactionType = newReactionType;
+            existing.ReactionType = newReactionType!;
             await postReactionRepository.UpdateAsync(existing, existing.Id);
 
             await contentPostRepository.UpdateAsync(contentPost, contentPost.Id);
 
+            return true;
+        }
+
+        if (removeReaction)
+        {
             return true;
         }
 
@@ -110,12 +140,12 @@ public class UserInteractionService(
             ContentPostId = reaction.PostId,
             ReactionTypeId = reaction.ReactionTypeId,
             ContentPost = contentPost,
-            ReactionType = newReactionType
+            ReactionType = newReactionType!
         };
 
         var result = await postReactionRepository.AddAsync(postReactionEntity);
 
-        if (newReactionType.Name == "Like") contentPost.LikesCount++;
+        if (newReactionType!.Name == "Like") contentPost.LikesCount++;
         else if (newReactionType.Name == "Dislike") contentPost.DislikesCount++;
 
         await contentPostRepository.UpdateAsync(contentPost, contentPost.Id);

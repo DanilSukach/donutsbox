@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Donutsbox.Domain.Migrations
 {
     [DbContext(typeof(DonutsboxDbContext))]
-    [Migration("20251016095430_InitialCreate")]
+    [Migration("20251120123111_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -25,6 +25,21 @@ namespace Donutsbox.Domain.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("ContentPostSubscription", b =>
+                {
+                    b.Property<Guid>("ContentPostsId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SubscriptionsId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("ContentPostsId", "SubscriptionsId");
+
+                    b.HasIndex("SubscriptionsId");
+
+                    b.ToTable("ContentPostSubscription");
+                });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.ContentPost", b =>
                 {
@@ -54,6 +69,11 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("dislikes_count");
 
+                    b.PrimitiveCollection<List<string>>("Images")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("picture_urls");
+
                     b.Property<bool>("IsPublished")
                         .HasColumnType("boolean")
                         .HasColumnName("is_published");
@@ -61,11 +81,6 @@ namespace Donutsbox.Domain.Migrations
                     b.Property<int>("LikesCount")
                         .HasColumnType("integer")
                         .HasColumnName("likes_count");
-
-                    b.PrimitiveCollection<List<string>>("PictureURLs")
-                        .IsRequired()
-                        .HasColumnType("text[]")
-                        .HasColumnName("picture_urls");
 
                     b.Property<string>("Text")
                         .IsRequired()
@@ -123,6 +138,43 @@ namespace Donutsbox.Domain.Migrations
                         .IsUnique();
 
                     b.ToTable("creator_page_data");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.Image", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContentPostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProcessedPath")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContentPostId");
+
+                    b.ToTable("Images");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.PostComment", b =>
@@ -183,6 +235,8 @@ namespace Donutsbox.Domain.Migrations
 
                     b.HasIndex("ReactionTypeId");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("post_reaction");
                 });
 
@@ -240,6 +294,10 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("name");
 
+                    b.Property<Guid?>("ParentSubscriptionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subscription_id");
+
                     b.Property<string>("PictureURL")
                         .IsRequired()
                         .HasColumnType("text")
@@ -257,6 +315,8 @@ namespace Donutsbox.Domain.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatorPageDataId");
+
+                    b.HasIndex("ParentSubscriptionId");
 
                     b.HasIndex("SubscriptionPeriodId");
 
@@ -519,6 +579,21 @@ namespace Donutsbox.Domain.Migrations
                     b.ToTable("Videos");
                 });
 
+            modelBuilder.Entity("ContentPostSubscription", b =>
+                {
+                    b.HasOne("Donutsbox.Domain.Entities.ContentPost", null)
+                        .WithMany()
+                        .HasForeignKey("ContentPostsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Donutsbox.Domain.Entities.Subscription", null)
+                        .WithMany()
+                        .HasForeignKey("SubscriptionsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Donutsbox.Domain.Entities.ContentPost", b =>
                 {
                     b.HasOne("Donutsbox.Domain.Entities.CreatorPageData", "CreatorPageData")
@@ -539,6 +614,17 @@ namespace Donutsbox.Domain.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Donutsbox.Domain.Entities.Image", b =>
+                {
+                    b.HasOne("Donutsbox.Domain.Entities.ContentPost", "ContentPost")
+                        .WithMany()
+                        .HasForeignKey("ContentPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ContentPost");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.PostComment", b =>
@@ -574,9 +660,17 @@ namespace Donutsbox.Domain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Donutsbox.Domain.Entities.User", "User")
+                        .WithMany("PostReactions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("ContentPost");
 
                     b.Navigation("ReactionType");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.Subscription", b =>
@@ -587,6 +681,10 @@ namespace Donutsbox.Domain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Donutsbox.Domain.Entities.Subscription", "ParentSubscription")
+                        .WithMany()
+                        .HasForeignKey("ParentSubscriptionId");
+
                     b.HasOne("Donutsbox.Domain.Entities.SubscriptionPeriod", "SubscriptionPeriod")
                         .WithMany()
                         .HasForeignKey("SubscriptionPeriodId")
@@ -594,6 +692,8 @@ namespace Donutsbox.Domain.Migrations
                         .IsRequired();
 
                     b.Navigation("CreatorPageData");
+
+                    b.Navigation("ParentSubscription");
 
                     b.Navigation("SubscriptionPeriod");
                 });
@@ -682,6 +782,8 @@ namespace Donutsbox.Domain.Migrations
             modelBuilder.Entity("Donutsbox.Domain.Entities.User", b =>
                 {
                     b.Navigation("CreatorPageData");
+
+                    b.Navigation("PostReactions");
 
                     b.Navigation("UserData");
 

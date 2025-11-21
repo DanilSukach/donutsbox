@@ -1,7 +1,8 @@
 import { inject, Injectable } from '@angular/core';
-import { AddVideosRequestDto, AddVideosResponseDto, CreateDraftRequestDto, CreatorPostService, CreatorPostsResponseDto, FilesService, MessageResponseDto, MyPostsResponseDto, MyVideoResponseDto, PostDraftResponseDto, PublishPostResponseDto, UploadImagesResponseDto, VideoUploadResponseDto } from '@app/api/donutsbox';
+import { AddTextRequestDto, AddTextResponseDto, AddVideosRequestDto, AddVideosResponseDto, ContentPostReactionDto, CreateDraftRequestDto, CreatorPostService, CreatorPostsResponseDto, FilesService, MessageResponseDto, MyPostsResponseDto, MyVideoResponseDto, PostDraftResponseDto, PublishPostResponseDto, UploadImagesResponseDto, UserInteractionService, VideoUploadResponseDto } from '@app/api/donutsbox';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
+import { HttpClient } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -10,6 +11,8 @@ export class PostsFacade {
   private creatorPostService = inject(CreatorPostService);
   private postsRefresh = inject(PostsRefresh)
   private filesService = inject(FilesService);
+  private userInteractionService = inject(UserInteractionService);
+  private http = inject(HttpClient);
   
   createDraft(request: CreateDraftRequestDto): Observable<PostDraftResponseDto> {
     return this.creatorPostService.apiCreatorPostDraftPost(request);
@@ -80,19 +83,57 @@ export class PostsFacade {
   }
 
   getPostImageUrl(imagePath: string): string {
-  return `/api/creator/posts/images/${imagePath}`;
+    // Если URL уже полный (presigned URL), возвращаем его как есть
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    // Иначе добавляем префикс для старых относительных путей
+    return `/api/creator/posts/images/${imagePath}`;
   }
 
   deletePost(postId: string): Observable<any> {
-  return this.creatorPostService.apiCreatorPostPostIdDelete(postId).pipe(
-    tap(() => {
-      console.log('Пост удален, обновляем список');
-      this.postsRefresh.triggerRefresh();
-    }),
-    catchError((error) => {
-      console.error('Ошибка удаления поста:', error);
-      return throwError(() => error);
-    })
-  );
-}
+    return this.creatorPostService.apiCreatorPostPostIdDelete(postId).pipe(
+      tap(() => {
+        console.log('Пост удален, обновляем список');
+        this.postsRefresh.triggerRefresh();
+      }),
+      catchError((error) => {
+        console.error('Ошибка удаления поста:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  changeReaction(postId: string, reactionTypeId: number): Observable<any> {
+    const reaction: ContentPostReactionDto = {
+      postId: postId,
+      reactionTypeId: reactionTypeId
+    };
+    
+    return this.userInteractionService.apiUserInteractionChangeReactionPost(reaction).pipe(
+      catchError((error) => {
+        console.error('Ошибка изменения реакции:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  updatePostText(postId: string, title: string, text: string): Observable<AddTextResponseDto> {
+    const request: AddTextRequestDto = {
+      title: title,
+      text: text
+    };
+    
+    // Используем PUT запрос напрямую, так как API клиент еще не обновлен
+    return this.http.put<AddTextResponseDto>(`/api/CreatorPost/${postId}/text`, request).pipe(
+      tap(() => {
+        console.log('Пост обновлен успешно');
+        // Не обновляем список постов, чтобы избежать перезагрузки страницы
+      }),
+      catchError((error) => {
+        console.error('Ошибка обновления поста:', error);
+        return throwError(() => error);
+      })
+    );
+  }
 }

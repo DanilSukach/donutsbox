@@ -128,6 +128,8 @@ builder.Services.AddScoped<IEntityRepository<CreatorPageData, Guid>, CreatorPage
 builder.Services.AddScoped<IEntityRepository<ContentPost, Guid>, ContentPostRepository>();
 builder.Services.AddScoped<IEntityRepository<SubscriptionPeriod, int>, SubscriptionPeriodRepository>();
 builder.Services.AddScoped<IEntityRepository<PostComment, Guid>, PostCommentRepository>();
+builder.Services.AddScoped<IEntityRepository<PostReaction, Guid>, PostReactionRepository>();
+builder.Services.AddScoped<IEntityRepository<ReactionType, int>, ReactionTypeRepository>();
 
 
 builder.Services.AddScoped<IEntityService<UserDto, Guid>, UserService>();

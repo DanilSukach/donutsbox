@@ -15,99 +15,15 @@
 
     <!-- Form Container -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-    
-    <form [formGroup]="subscriptionForm" (ngSubmit)="onSubmit()">
-      <div class="space-y-4">
-        <div>
-          <label for="name" class="block text-sm font-medium text-gray-700">Название подписки</label>
-          <input
-            id="name"
-            type="text"
-            formControlName="name"
-            placeholder="Например: Базовая подписка"
-            class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500 transition-colors"
-            required
-          />
-          @if (subscriptionForm.get('name')?.invalid && subscriptionForm.get('name')?.touched) {
-            <div class="text-red-500 text-sm mt-1">Название подписки обязательно.</div>
-          }
-        </div>
-
-        <div>
-          <label for="description" class="block text-sm font-medium text-gray-700">Описание *</label>
-          <textarea
-            id="description"
-            formControlName="description"
-            rows="3"
-            placeholder="Что получат подписчики..."
-            class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500 transition-colors"
-            required
-          ></textarea>
-          @if (subscriptionForm.get('description')?.invalid && subscriptionForm.get('description')?.touched) {
-            <div class="text-red-500 text-sm mt-1">Описание обязательно.</div>
-          }
-        </div>
-
-        <div>
-          <label for="monthlyPrice" class="block text-sm font-medium text-gray-700">Месячная цена (₽)</label>
-          <input
-            id="monthlyPrice"
-            type="number"
-            formControlName="monthlyPrice"
-            min="0.01"
-            step="0.01"
-            placeholder="99.00"
-            class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500 transition-colors"
-            required
-          />
-          @if (subscriptionForm.get('monthlyPrice')?.invalid && subscriptionForm.get('monthlyPrice')?.touched) {
-            <div class="text-red-500 text-sm mt-1">Укажите корректную цену.</div>
-          }
-        </div>
-
-        <div>
-          <label for="pictureURL" class="block text-sm font-medium text-gray-700">URL изображения (опционально)</label>
-          <input
-            id="pictureURL"
-            type="text"
-            formControlName="pictureURL"
-            placeholder="https://example.com/image.jpg"
-            class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500 transition-colors"
-          />
-        </div>
-      </div>
-
-      @if (errorMessage()) {
-        <div class="mt-4 text-red-500 text-center">
-          {{ errorMessage() }}
-        </div>
-      }
-
-      <div class="flex gap-3 mt-6">
-        <button
-          type="button"
-          (click)="skipSubscription()"
-          [disabled]="isCreating()"
-          class="flex-1 px-4 py-2 font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:bg-gray-300 transition-colors"
-        >
-          Пропустить
-        </button>
-        <button
-          type="submit"
-          [disabled]="subscriptionForm.invalid || isCreating()"
-          class="flex-1 px-4 py-2 font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition-colors"
-        >
-          @if (isCreating()) {
-            <span class="flex items-center justify-center gap-2">
-              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              Создание...
-            </span>
-          } @else {
-            Создать подписку
-          }
-        </button>
-      </div>
-    </form>
+      <app-subscription-form
+        [showSkip]="true"
+        [isSubmitting]="isCreating()"
+        [errorMessage]="errorMessage()"
+        submitLabel="Создать подписку"
+        skipLabel="Пропустить"
+        (submitted)="onSubmit($event)"
+        (skipped)="skipSubscription()"
+      ></app-subscription-form>
     </div>
   </div>
 </div>

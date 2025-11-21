@@ -1,3 +1,7 @@
+@import 'swiper/css';
+@import 'swiper/css/pagination';
+@import 'swiper/css/navigation';
+
 :host {
   display: block;
 }
@@ -7,5 +11,46 @@
   isolation: isolate;
   position: relative;
   z-index: auto;
+}
+
+/* Swiper стили */
+.media-swiper {
+  width: 100%;
+  height: 100%;
+}
+
+.media-swiper swiper-slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: auto;
+  background: #f9fafb;
+}
+
+.media-swiper img {
+  width: 100%;
+  height: auto;
+  max-height: 600px;
+  object-fit: contain;
+}
+
+/* Стили для навигации и пагинации Swiper */
+.media-swiper::part(pagination) {
+  bottom: 10px;
+}
+
+.media-swiper::part(button-prev),
+.media-swiper::part(button-next) {
+  background: rgba(245, 158, 11, 0.8);
+  color: white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+}
+
+.media-swiper::part(button-prev):hover,
+.media-swiper::part(button-next):hover {
+  background: rgba(245, 158, 11, 1);
 }
 

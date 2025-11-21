@@ -1,36 +1,33 @@
 import { Component, inject, ChangeDetectionStrategy, signal, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { AuthorRequestDto } from '@app/api/donutsbox/model/authorRequestDto';
 import { FeedFacade } from '../../services/feed-facade';
 import { SubscriptionModalService } from '@app/shared/services/subscription-modal.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-top-authors',
+  selector: 'app-author-search',
   standalone: true,
-  imports: [],
-  templateUrl: './top-authors.html',
+  imports: [CommonModule, FormsModule],
+  templateUrl: './author-search.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TopAuthors implements OnInit, OnDestroy {
+export class AuthorSearch implements OnInit, OnDestroy {
   private readonly feedFacade = inject(FeedFacade);
   private readonly subscriptionModalService = inject(SubscriptionModalService);
   private subscriptionSuccessSub?: Subscription;
 
-  readonly topAuthors = this.feedFacade.topAuthors;
-  readonly loading = this.feedFacade.isLoadingTopAuthors;
-  readonly error = this.feedFacade.topAuthorsError;
-
-  // подписанные URL через фасад
+  readonly searchQuery = signal<string>('');
+  readonly searchResults = this.feedFacade.searchResults;
+  readonly isLoadingSearch = this.feedFacade.isLoadingSearch;
+  readonly searchError = this.feedFacade.searchError;
   readonly authorAvatarUrlMap = this.feedFacade.authorAvatarUrlMap;
-  
-  // Список ID авторов, на которых подписан пользователь
   readonly subscribedAuthorIds = this.feedFacade.userSubscribedAuthorIds;
 
   ngOnInit(): void {
-    this.loadTopAuthors();
     // Подписываемся на успешную подписку
     this.subscriptionSuccessSub = this.subscriptionModalService.subscriptionSuccess.subscribe(() => {
-      this.loadTopAuthors();
       this.feedFacade.loadUserSubscriptions();
     });
   }
@@ -48,7 +45,6 @@ export class TopAuthors implements OnInit, OnDestroy {
     return count.toString();
   }
 
-  // Проверяет, подписан ли пользователь на автора
   isSubscribed(author: AuthorRequestDto): boolean {
     return this.subscribedAuthorIds().has(author.id);
   }
@@ -72,7 +68,27 @@ export class TopAuthors implements OnInit, OnDestroy {
     return author.id || index.toString();
   }
 
-  loadTopAuthors(): void {
-    this.feedFacade.loadTopAuthors(10).subscribe();
+  onSearch(): void {
+    const query = this.searchQuery().trim();
+    if (query) {
+      this.feedFacade.searchAuthors(query).subscribe();
+    }
+  }
+
+  onClearSearch(): void {
+    this.searchQuery.set('');
+    this.feedFacade.clearSearch();
+  }
+
+  onSearchInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.searchQuery.set(input.value);
+  }
+
+  onSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      this.onSearch();
+    }
   }
 }
+

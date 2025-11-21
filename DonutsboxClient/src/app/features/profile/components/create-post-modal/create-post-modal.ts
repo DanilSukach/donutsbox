@@ -2,6 +2,7 @@ import { Component, inject, output, signal } from '@angular/core';
 import { PostsFacade } from '../../services/posts-facade';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 import { VideoStatusPollService } from '../../services/video-status-poll.service';
+import { FilesService } from '@app/api/donutsbox';
 
 type ModalStep = 'create' | 'upload-video' | 'publish' | 'done';
 
@@ -10,6 +11,13 @@ interface UploadedVideo {
   title: string;
   file: File;
   thumbnailUrl?: string;
+}
+
+interface UploadedImage {
+  imageId: string;
+  title: string;
+  file: File;
+  key: string;
 }
 
 @Component({
@@ -22,6 +30,7 @@ export class CreatePostModal {
   private postsFacade = inject(PostsFacade);
   private postsRefreshService = inject(PostsRefresh);
   private videoStatusPollService = inject(VideoStatusPollService);
+  private filesService = inject(FilesService);
 
   readonly closed = output<void>();
   readonly published = output<void>();
@@ -40,6 +49,12 @@ export class CreatePostModal {
   readonly videoDescription = signal('');
   readonly selectedVideoFile = signal<File | null>(null);
   readonly selectedThumbnail = signal<File | null>(null);
+  readonly isVideoFormExpanded = signal(false);
+
+  readonly images = signal<UploadedImage[]>([]);
+  readonly imageTitle = signal('');
+  readonly selectedImageFiles = signal<File[]>([]);
+  readonly isImageFormExpanded = signal(false);
 
   onVideoFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -52,6 +67,23 @@ export class CreatePostModal {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       this.selectedThumbnail.set(input.files[0]);
+    }
+  }
+
+  onImageFilesChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const files = Array.from(input.files);
+      // Ограничение до 8 файлов
+      const limitedFiles = files.slice(0, 8);
+      this.selectedImageFiles.set(limitedFiles);
+      
+      // Если выбрано больше 8, показываем предупреждение
+      if (files.length > 8) {
+        this.error.set(`Можно загрузить максимум 8 изображений. Выбрано ${limitedFiles.length}.`);
+      } else {
+        this.error.set(null);
+      }
     }
   }
 
@@ -151,11 +183,69 @@ export class CreatePostModal {
       });
   }
 
-  proceedToPublish(): void {
-    if (this.videos().length === 0) {
-      this.error.set('Добавьте хотя бы одно видео');
+  uploadImages(): void {
+    const files = this.selectedImageFiles();
+    const postId = this.postId();
+
+    if (!files || files.length === 0) {
+      this.error.set('Выберите изображения');
       return;
     }
+
+    if (files.length > 8) {
+      this.error.set('Максимум 8 изображений');
+      return;
+    }
+
+    if (!postId) {
+      this.error.set('Пост не создан');
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    this.filesService.apiFilesImagesPostPost(files, postId, this.imageTitle() || undefined)
+      .subscribe({
+        next: (response) => {
+          if (!response || response.length === 0) {
+            this.error.set('Изображения не загружены');
+            this.isLoading.set(false);
+            return;
+          }
+
+          // Добавляем загруженные изображения (фильтруем те, у которых есть key)
+          const uploadedImages: UploadedImage[] = response
+            .filter((item, index) => item.key && files[index])
+            .map((item, index) => ({
+              imageId: `img-${Date.now()}-${index}`,
+              title: this.imageTitle(),
+              file: files[index],
+              key: item.key!,
+            }));
+
+          if (uploadedImages.length > 0) {
+            this.images.update((imgs) => [...imgs, ...uploadedImages]);
+          } else {
+            this.error.set('Не удалось загрузить изображения');
+          }
+
+          // Очищаем форму
+          this.imageTitle.set('');
+          this.selectedImageFiles.set([]);
+          const imageInput = document.getElementById('image-files') as HTMLInputElement;
+          if (imageInput) imageInput.value = '';
+
+          this.isLoading.set(false);
+        },
+        error: (err) => {
+          this.error.set(err.error?.message || 'Ошибка загрузки изображений');
+          this.isLoading.set(false);
+        },
+      });
+  }
+
+  proceedToPublish(): void {
     this.currentStep.set('publish');
   }
 
@@ -202,6 +292,11 @@ export class CreatePostModal {
     this.videoDescription.set('');
     this.selectedVideoFile.set(null);
     this.selectedThumbnail.set(null);
+    this.isVideoFormExpanded.set(false);
+    this.images.set([]);
+    this.imageTitle.set('');
+    this.selectedImageFiles.set([]);
+    this.isImageFormExpanded.set(false);
     this.error.set(null);
     this.wasPublished.set(false);
   }

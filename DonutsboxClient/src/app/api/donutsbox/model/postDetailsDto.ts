@@ -24,5 +24,6 @@ export interface PostDetailsDto {
     creatorPageName?: string | null;
     creatorId?: string | null;
     creatorAvatarUrl?: string | null;
+    reactionTypeId?: number;
 }
 

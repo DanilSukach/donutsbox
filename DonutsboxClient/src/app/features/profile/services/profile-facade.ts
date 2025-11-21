@@ -101,14 +101,20 @@ export class ProfileFacade {
     );
   }
 
-  createSubscription(subscriptionData: SubscriptionCreateDto): Observable<SubscriptionDto | null> {
+  createSubscription(
+    subscriptionData: SubscriptionCreateDto,
+    options?: { navigateOnSuccess?: boolean }
+  ): Observable<SubscriptionDto | null> {
+    const shouldNavigate = options?.navigateOnSuccess ?? true;
     this.isCreatingSubscription.set(true);
     this.subscriptionError.set(null);
 
     return this.authorsService.apiAuthorsSubscriptionPost(subscriptionData).pipe(
       tap(() => {
         this.isCreatingSubscription.set(false);
-        this.navigateToProfile();
+        if (shouldNavigate) {
+          this.navigateToProfile();
+        }
       }),
       catchError((error) => {
         this.isCreatingSubscription.set(false);

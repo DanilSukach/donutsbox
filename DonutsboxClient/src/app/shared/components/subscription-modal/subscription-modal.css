@@ -1,10 +1,39 @@
-/* Стили для модального окна подписок */
-.modal-backdrop {
-  z-index: 1000;
-  isolation: isolate;
+/* Стили для модального окна подписок через CDK Overlay */
+.modal-content {
+  position: relative;
+  width: 100%;
 }
 
-.modal-content {
-  z-index: 1001;
-  isolation: isolate;
+.subscription-plan-card {
+  background-color: #fff;
+}
+
+.plan-option-button {
+  transition: transform 0.2s ease;
+}
+
+.plan-option-button:hover {
+  transform: translateY(-2px);
+}
+
+.plan-options button[disabled] {
+  cursor: not-allowed;
+}
+
+/* Стили для backdrop (управляется CDK Overlay) */
+::ng-deep .subscription-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(2px);
+}
+
+/* Стили для панели модального окна */
+::ng-deep .subscription-modal-panel {
+  max-height: 90vh;
+  overflow-y: auto;
+  width: 90% !important;
+  min-width: 48rem !important;
+  max-width: 80rem !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

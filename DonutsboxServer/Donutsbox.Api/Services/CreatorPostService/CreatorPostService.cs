@@ -164,13 +164,14 @@ public class CreatorPostService(
             .FirstOrDefaultAsync(p =>
                 p.Id == postId &&
                 p.CreatorPageDataId == currentUser.CreatorPageData.Id) ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
+        post.Title = request.Title;
         post.Text = request.Text;
         await db.SaveChangesAsync();
-        logger.LogInformation("Updated text for post {PostId}", postId);
+        logger.LogInformation("Updated title and text for post {PostId}", postId);
         return new AddTextResponseDto
         {
             PostId = post.Id,
-            Message = "Post text updated successfully."
+            Message = "Post title and text updated successfully."
         };
     }
 
@@ -280,9 +281,39 @@ public class CreatorPostService(
                     ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
                     HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
                 }).ToList(),
-                PictureUrls = p.Images.Select(url => $"/api/creator/posts/images/{url}").ToList()
+                PictureUrls = new List<string>() // Инициализируем пустым списком, заполним ниже
             })
             .ToListAsync();
+
+        // Получаем изображения из таблицы Images для каждого поста и генерируем presigned URLs
+        var postIds = posts.Select(p => p.Id).ToList();
+        var images = await db.Set<Image>()
+            .Where(img => postIds.Contains(img.ContentPostId) && !string.IsNullOrWhiteSpace(img.ObjectKey))
+            .ToListAsync();
+
+        foreach (var post in posts)
+        {
+            var postImages = images.Where(img => img.ContentPostId == post.Id).ToList();
+            var presignedUrls = new List<string>();
+            
+            foreach (var image in postImages)
+            {
+                if (!string.IsNullOrWhiteSpace(image.ObjectKey))
+                {
+                    try
+                    {
+                        var presignedUrl = await minio.GetPresignedGetUrlAsync(image.ObjectKey, minio.GetImagesBucket(), 300);
+                        presignedUrls.Add(presignedUrl);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to generate presigned URL for image {ImageKey}", image.ObjectKey);
+                        // Пропускаем изображение, если не удалось сгенерировать URL
+                    }
+                }
+            }
+            post.PictureUrls = presignedUrls;
+        }
 
         return new MyPostsResponseDto
         {
@@ -335,13 +366,43 @@ public class CreatorPostService(
                     ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
                     HlsUrl = $"/api/files/{v.Id}/hls/index.m3u8"
                 }).ToList(),
-                PictureUrls = p.Images.Select(url => $"/api/creator/posts/images/{url}").ToList(),
+                PictureUrls = new List<string>(), // Инициализируем пустым списком, заполним ниже
                 ReactionTypeId = p.PostReactions
                                     .Where(pr => pr.UserId == userId)
                                     .Select(pr => (int?)pr.ReactionTypeId)
                                     .FirstOrDefault() ?? 0
             })
             .ToListAsync();
+
+        // Получаем изображения из таблицы Images для каждого поста и генерируем presigned URLs
+        var postIds = posts.Select(p => p.Id).ToList();
+        var images = await db.Set<Image>()
+            .Where(img => postIds.Contains(img.ContentPostId) && !string.IsNullOrWhiteSpace(img.ObjectKey))
+            .ToListAsync();
+
+        foreach (var post in posts)
+        {
+            var postImages = images.Where(img => img.ContentPostId == post.Id).ToList();
+            var presignedUrls = new List<string>();
+            
+            foreach (var image in postImages)
+            {
+                if (!string.IsNullOrWhiteSpace(image.ObjectKey))
+                {
+                    try
+                    {
+                        var presignedUrl = await minio.GetPresignedGetUrlAsync(image.ObjectKey, minio.GetImagesBucket(), 300);
+                        presignedUrls.Add(presignedUrl);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to generate presigned URL for image {ImageKey}", image.ObjectKey);
+                        // Пропускаем изображение, если не удалось сгенерировать URL
+                    }
+                }
+            }
+            post.PictureUrls = presignedUrls;
+        }
 
         return new CreatorPostsResponseDto
         {
@@ -532,7 +593,7 @@ public class CreatorPostService(
                     ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
                     HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
                 }).ToList(),
-                PictureUrls = p.Images.Select(url => $"/api/creator/posts/images/{url}").ToList(),
+                PictureUrls = new List<string>(), // Инициализируем пустым списком, заполним ниже
                 CreatorPageName = p.CreatorPageData.PageName,
                 CreatorId = p.CreatorPageData.UserId,
                 CreatorAvatarUrl = p.CreatorPageData.AvatarURL,
@@ -543,8 +604,37 @@ public class CreatorPostService(
             })
             .ToListAsync();
 
+        // Получаем изображения из таблицы Images для каждого поста и генерируем presigned URLs
+        var postIds = posts.Select(p => p.Id).ToList();
+        var images = await db.Set<Image>()
+            .Where(img => postIds.Contains(img.ContentPostId) && !string.IsNullOrWhiteSpace(img.ObjectKey))
+            .ToListAsync();
+
         foreach (var post in posts)
         {
+            // Генерируем presigned URLs для изображений поста
+            var postImages = images.Where(img => img.ContentPostId == post.Id).ToList();
+            var presignedUrls = new List<string>();
+            
+            foreach (var image in postImages)
+            {
+                if (!string.IsNullOrWhiteSpace(image.ObjectKey))
+                {
+                    try
+                    {
+                        var presignedUrl = await minio.GetPresignedGetUrlAsync(image.ObjectKey, minio.GetImagesBucket(), 300);
+                        presignedUrls.Add(presignedUrl);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to generate presigned URL for image {ImageKey}", image.ObjectKey);
+                        // Пропускаем изображение, если не удалось сгенерировать URL
+                    }
+                }
+            }
+            post.PictureUrls = presignedUrls;
+
+            // Генерируем presigned URL для аватара создателя
             if (!string.IsNullOrEmpty(post.CreatorAvatarUrl))
             {
                 try

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthFacade } from '../../../auth/services/auth-facade';
@@ -11,7 +11,11 @@ import { UserSubscriptions } from '../../components/user-subscriptions/user-subs
 import { VideoProcessingIndicator } from '../../components/video-processing-indicator/video-processing-indicator';
 import { ProfileFacade } from '../../services/profile-facade';
 import { PostsFacade } from '../../services/posts-facade';
+import { UserSubscriptionsFacade } from '../../services/user-subscriptions-facade';
+import { SubscriptionModalService } from '@app/shared/services/subscription-modal.service';
+import { CreateSubscriptionModalService } from '@app/shared/services/create-subscription-modal.service';
 import { AuthorRequestDto } from '@app/api/donutsbox';
+import { of, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-profile-page',
@@ -20,7 +24,7 @@ import { AuthorRequestDto } from '@app/api/donutsbox';
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.css'
 })
-export class ProfilePage implements OnInit {
+export class ProfilePage implements OnInit, OnDestroy {
    private authFacade = inject(AuthFacade);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -28,6 +32,9 @@ export class ProfilePage implements OnInit {
   private jwtService = inject(JwtDecodeService);
   private profileFacade = inject(ProfileFacade);
   private postsFacade = inject(PostsFacade);
+  private userSubscriptionsFacade = inject(UserSubscriptionsFacade);
+  private subscriptionModalService = inject(SubscriptionModalService);
+  private createSubscriptionModalService = inject(CreateSubscriptionModalService);
 
   readonly isOwnProfile = signal(false);
   readonly profileId = signal<string | null>(null);  
@@ -35,11 +42,26 @@ export class ProfilePage implements OnInit {
   readonly showCreatePostModal = signal(false);
   readonly author = signal<AuthorRequestDto | null>(null);
   readonly bannerSrc = signal<string | null>(null);
+  readonly isSubscribed = signal(false);
+  readonly showUnsubscribeModal = signal(false);
+  
+  private subscriptionSuccessSub?: Subscription;
+  private subscriptionCreatedSub?: Subscription;
 
   // Функция для загрузки постов creator'а
   readonly loadCreatorPosts = (page: number, pageSize: number) => {
     const id = this.profileId();
-    if (!id) throw new Error('No creator ID');
+    const authorData = this.author();
+    if (!id || !authorData) {
+      // Если пользователь не является автором, возвращаем пустой результат
+      return of({ 
+        creator: undefined, 
+        total: 0, 
+        page: page, 
+        pageSize: pageSize, 
+        posts: [] 
+      });
+    }
     return this.postsFacade.getCreatorPosts(id, page, pageSize);
   };
 
@@ -49,10 +71,44 @@ export class ProfilePage implements OnInit {
       this.profileId.set(profileId);
       this.checkProfileOwnership();
       this.loadAuthorAndBanner(profileId);
+      if (!this.isOwnProfile()) {
+        this.loadSubscriptions();
+      }
     });
     
     this.checkUserRole();
+    
+    // Подписываемся на успешную подписку
+    this.subscriptionSuccessSub = this.subscriptionModalService.subscriptionSuccess.subscribe(() => {
+      this.loadSubscriptions();
+    });
+
+    this.subscriptionCreatedSub = this.createSubscriptionModalService.subscriptionCreated.subscribe(() => {
+      const profileId = this.profileId();
+      if (profileId) {
+        this.loadAuthorAndBanner(profileId);
+      }
+    });
+
+    // Закрытие модального окна отписки при клике вне его
+    document.addEventListener('click', this.handleDocumentClick);
   }
+
+  ngOnDestroy(): void {
+    this.subscriptionSuccessSub?.unsubscribe();
+    this.subscriptionCreatedSub?.unsubscribe();
+    document.removeEventListener('click', this.handleDocumentClick);
+  }
+
+  private handleDocumentClick = (event: MouseEvent): void => {
+    if (this.showUnsubscribeModal()) {
+      const target = event.target as HTMLElement;
+      // Закрываем модальное окно, если клик был вне его и вне кнопки подписки
+      if (!target.closest('.unsubscribe-modal') && !target.closest('.relative')) {
+        this.closeUnsubscribeModal();
+      }
+    }
+  };
 
   private loadAuthorAndBanner(profileId: string | null): void {
     if (!profileId) {
@@ -66,12 +122,17 @@ export class ProfilePage implements OnInit {
       const key = author?.bannerUrl ?? null;
       if (!key) {
         this.bannerSrc.set(null);
-        return;
+      } else {
+        this.profileFacade.getImageUrl(key, 300).subscribe({
+          next: (url) => this.bannerSrc.set(url),
+          error: () => this.bannerSrc.set(null)
+        });
       }
-      this.profileFacade.getImageUrl(key, 300).subscribe({
-        next: (url) => this.bannerSrc.set(url),
-        error: () => this.bannerSrc.set(null)
-      });
+      
+      // Проверяем подписку после загрузки автора
+      if (!this.isOwnProfile()) {
+        this.checkSubscriptionStatus();
+      }
     });
   }
 
@@ -124,6 +185,65 @@ export class ProfilePage implements OnInit {
   onBannerError(e: Event): void {
     const img = e.target as HTMLImageElement;
     img.src = '/images/banner-placeholder.jpg';
+  }
+
+  private loadSubscriptions(): void {
+    this.userSubscriptionsFacade.loadUserSubscriptions().subscribe(() => {
+      this.checkSubscriptionStatus();
+    });
+  }
+
+  private checkSubscriptionStatus(): void {
+    const profileId = this.profileId();
+    if (!profileId) {
+      this.isSubscribed.set(false);
+      return;
+    }
+
+    const subscriptions = this.userSubscriptionsFacade.subscriptions();
+    const isSubscribed = subscriptions.some(sub => sub.id === profileId);
+    this.isSubscribed.set(isSubscribed);
+  }
+
+  onSubscribe(): void {
+    const author = this.author();
+    if (author) {
+      this.subscriptionModalService.open(author);
+    }
+  }
+
+  openCreateSubscriptionModal(): void {
+    this.createSubscriptionModalService.open();
+  }
+
+  openUnsubscribeModal(): void {
+    this.showUnsubscribeModal.set(true);
+  }
+
+  closeUnsubscribeModal(): void {
+    this.showUnsubscribeModal.set(false);
+  }
+
+  confirmUnsubscribe(): void {
+    const profileId = this.profileId();
+    if (profileId) {
+      this.userSubscriptionsFacade.unsubscribeFromCreator(profileId).subscribe({
+        next: () => {
+          this.closeUnsubscribeModal();
+          this.isSubscribed.set(false);
+        },
+        error: (error) => {
+          console.error('Ошибка отписки от создателя:', error);
+        }
+      });
+    }
+  }
+
+  formatSubscribersCount(count?: number): string {
+    if (!count) return '0';
+    if (count >= 1000000) return (count / 1000000).toFixed(1) + 'M';
+    if (count >= 1000) return (count / 1000).toFixed(1) + 'K';
+    return count.toString();
   }
 }
 

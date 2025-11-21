@@ -30,7 +30,7 @@
           <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white" [class.bg-amber-600]="currentStep() === 'upload-video'" [class.bg-green-600]="currentStep() === 'publish' || currentStep() === 'done'" [class.bg-gray-300]="currentStep() === 'create'">
             @if (currentStep() === 'publish' || currentStep() === 'done') { ✓ } @else { 2 }
           </div>
-          <span class="font-semibold hidden sm:inline">Видео</span>
+          <span class="font-semibold hidden sm:inline">Добавить вложения</span>
         </div>
         <div class="flex-1 h-1 mx-2 rounded-full" [class.bg-green-600]="currentStep() === 'done'" [class.bg-gray-300]="currentStep() !== 'done'"></div>
         <div class="flex items-center gap-2" [class.text-amber-600]="currentStep() === 'publish'" [class.text-green-600]="currentStep() === 'done'" [class.text-gray-400]="currentStep() !== 'publish' && currentStep() !== 'done'">
@@ -90,33 +90,132 @@
             </div>
           }
 
-          <div class="space-y-4 border-2 border-dashed border-gray-300 rounded-xl p-6 bg-gray-50">
-            <h3 class="font-semibold text-gray-900">📤 Загрузить новое видео</h3>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Название <span class="text-red-500">*</span></label>
-              <input type="text" [value]="videoTitle()" (input)="videoTitle.set($any($event.target).value)" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500" placeholder="Введите название..." />
+          <!-- Кнопка добавления видео -->
+          <button 
+            (click)="isVideoFormExpanded.set(!isVideoFormExpanded())" 
+            type="button" 
+            class="w-full px-6 py-4 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors duration-200 flex items-center justify-center gap-3 font-semibold text-gray-700">
+            @if (isVideoFormExpanded()) {
+              <span>▲</span>
+              <span>Скрыть форму загрузки видео</span>
+            } @else {
+              <span>🎬</span>
+              <span>Добавить видео</span>
+            }
+          </button>
+
+          <!-- Форма загрузки видео с анимацией раскрытия -->
+          <div 
+            class="overflow-hidden transition-all duration-300 ease-in-out"
+            [style.max-height]="isVideoFormExpanded() ? '2000px' : '0px'"
+            [style.opacity]="isVideoFormExpanded() ? '1' : '0'">
+            <div class="space-y-4 border-2 border-dashed border-gray-300 rounded-xl p-6 bg-gray-50 mt-4">
+              <h3 class="font-semibold text-gray-900">📤 Загрузить новое видео</h3>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Название <span class="text-red-500">*</span></label>
+                <input type="text" [value]="videoTitle()" (input)="videoTitle.set($any($event.target).value)" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500" placeholder="Введите название..." />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Описание</label>
+                <textarea [value]="videoDescription()" (input)="videoDescription.set($any($event.target).value)" rows="3" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none" placeholder="Краткое описание..."></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">🎥 Видео</label>
+                <input type="file" id="video-file" accept="video/*" (change)="onVideoFileChange($event)" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg" />
+                @if (selectedVideoFile()) {
+                  <p class="text-sm text-green-600 mt-2">✓ {{ selectedVideoFile()!.name }} ({{ (selectedVideoFile()!.size / 1024 / 1024).toFixed(2) }} MB)</p>
+                }
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">🖼️ Превью</label>
+                <input type="file" id="thumbnail-file" accept="image/*" (change)="onThumbnailChange($event)" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg" />
+                @if (selectedThumbnail()) {
+                  <p class="text-sm text-green-600 mt-2">✓ {{ selectedThumbnail()!.name }}</p>
+                }
+              </div>
+              <button (click)="uploadVideo()" [disabled]="isLoading() || !selectedVideoFile() || !videoTitle().trim()" type="button" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold">
+                @if (isLoading()) { ⏳ Загрузка... } @else { 📤 Загрузить видео }
+              </button>
             </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Описание</label>
-              <textarea [value]="videoDescription()" (input)="videoDescription.set($any($event.target).value)" rows="3" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none" placeholder="Краткое описание..."></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">🎥 Видео <span class="text-red-500">*</span></label>
-              <input type="file" id="video-file" accept="video/*" (change)="onVideoFileChange($event)" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg" />
-              @if (selectedVideoFile()) {
-                <p class="text-sm text-green-600 mt-2">✓ {{ selectedVideoFile()!.name }} ({{ (selectedVideoFile()!.size / 1024 / 1024).toFixed(2) }} MB)</p>
+          </div>
+
+          <!-- Кнопка добавления изображений -->
+          <button 
+            (click)="isImageFormExpanded.set(!isImageFormExpanded())" 
+            type="button" 
+            class="w-full px-6 py-4 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors duration-200 flex items-center justify-center gap-3 font-semibold text-gray-700">
+            @if (isImageFormExpanded()) {
+              <span>▲</span>
+              <span>Скрыть форму загрузки изображений</span>
+            } @else {
+              <span>🖼️</span>
+              <span>Добавить изображения</span>
+            }
+          </button>
+
+          <!-- Форма загрузки изображений с анимацией раскрытия -->
+          <div 
+            class="overflow-hidden transition-all duration-300 ease-in-out"
+            [style.max-height]="isImageFormExpanded() ? '2000px' : '0px'"
+            [style.opacity]="isImageFormExpanded() ? '1' : '0'">
+            <div class="space-y-4 border-2 border-dashed border-gray-300 rounded-xl p-6 bg-gray-50 mt-4">
+              <h3 class="font-semibold text-gray-900">📤 Загрузить изображения (максимум 8)</h3>
+              
+              @if (images().length > 0) {
+                <div class="bg-green-50 border-l-4 border-green-500 rounded-lg p-4">
+                  <h4 class="font-semibold text-green-900 mb-2">✅ Загруженные изображения ({{ images().length }})</h4>
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    @for (image of images(); track image.imageId) {
+                      <div class="relative bg-white rounded-lg p-2">
+                        <div class="aspect-square bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+                          <span class="text-2xl">🖼️</span>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1 truncate">{{ image.file.name }}</p>
+                      </div>
+                    }
+                  </div>
+                </div>
               }
+
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Название (необязательно)</label>
+                <input 
+                  type="text" 
+                  [value]="imageTitle()" 
+                  (input)="imageTitle.set($any($event.target).value)" 
+                  class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500" 
+                  placeholder="Введите название для всех изображений..." />
+              </div>
+              
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">🖼️ Изображения</label>
+                <input 
+                  type="file" 
+                  id="image-files" 
+                  accept="image/*" 
+                  multiple
+                  (change)="onImageFilesChange($event)" 
+                  class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg" />
+                @if (selectedImageFiles().length > 0) {
+                  <div class="mt-2 space-y-1">
+                    @for (file of selectedImageFiles(); track file.name + file.size) {
+                      <p class="text-sm text-green-600">✓ {{ file.name }} ({{ (file.size / 1024 / 1024).toFixed(2) }} MB)</p>
+                    }
+                  </div>
+                  @if (selectedImageFiles().length === 8) {
+                    <p class="text-xs text-amber-600 mt-1">⚠️ Достигнут лимит в 8 изображений</p>
+                  }
+                }
+              </div>
+
+              <button 
+                (click)="uploadImages()" 
+                [disabled]="isLoading() || selectedImageFiles().length === 0" 
+                type="button" 
+                class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold">
+                @if (isLoading()) { ⏳ Загрузка... } @else { 📤 Загрузить изображения ({{ selectedImageFiles().length }}) }
+              </button>
             </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">🖼️ Превью</label>
-              <input type="file" id="thumbnail-file" accept="image/*" (change)="onThumbnailChange($event)" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg" />
-              @if (selectedThumbnail()) {
-                <p class="text-sm text-green-600 mt-2">✓ {{ selectedThumbnail()!.name }}</p>
-              }
-            </div>
-            <button (click)="uploadVideo()" [disabled]="isLoading() || !selectedVideoFile() || !videoTitle().trim()" type="button" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold">
-              @if (isLoading()) { ⏳ Загрузка... } @else { 📤 Загрузить видео }
-            </button>
           </div>
         </div>
       }
@@ -128,7 +227,12 @@
             <h3 class="font-bold text-amber-900 mb-4 text-lg">🎉 Готово к публикации</h3>
             <div class="space-y-3">
               <div class="flex gap-3"><span class="text-green-600">✓</span><div><p class="text-sm text-gray-600">Заголовок</p><p class="font-semibold text-gray-900">{{ postTitle() }}</p></div></div>
-              <div class="flex gap-3"><span class="text-green-600">✓</span><div><p class="text-sm text-gray-600">Видео</p><p class="font-semibold text-gray-900">{{ videos().length }} видео</p></div></div>
+              @if (videos().length > 0) {
+                <div class="flex gap-3"><span class="text-green-600">✓</span><div><p class="text-sm text-gray-600">Видео</p><p class="font-semibold text-gray-900">{{ videos().length }} видео</p></div></div>
+              }
+              @if (images().length > 0) {
+                <div class="flex gap-3"><span class="text-green-600">✓</span><div><p class="text-sm text-gray-600">Изображения</p><p class="font-semibold text-gray-900">{{ images().length }} изображений</p></div></div>
+              }
             </div>
           </div>
           <p class="text-gray-600 text-center">После публикации пост станет виден всем подписчикам</p>
@@ -159,7 +263,7 @@
         }
         
         @if (currentStep() === 'upload-video') {
-          <button (click)="proceedToPublish()" [disabled]="videos().length === 0" type="button" class="px-8 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold">Далее →</button>
+          <button (click)="proceedToPublish()" [disabled]="isLoading()" type="button" class="px-8 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold">Далее →</button>
         }
         
         @if (currentStep() === 'publish') {

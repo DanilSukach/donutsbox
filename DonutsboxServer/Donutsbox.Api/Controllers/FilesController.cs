@@ -229,12 +229,17 @@ public class FilesController(IMinioService minioService, ILogger<FilesController
     [Authorize(Roles = "Creator")]
     [HttpPost("images/post")]
     [RequestSizeLimit(100 * 1024 * 1024)] // 100 MB
-    public async Task<ActionResult<ImageUploadResponseDto>> UploadPostImage([FromForm] IFormFile file, [FromForm] Guid contentPostId, [FromForm] string? title)
+    public async Task<ActionResult<List<ImageUploadResponseDto>>> UploadPostImage([FromForm] UploadPostImageDto dto)
     {
-        if (file == null || file.Length == 0)
-            return BadRequest(new { message = "No file" });
-        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-            return BadRequest(new { message = "Invalid image type" });
+        if (dto.Files == null || dto.Files.Count == 0)
+            return BadRequest(new { message = "No files provided" });
+
+        if (dto.Files.Count > 8)
+            return BadRequest(new { message = "Maximum 8 images allowed" });
+
+        var invalidFiles = dto.Files.Where(f => f == null || f.Length == 0 || !f.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)).ToList();
+        if (invalidFiles.Count != 0)
+            return BadRequest(new { message = "Invalid image files detected" });
 
         var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
@@ -249,39 +254,52 @@ public class FilesController(IMinioService minioService, ILogger<FilesController
             return BadRequest(new { message = "Creator page not found" });
 
         var post = await db.ContentPosts.FirstOrDefaultAsync(p =>
-            p.Id == contentPostId &&
+            p.Id == dto.ContentPostId &&
             p.CreatorPageDataId == user.CreatorPageData.Id);
 
         if (post == null)
             return BadRequest(new { message = "Content post not found or does not belong to you" });
 
-        var imageId = Guid.NewGuid();
-        var ext = Path.GetExtension(file.FileName);
-        var key = $"content_images/{userId}/{imageId}{ext}";
+        var uploadedKeys = new List<ImageUploadResponseDto>();
+        var imagesToAdd = new List<Image>();
 
-        using (var stream = file.OpenReadStream())
+        foreach (var file in dto.Files)
         {
-            await minioService.UploadImageAsync(key, stream, file.ContentType);
+            var imageId = Guid.NewGuid();
+            var ext = Path.GetExtension(file.FileName);
+            var key = $"content_images/{userId}/{dto.ContentPostId}/{imageId}{ext}";
+
+            using (var stream = file.OpenReadStream())
+            {
+                await minioService.UploadImageAsync(key, stream, file.ContentType);
+            }
+
+            var image = new Image
+            {
+                Id = imageId,
+                UserId = userId,
+                Title = dto.Title,
+                Status = "UPLOADED",
+                ObjectKey = key,
+                CreatedAt = DateTime.UtcNow,
+                ProcessedPath = null,
+                ContentPostId = dto.ContentPostId,
+                ContentPost = post
+            };
+
+            imagesToAdd.Add(image);
+            uploadedKeys.Add(new ImageUploadResponseDto { Key = key });
+            
+            // Добавляем ObjectKey в список изображений поста
+            post.Images.Add(key);
         }
 
-        var image = new Image
-        {
-            Id = imageId,
-            UserId = userId,
-            Title = title,
-            Status = "UPLOADED",
-            ObjectKey = key,
-            CreatedAt = DateTime.UtcNow,
-            ProcessedPath = null,
-            ContentPostId = contentPostId,
-            ContentPost = post
-        };
-
-        db.Images.Add(image);
+        db.Images.AddRange(imagesToAdd);
         await db.SaveChangesAsync();
 
-        logger.LogInformation("Image {ImageId} uploaded by creator {UserId} for post {PostId}", image.Id, userId, contentPostId);
+        logger.LogInformation("{Count} images uploaded by creator {UserId} for post {PostId}",
+            uploadedKeys.Count, userId, dto.ContentPostId);
 
-        return Ok(new ImageUploadResponseDto { Key = key });
+        return Ok(uploadedKeys);
     }
 }

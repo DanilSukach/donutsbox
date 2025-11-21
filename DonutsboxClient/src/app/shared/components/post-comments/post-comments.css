@@ -2,6 +2,30 @@
   animation: fadeIn 0.3s ease-in;
 }
 
+.comments-scroll {
+  max-height: 24rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  scroll-behavior: smooth;
+}
+
+.comments-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.comments-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.comments-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(251, 191, 36, 0.6); /* amber-400 */
+  border-radius: 999px;
+}
+
+.comments-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(245, 158, 11, 0.8); /* amber-500 */
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
