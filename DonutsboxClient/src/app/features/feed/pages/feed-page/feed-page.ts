@@ -1,12 +1,13 @@
 import { Component, ChangeDetectionStrategy, inject, OnInit } from '@angular/core';
 import { TopAuthors } from '../../components/top-authors/top-authors';
+import { AuthorSearch } from '../../components/author-search/author-search';
 import { PostsFeed } from '@app/shared/components/posts-feed/posts-feed';
 import { FeedFacade } from '../../services/feed-facade';
 import { UserProfileIcon } from '../../../../shared/components/user-profile-icon/user-profile-icon';
 
 @Component({
   selector: 'app-feed-page',
-  imports: [TopAuthors, UserProfileIcon, PostsFeed],
+  imports: [TopAuthors, AuthorSearch, UserProfileIcon, PostsFeed],
   templateUrl: './feed-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

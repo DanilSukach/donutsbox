@@ -24,6 +24,11 @@ export class FeedFacade {
   readonly isLoadingTopAuthors = signal(false);
   readonly topAuthorsError = signal<string | null>(null);
 
+  // Состояние поиска
+  readonly searchResults = signal<AuthorRequestDto[]>([]);
+  readonly isLoadingSearch = signal(false);
+  readonly searchError = signal<string | null>(null);
+
   readonly userGuid = signal<string | null>(null);
   readonly isLoadingUserData = signal(false);
 
@@ -69,6 +74,42 @@ export class FeedFacade {
     );
   }
 
+  prefetchAuthorAvatars(authors: AuthorRequestDto[]): void {
+    this.loadAvatarSignedUrls(authors);
+  }
+
+  searchAuthors(query: string): Observable<AuthorRequestDto[]> {
+    if (!query.trim()) {
+      this.searchResults.set([]);
+      this.searchError.set(null);
+      return of([]);
+    }
+
+    this.isLoadingSearch.set(true);
+    this.searchError.set(null);
+
+    return this.authorsService.apiAuthorsSearchGet(query).pipe(
+      tap((authors) => {
+        this.searchResults.set(authors);
+        this.isLoadingSearch.set(false);
+        this.loadAvatarSignedUrls(authors);
+      }),
+      catchError((error) => {
+        console.error('Ошибка поиска авторов:', error);
+        this.searchError.set('Не удалось выполнить поиск');
+        this.isLoadingSearch.set(false);
+        this.searchResults.set([]);
+        return of([]);
+      })
+    );
+  }
+
+  clearSearch(): void {
+    this.searchResults.set([]);
+    this.searchError.set(null);
+    this.isLoadingSearch.set(false);
+  }
+
   private loadAvatarSignedUrls(authors: AuthorRequestDto[]): void {
     const requests = authors
       .filter(a => !!a.id && !!a.avatarUrl)
@@ -79,17 +120,18 @@ export class FeedFacade {
       );
 
     if (requests.length === 0) {
-      this.authorAvatarUrlMap.set({});
       return;
     }
 
     forkJoin(requests).subscribe({
       next: pairs => {
-        const mapObj: Record<string,string> = {};
-        for (const p of pairs) if (p.url) mapObj[p.id] = p.url;
-        this.authorAvatarUrlMap.set(mapObj);
+        const currentMap = { ...this.authorAvatarUrlMap() };
+        for (const p of pairs) {
+          if (p.url) currentMap[p.id] = p.url;
+        }
+        this.authorAvatarUrlMap.set(currentMap);
       },
-      error: () => this.authorAvatarUrlMap.set({})
+      error: () => {}
     });
   }
 

@@ -66,8 +66,8 @@ public class CreatorPostController(ICreatorPostService creatorPostService) : Con
         }
     }
 
-    [HttpPost("{postId:guid}/text")]
-    public async Task<ActionResult<AddTextResponseDto>> AddTextToPost(
+    [HttpPut("{postId:guid}/text")]
+    public async Task<ActionResult<AddTextResponseDto>> UpdatePostText(
       [FromRoute] Guid postId,
       [FromBody] AddTextRequestDto request)
     {

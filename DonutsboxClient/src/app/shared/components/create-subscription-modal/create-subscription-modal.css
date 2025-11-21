@@ -1,0 +1,36 @@
+.create-subscription-modal {
+  width: 100%;
+  max-width: 640px;
+  padding: 2.5rem;
+}
+
+.modal-header {
+  gap: 1rem;
+}
+
+.close-button {
+  line-height: 1;
+}
+
+.create-subscription-modal ::ng-deep .subscription-form {
+  padding: 0;
+  border: none;
+  box-shadow: none;
+}
+
+::ng-deep .create-subscription-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(2px);
+}
+
+::ng-deep .create-subscription-modal-panel {
+  max-height: 90vh;
+  overflow-y: auto;
+  width: 90% !important;
+  max-width: 720px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+

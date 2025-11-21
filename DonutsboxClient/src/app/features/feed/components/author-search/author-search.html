@@ -2,40 +2,65 @@
   <div class="mb-6">
     <div class="flex items-center gap-2 mb-2">
       <div class="w-5 h-5 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
-        <span class="text-white text-xs">⭐</span>
+        <span class="text-white text-xs">🔍</span>
       </div>
-      <h2 class="text-lg font-bold text-gray-900">Топ авторы</h2>
+      <h2 class="text-lg font-bold text-gray-900">Поиск авторов</h2>
     </div>
-    <p class="text-sm text-gray-600">Популярные создатели</p>
+    <p class="text-sm text-gray-600">Найдите интересных создателей</p>
   </div>
 
-  @if (loading()) {
+  <!-- Поисковая строка -->
+  <div class="mb-4">
+    <div class="flex gap-2 flex-nowrap">
+      <input
+        type="text"
+        [value]="searchQuery()"
+        (input)="onSearchInput($event)"
+        (keydown)="onSearchKeydown($event)"
+        placeholder="Введите название или описание..."
+        class="flex-1 min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+      />
+      <button
+        (click)="onSearch()"
+        [disabled]="!searchQuery().trim() || isLoadingSearch()"
+        class="flex-shrink-0 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200 text-sm font-medium whitespace-nowrap"
+      >
+        Найти
+      </button>
+    </div>
+    @if (searchQuery().trim()) {
+      <button
+        (click)="onClearSearch()"
+        class="mt-2 text-xs text-amber-600 hover:text-amber-700 underline"
+      >
+        Сбросить поиск
+      </button>
+    }
+  </div>
+
+  @if (isLoadingSearch()) {
     <div class="flex flex-col items-center justify-center py-8">
       <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-amber-600 mb-3"></div>
-      <p class="text-sm text-gray-600">Загрузка...</p>
+      <p class="text-sm text-gray-600">Поиск...</p>
     </div>
   }
 
-  @if (error() && !loading()) {
+  @if (searchError() && !isLoadingSearch()) {
     <div class="text-center py-8">
       <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
         <span class="text-lg">⚠️</span>
       </div>
-      <p class="text-red-600 text-sm mb-3">{{ error() }}</p>
-      <button (click)="loadTopAuthors()" class="px-3 py-1.5 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 transition-colors duration-200 font-medium">
+      <p class="text-red-600 text-sm mb-3">{{ searchError() }}</p>
+      <button (click)="onSearch()" class="px-3 py-1.5 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 transition-colors duration-200 font-medium">
         Повторить
       </button>
     </div>
   }
 
-  @if (topAuthors().length > 0) {
+  @if (searchResults().length > 0 && !isLoadingSearch()) {
     <div class="space-y-3">
-      @for (author of topAuthors(); track trackByAuthorId($index, author); let i = $index) {
+      @for (author of searchResults(); track trackByAuthorId($index, author)) {
         <div class="flex items-start p-3 border border-gray-200 rounded-lg hover:border-amber-300 hover:shadow-sm transition-all duration-200 cursor-pointer group bg-gray-50 hover:bg-white" (click)="onAuthorClick(author)">
-          <div class="flex-shrink-0 w-6 h-6 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center mr-3 mt-0.5">
-            <span class="text-white font-bold text-xs">{{ i + 1 }}</span>
-          </div>
-
           <div class="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden mr-3 ring-2 ring-gray-200 group-hover:ring-amber-300 transition-all duration-200">
             <img
               [src]="authorAvatarUrlMap()[author.id!] || defaultAvatar"
@@ -78,12 +103,22 @@
     </div>
   }
 
-  @if (topAuthors().length === 0 && !loading() && !error()) {
+  @if (searchResults().length === 0 && !isLoadingSearch() && !searchError() && searchQuery().trim()) {
     <div class="text-center py-8">
       <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-        <span class="text-lg">👤</span>
+        <span class="text-lg">🔍</span>
       </div>
       <p class="text-sm text-gray-600">Авторы не найдены</p>
     </div>
   }
+
+  @if (!searchQuery().trim() && !isLoadingSearch()) {
+    <div class="text-center py-8">
+      <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+        <span class="text-lg">🔍</span>
+      </div>
+      <p class="text-sm text-gray-600">Введите запрос для поиска</p>
+    </div>
+  }
 </div>
+

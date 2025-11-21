@@ -20,11 +20,16 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/addImagesRequestDto.ts
+model/addImagesResponseDto.ts
+model/addTextRequestDto.ts
+model/addTextResponseDto.ts
 model/addVideosRequestDto.ts
 model/addVideosResponseDto.ts
 model/authorPreviewDto.ts
 model/authorRequestDto.ts
 model/contentPostDto.ts
+model/contentPostReactionDto.ts
 model/createDraftRequestDto.ts
 model/createPostCommentDto.ts
 model/creatorInfoDto.ts

@@ -22,4 +22,20 @@ public class SubscriptionDto
     /// Ссылка на картинку подписки
     /// </summary>
     public string? PictureURL { get; set; }
+    /// <summary>
+    /// Идентификатор периода подписки
+    /// </summary>
+    public required int SubscriptionPeriodId { get; set; }
+    /// <summary>
+    /// Количество месяцев в периоде подписки
+    /// </summary>
+    public required int SubscriptionPeriodMonths { get; set; }
+    /// <summary>
+    /// Цена в расчете на один месяц
+    /// </summary>
+    public required string MonthlyPrice { get; set; }
+    /// <summary>
+    /// Родительская подписка (уровень)
+    /// </summary>
+    public Guid? ParentSubscriptionId { get; set; }
 }

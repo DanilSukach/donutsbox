@@ -10,6 +10,8 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
     {
         IQueryable<User> query = context.Users
             .Include(u => u.CreatorPageData)
+            .ThenInclude(c => c!.Subscriptions)
+            .ThenInclude(s => s.SubscriptionPeriod)
             .Where(u => u.UserTypeId == 2);
 
         if (!string.IsNullOrEmpty(sortBy))
@@ -36,6 +38,8 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
     {
         IQueryable<User> query = context.Users
             .Include(u => u.CreatorPageData)
+            .ThenInclude(c => c!.Subscriptions)
+            .ThenInclude(sp => sp.SubscriptionPeriod)
             .Where(u => u.UserTypeId == 2);
 
         return await query.ToListAsync();
@@ -55,6 +59,7 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
         return await context.Users
             .Include(u => u.CreatorPageData)
             .ThenInclude(c => c!.Subscriptions)
+            .ThenInclude(s => s.SubscriptionPeriod)
             .Where(u => u.UserTypeId == 2)
             .OrderByDescending(u => u.CreatorPageData!.SubscribersCount)
             .Take(count)

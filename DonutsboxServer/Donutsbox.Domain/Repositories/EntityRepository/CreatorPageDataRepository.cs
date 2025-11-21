@@ -30,7 +30,7 @@ public class CreatorPageDataRepository(DonutsboxDbContext context) : IEntityRepo
     public async Task<CreatorPageData?> GetByIdAsync(Guid id)
     {
         return await context.CreatorsPageData
-                            .FirstOrDefaultAsync(c => c.UserId == id);
+                            .FirstOrDefaultAsync(c => c.Id == id);
     }
 
     public async Task<bool> UpdateAsync(CreatorPageData entity, Guid id)

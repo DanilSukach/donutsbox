@@ -30,5 +30,21 @@ export interface SubscriptionDto {
      * Ссылка на картинку подписки
      */
     pictureURL?: string | null;
+    /**
+     * Идентификатор периода подписки
+     */
+    subscriptionPeriodId: number;
+    /**
+     * Количество месяцев в периоде
+     */
+    subscriptionPeriodMonths: number;
+    /**
+     * Цена в расчете за месяц
+     */
+    monthlyPrice: string | null;
+    /**
+     * Родительская подписка
+     */
+    parentSubscriptionId?: string | null;
 }
 

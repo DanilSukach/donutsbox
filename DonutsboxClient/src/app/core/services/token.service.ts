@@ -2,27 +2,60 @@ import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class TokenService {
-private readonly accessKey = 'db_access_token';
+  private readonly accessKey = 'db_access_token';
   private readonly refreshKey = 'db_refresh_token';
   private readonly isNewCreatorKey = 'db_is_new_creator';
 
-  private get isBrowser(): boolean {
-    return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+  private readonly storage: Storage | null = this.resolveStorage();
+
+  private resolveStorage(): Storage | null {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    const storages: Storage[] = [];
+    if (typeof window.sessionStorage !== 'undefined') storages.push(window.sessionStorage);
+    if (typeof window.localStorage !== 'undefined') storages.push(window.localStorage);
+
+    for (const storage of storages) {
+      try {
+        const testKey = '__db_storage_test__';
+        storage.setItem(testKey, testKey);
+        storage.removeItem(testKey);
+        return storage;
+      } catch {
+        continue;
+      }
+    }
+
+    return null;
   }
 
   private safeGetItem(key: string): string | null {
-    if (!this.isBrowser) return null;
-    try { return localStorage.getItem(key); } catch { return null; }
+    if (!this.storage) return null;
+    try {
+      return this.storage.getItem(key);
+    } catch {
+      return null;
+    }
   }
 
   private safeSetItem(key: string, value: string): void {
-    if (!this.isBrowser) return;
-    try { localStorage.setItem(key, value); } catch { /* ignore */ }
+    if (!this.storage) return;
+    try {
+      this.storage.setItem(key, value);
+    } catch {
+      /* ignore */
+    }
   }
 
   private safeRemoveItem(key: string): void {
-    if (!this.isBrowser) return;
-    try { localStorage.removeItem(key); } catch { /* ignore */ }
+    if (!this.storage) return;
+    try {
+      this.storage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
   }
 
   setTokens(accessToken: string | null | undefined, refreshToken: string | null | undefined): void {

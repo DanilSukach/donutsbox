@@ -1,6 +1,5 @@
 <div class="min-h-screen bg-gradient-to-br from-pink-50 via-yellow-50 to-amber-50">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Top Bar -->
     <div class="flex justify-between items-center mb-8">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
@@ -11,17 +10,14 @@
       <app-user-profile-icon></app-user-profile-icon>
     </div>
 
-    <!-- Header -->
-    <header class="text-center mb-12">
-      <p class="text-lg text-amber-800 max-w-2xl mx-auto">
-        Персональная лента контента от ваших подписок
-      </p>
-    </header>
-
-      <!-- Main Layout: Grid с центральной лентой и боковой панелью -->
       <main class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <!-- Центральная лента контента (занимает 3 колонки из 4) -->
-        <section class="lg:col-span-3 order-2 lg:order-1">
+        <aside class="lg:col-span-1 order-1">
+          <div class="lg:sticky lg:top-8">
+            <app-author-search></app-author-search>
+          </div>
+        </aside>
+
+        <section class="lg:col-span-2 order-2">
           <app-posts-feed
             [mode]="'subscriptions'"
             [loadPostsFunction]="loadFeedPosts"
@@ -29,12 +25,11 @@
           ></app-posts-feed>
         </section>
 
-      <!-- Боковая панель справа (занимает 1 колонку из 4) -->
-      <aside class="lg:col-span-1 order-1 lg:order-2">
-        <div class="lg:sticky lg:top-8">
-          <app-top-authors></app-top-authors>
-        </div>
-      </aside>
-    </main>
+        <aside class="lg:col-span-1 order-3">
+          <div class="lg:sticky lg:top-8">
+            <app-top-authors></app-top-authors>
+          </div>
+        </aside>
+      </main>
   </div>
 </div>

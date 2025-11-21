@@ -3,26 +3,99 @@
   <div class="p-6 border-b border-gray-200">
     <div class="flex items-start justify-between">
       <div class="flex-1">
-        <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ post().title }}</h3>
-        <p class="text-gray-600">{{ post().text }}</p>
+        <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ displayTitle }}</h3>
+        <p class="text-gray-600">{{ displayText }}</p>
       </div>
       
-      <!-- ✅ Кнопка удаления в правом верхнем углу -->
+      <!-- ✅ Кнопки редактирования и удаления в правом верхнем углу -->
       @if (isOwner()) {
-        <div class="relative ml-4">
-          <button
-            type="button"
-            (click)="openDeleteModal($event)"
-            class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-            title="Удалить пост"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
+        <div class="flex items-center gap-2 ml-4">
+          <div class="relative">
+            <button
+              type="button"
+              (click)="openEditModal($event)"
+              class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+              title="Редактировать пост"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
 
-          <!-- ✅ Модальное окно под кнопкой (как в user-subscriptions) -->
-          @if (showDeleteModal()) {
+            <!-- Модальное окно редактирования -->
+            @if (showEditModal()) {
+              <div class="edit-modal absolute top-full right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200" style="z-index: 100;" (click)="$event.stopPropagation()">
+                <div class="p-4">
+                  <h3 class="text-sm font-semibold text-gray-900 mb-4">Редактировать пост</h3>
+                  
+                  <div class="space-y-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1">Заголовок</label>
+                      <input
+                        type="text"
+                        [value]="editTitle()"
+                        (input)="editTitle.set($any($event.target).value)"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Введите заголовок"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 mb-1">Текст</label>
+                      <textarea
+                        [value]="editText()"
+                        (input)="editText.set($any($event.target).value)"
+                        rows="4"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Введите текст поста"
+                      ></textarea>
+                    </div>
+                  </div>
+                  
+                  <div class="flex gap-2 mt-4">
+                    <button 
+                      type="button"
+                      (click)="closeEditModal()"
+                      [disabled]="isUpdating()"
+                      class="flex-1 px-3 py-1.5 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
+                    >
+                      Отмена
+                    </button>
+                    <button 
+                      type="button"
+                      (click)="saveEdit()"
+                      [disabled]="isUpdating() || (!editTitle().trim() && !editText().trim())"
+                      class="flex-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      @if (isUpdating()) {
+                        <span class="flex items-center justify-center gap-2">
+                          <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                          Сохранение...
+                        </span>
+                      } @else {
+                        Сохранить
+                      }
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="relative">
+            <button
+              type="button"
+              (click)="openDeleteModal($event)"
+              class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+              title="Удалить пост"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+
+            <!-- ✅ Модальное окно под кнопкой (как в user-subscriptions) -->
+            @if (showDeleteModal()) {
             <div class="delete-modal absolute top-full right-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200" style="z-index: 100;">
               <div class="p-4">
                 <div class="flex items-center mb-3">
@@ -56,84 +129,101 @@
                 </div>
               </div>
             </div>
-          }
+            }
+          </div>
         </div>
       }
     </div>
   </div>
 
-  @if (currentVideo) {
-  <div class="relative">
-    <app-video-player
-      [hlsUrl]="getVideoHlsUrl(currentVideo.id)"
-      [poster]="currentVideo.thumbnailUrl ? getVideoThumbnailUrl(currentVideo.id) : undefined"
-      [title]="currentVideo.title"
-    ></app-video-player>
-  </div>
-  } @if (post().videos && post().videos!.length > 1) {
-  <div class="p-4 bg-gray-50 border-t border-gray-200">
-    <p class="text-sm font-semibold text-gray-700 mb-3">
-      Видео в посте ({{ post().videos!.length }})
-    </p>
-    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-      @for (video of post().videos; track video.id; let i = $index) {
-      <button
-        (click)="selectVideo(i)"
-        type="button"
-        class="relative aspect-video rounded-lg overflow-hidden border-2 transition-all"
-        [class.border-amber-500]="selectedVideoIndex() === i"
-        [class.border-gray-300]="selectedVideoIndex() !== i"
+  @if (getMediaItems().length > 0) {
+    <div class="relative">
+      <swiper-container
+        class="media-swiper"
+        pagination="true"
+        navigation="true"
+        space-between="10"
+        slides-per-view="1"
+        style="--swiper-pagination-color: #f59e0b; --swiper-navigation-color: #f59e0b; --swiper-pagination-bullet-size: 8px;"
       >
-        @if (video.thumbnailUrl) {
-        <img
-          [src]="getVideoThumbnailUrl(video.id)"
-          [alt]="video.title"
-          class="w-full h-full object-cover"
-        />
-        } @else {
-        <div class="w-full h-full bg-gray-200 flex items-center justify-center">
-          <span class="text-2xl">🎬</span>
-        </div>
-        } @if (selectedVideoIndex() === i) {
-        <div class="absolute inset-0 bg-amber-500 bg-opacity-20 flex items-center justify-center">
-          <span class="text-white text-2xl">▶️</span>
-        </div>
+        @for (item of getMediaItems(); track item.url + (item.videoId || '')) {
+          <swiper-slide>
+            @if (item.type === 'video') {
+              <div class="relative w-full aspect-video bg-black">
+                <app-video-player
+                  [hlsUrl]="item.url"
+                  [poster]="item.thumbnailUrl ? getVideoThumbnailUrl(item.videoId!) : undefined"
+                  [title]="item.title || ''"
+                ></app-video-player>
+              </div>
+            } @else {
+              <div class="relative w-full">
+                <img
+                  [src]="item.url"
+                  alt="Post image"
+                  class="w-full h-auto max-h-[600px] object-contain bg-gray-100"
+                  loading="lazy"
+                />
+              </div>
+            }
+          </swiper-slide>
         }
-      </button>
-      }
+      </swiper-container>
     </div>
-    
-  </div>
-  } @if (post().pictureUrls && post().pictureUrls!.length > 0) {
-  <div class="p-4">
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      @for (picUrl of post().pictureUrls; track picUrl) {
-      <img
-        [src]="getPostImageUrl(picUrl)"
-        alt="Post image"
-        class="w-full aspect-square object-cover rounded-lg"
-      />
-      }
-    </div>
-  </div>
   }
-  <div class="p-6">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-4 text-sm text-gray-500">
-        <span>📅 {{ formatDate(post().publishedAt || post().createdAt) }}</span>
-        <span>❤️ {{ post().likesCount || 0 }}</span>
-        <span>👎 {{ post().dislikesCount || 0 }}</span>
+  <div class="p-6 border-t border-gray-200">
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <button
+          (click)="handleReaction(1)"
+          [disabled]="isReacting()"
+          [class]="likeButtonClass"
+          type="button"
+          title="Лайк"
+        >
+          @if (currentReaction() === 1) {
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
+              <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.834a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+            </svg>
+          } @else {
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+            </svg>
+          }
+          <span class="font-semibold">{{ currentLikesCount() }}</span>
+        </button>
+
+        <button
+          (click)="handleReaction(2)"
+          [disabled]="isReacting()"
+          [class]="dislikeButtonClass"
+          type="button"
+          title="Дизлайк"
+        >
+          @if (currentReaction() === 2) {
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
+              <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.834a2 2 0 00-1.106-1.79l-.05-.025A4 4 0 0011.057 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
+            </svg>
+          } @else {
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+            </svg>
+          }
+          <span class="font-semibold">{{ currentDislikesCount() }}</span>
+        </button>
       </div>
-      
-      <button
-        (click)="toggleComments()"
-        class="flex items-center gap-2 px-4 py-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-all font-medium"
-      >
-        <span>💬 {{ post().commentsCount || 0 }}</span>
-        <span class="text-xs">
-          {{ showComments() ? '▼ Скрыть' : '▶ Показать' }}
-        </span>
-      </button>
+
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-gray-500">{{ formatDate(post().publishedAt || post().createdAt) }}</span>
+
+        <button
+          (click)="toggleComments()"
+          type="button"
+          class="px-4 py-2 text-sm font-medium rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 transition-colors"
+        >
+          {{ showComments() ? 'Скрыть комментарии' : 'Показать комментарии' }}
+        </button>
+      </div>
     </div>
   </div>
 

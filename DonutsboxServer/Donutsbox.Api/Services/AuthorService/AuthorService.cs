@@ -3,6 +3,7 @@ using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.AuthorRepository;
 using Donutsbox.Domain.Repositories.EntityRepository;
 using System.Security.Claims;
+using System.Globalization;
 
 namespace Donutsbox.Api.Services.AuthorService;
 
@@ -77,15 +78,20 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
             Name = monthlySub.Name,
             Description = monthlySub.Description,
             PictureURL = monthlySub.PictureURL,
+            SubscriptionPeriodId = monthlySub.SubscriptionPeriodId,
+            SubscriptionPeriodMonths = monthlySub.SubscriptionPeriod.Months,
+            MonthlyPrice = dto.Price,
+            ParentSubscriptionId = monthlySub.ParentSubscriptionId
         };
     }
 
     public string CalculatePrice(int periodInMonths, string monthlyPrice)
     {
-        if (decimal.TryParse(monthlyPrice, out var priceDecimal))
+        var normalizedPrice = monthlyPrice.Replace(',', '.');
+        if (decimal.TryParse(normalizedPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var priceDecimal))
         {
             var totalPrice = priceDecimal * periodInMonths;
-            return totalPrice.ToString("F2");
+            return totalPrice.ToString("F2", CultureInfo.InvariantCulture);
         }
         throw new ArgumentException("Invalid monthly price format");
     }
@@ -108,14 +114,7 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
                     BannerUrl = user.CreatorPageData.BannerURL,
                     Description = user.CreatorPageData.Description,
                     SubscribersCount = user.CreatorPageData.SubscribersCount,
-                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(s => new SubscriptionDto
-                    {
-                        Id = s.Id,
-                        Price = s.Price,
-                        PictureURL = s.PictureURL,
-                        Description = s.Description,
-                        Name = s.Name,
-                    })]
+                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(MapSubscription)]
                 });
             }
         }
@@ -141,14 +140,7 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
                     BannerUrl = user.CreatorPageData.BannerURL,
                     Description = user.CreatorPageData.Description,
                     SubscribersCount = user.CreatorPageData.SubscribersCount,
-                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(s => new SubscriptionDto
-                    {
-                        Id = s.Id,
-                        Price = s.Price,
-                        PictureURL = s.PictureURL,
-                        Description = s.Description,
-                        Name = s.Name,
-                    })]
+                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(MapSubscription)]
                 });
             }
         }
@@ -171,14 +163,7 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
             BannerUrl = user.CreatorPageData.BannerURL,
             Description = user.CreatorPageData.Description,
             SubscribersCount = user.CreatorPageData.SubscribersCount,
-            Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(s => new SubscriptionDto
-            {
-                Id = s.Id,
-                Price = s.Price,
-                PictureURL = s.PictureURL,
-                Description = s.Description,
-                Name = s.Name,
-            })]
+            Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(MapSubscription)]
         };
     }
 
@@ -200,14 +185,7 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
                     BannerUrl = user.CreatorPageData.BannerURL,
                     Description = user.CreatorPageData.Description,
                     SubscribersCount = user.CreatorPageData.SubscribersCount,
-                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(s => new SubscriptionDto
-                    {
-                        Id = s.Id,
-                        Price = s.Price,
-                        PictureURL = s.PictureURL,
-                        Description = s.Description,
-                        Name = s.Name,
-                    })]
+                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(MapSubscription)]
                 });
             }
         }
@@ -234,5 +212,38 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
         }
 
         return dtos;
+    }
+
+    private static SubscriptionDto MapSubscription(Subscription subscription)
+    {
+        var months = subscription.SubscriptionPeriod?.Months ?? 1;
+        return new SubscriptionDto
+        {
+            Id = subscription.Id,
+            Price = subscription.Price,
+            PictureURL = subscription.PictureURL,
+            Description = subscription.Description,
+            Name = subscription.Name,
+            SubscriptionPeriodId = subscription.SubscriptionPeriodId,
+            SubscriptionPeriodMonths = months,
+            MonthlyPrice = CalculateMonthlyPrice(subscription.Price, months),
+            ParentSubscriptionId = subscription.ParentSubscriptionId
+        };
+    }
+
+    private static string CalculateMonthlyPrice(string price, int months)
+    {
+        if (months <= 0)
+        {
+            return price;
+        }
+
+        if (decimal.TryParse(price, NumberStyles.Any, CultureInfo.InvariantCulture, out var totalPrice))
+        {
+            var monthly = totalPrice / months;
+            return monthly.ToString("F2", CultureInfo.InvariantCulture);
+        }
+
+        return price;
     }
 }
