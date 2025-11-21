@@ -13,8 +13,6 @@ namespace Admin.Service.Api.Controllers;
 [Authorize(Roles = "Administrator")]
 public class AdminContentController(IAdminContentService adminContentService, ILogger<AdminContentController> logger) : ControllerBase
 {
-    private readonly IAdminContentService _adminContentService = adminContentService;
-    private readonly ILogger<AdminContentController> _logger = logger;
 
     /// <summary>
     /// Получить список всех постов
@@ -29,12 +27,12 @@ public class AdminContentController(IAdminContentService adminContentService, IL
     {
         try
         {
-            var posts = await _adminContentService.GetAllPostsAsync();
+            var posts = await adminContentService.GetAllPostsAsync();
             return Ok(posts);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при получении списка постов");
+            logger.LogError(ex, "Ошибка при получении списка постов");
             return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
         }
     }
@@ -55,7 +53,7 @@ public class AdminContentController(IAdminContentService adminContentService, IL
     {
         try
         {
-            var post = await _adminContentService.GetPostByIdAsync(id);
+            var post = await adminContentService.GetPostByIdAsync(id);
             if (post == null)
             {
                 return NotFound(new { message = $"Пост с ID {id} не найден" });
@@ -64,7 +62,7 @@ public class AdminContentController(IAdminContentService adminContentService, IL
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при получении поста {PostId}", id);
+            logger.LogError(ex, "Ошибка при получении поста {PostId}", id);
             return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
         }
     }
@@ -85,7 +83,7 @@ public class AdminContentController(IAdminContentService adminContentService, IL
     {
         try
         {
-            var result = await _adminContentService.DeletePostAsync(id);
+            var result = await adminContentService.DeletePostAsync(id);
             if (!result.Success)
             {
                 return NotFound(result);
@@ -94,7 +92,7 @@ public class AdminContentController(IAdminContentService adminContentService, IL
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при удалении поста {PostId}", id);
+            logger.LogError(ex, "Ошибка при удалении поста {PostId}", id);
             return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
         }
     }
@@ -120,12 +118,12 @@ public class AdminContentController(IAdminContentService adminContentService, IL
                 return BadRequest(new { message = "Список ID постов пуст" });
             }
 
-            var result = await _adminContentService.DeletePostsAsync(postIds);
+            var result = await adminContentService.DeletePostsAsync(postIds);
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при массовом удалении постов");
+            logger.LogError(ex, "Ошибка при массовом удалении постов");
             return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
         }
     }
@@ -144,12 +142,12 @@ public class AdminContentController(IAdminContentService adminContentService, IL
     {
         try
         {
-            var result = await _adminContentService.DeleteCreatorPostsAsync(creatorId);
+            var result = await adminContentService.DeleteCreatorPostsAsync(creatorId);
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при удалении постов создателя {CreatorId}", creatorId);
+            logger.LogError(ex, "Ошибка при удалении постов создателя {CreatorId}", creatorId);
             return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
         }
     }

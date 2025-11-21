@@ -12,6 +12,11 @@ public interface IAdminUserService
     Task<IEnumerable<AdminUserListDto>> GetAllUsersAsync();
 
     /// <summary>
+    /// Получить список всех авторов с детальной информацией
+    /// </summary>
+    Task<IEnumerable<AdminAuthorListDto>> GetAllAuthors();
+
+    /// <summary>
     /// Получить информацию о конкретном пользователе
     /// </summary>
     Task<AdminUserListDto?> GetUserByIdAsync(Guid userId);
