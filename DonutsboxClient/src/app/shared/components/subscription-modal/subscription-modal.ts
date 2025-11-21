@@ -1,10 +1,11 @@
 import { Component, inject, Input, Output, EventEmitter, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthorRequestDto } from '@app/api/donutsbox/model/authorRequestDto';
 import { SubscriptionDto } from '@app/api/donutsbox/model/subscriptionDto';
-import { UserInteractionService } from '@app/api/donutsbox/api/userInteraction.service';
-import { UserSubscriptionCreateDto } from '@app/api/donutsbox/model/userSubscriptionCreateDto';
+import { SubscriptionPaymentsService } from '@app/api/donutsbox/api/subscriptionPayments.service';
+import { SubscriptionPaymentRequestDto } from '@app/api/donutsbox/model/subscriptionPaymentRequestDto';
+import { SubscriptionPaymentResponseDto } from '@app/api/donutsbox/model/subscriptionPaymentResponseDto';
 
 type SubscriptionPlan = {
   key: string;
@@ -23,8 +24,9 @@ type SubscriptionPlan = {
   styleUrl: './subscription-modal.css'
 })
 export class SubscriptionModal {
-  private userInteractionService = inject(UserInteractionService);
   private router = inject(Router);
+  private paymentsService = inject(SubscriptionPaymentsService);
+  private document = inject(DOCUMENT);
 
   @Input() author: AuthorRequestDto | null = null;
   @Input() isOpen = false;
@@ -84,22 +86,18 @@ export class SubscriptionModal {
     this.isSubscribing.set(true);
     this.subscriptionError.set(null);
 
-    const subscriptionData: UserSubscriptionCreateDto = {
-      subscriptionId: subscription.id
+    const request: SubscriptionPaymentRequestDto = {
+      subscriptionId: subscription.id,
+      returnUrl: this.buildReturnUrl()
     };
 
-    this.userInteractionService.apiUserInteractionSubscribeUserPost(subscriptionData).subscribe({
-      next: () => {
-        this.isSubscribing.set(false);
-        this.subscriptionSuccess.emit();
-        if (this.author?.id) {
-          this.router.navigate(['/profile', this.author.id]);
-        }
-      },
+    this.paymentsService.apiPaymentsSubscriptionsPost(request).subscribe({
+      next: (response) => this.handlePaymentCreated(response),
       error: (error) => {
-        console.error('Ошибка подписки:', error);
+        console.error('Ошибка создания платежа YooKassa:', error);
         this.isSubscribing.set(false);
-        this.subscriptionError.set('Не удалось оформить подписку. Попробуйте позже.');
+        const message = error?.error?.message || 'Не удалось создать платеж. Попробуйте позже.';
+        this.subscriptionError.set(message);
       }
     });
   }
@@ -160,5 +158,35 @@ export class SubscriptionModal {
       subscription.description ?? '',
       subscription.pictureURL ?? ''
     ].join('|');
+  }
+
+  private buildReturnUrl(): string {
+    const origin = this.document?.location?.origin ?? window.location.origin;
+    return `${origin}/payments/result`;
+  }
+
+  private handlePaymentCreated(response: SubscriptionPaymentResponseDto): void {
+    this.isSubscribing.set(false);
+
+    const confirmationUrl = response.confirmationUrl ?? null;
+    const paymentRequestId = response.paymentRequestId ?? null;
+
+    if (!confirmationUrl && !paymentRequestId) {
+      this.subscriptionError.set('Не удалось получить ссылку на оплату. Попробуйте позже.');
+      return;
+    }
+
+    this.subscriptionSuccess.emit();
+    this.close();
+
+    if (confirmationUrl) {
+      this.document.location.href = confirmationUrl;
+      return;
+    }
+
+    // Если YooKassa не вернула ссылку, перенаправляем на страницу статуса платежа.
+    void this.router.navigate(['/payments/result'], {
+      queryParams: { paymentRequestId }
+    });
   }
 }

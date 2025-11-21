@@ -32,6 +32,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'payments/result',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/payments/pages/payment-result/payment-result').then((c) => c.PaymentResult),
+  },
+  {
     path: '',
     canActivate: [guestOnlyGuard],
     loadComponent: () => import('./features/home/pages/home-page/home-page').then((c) => c.HomePage),

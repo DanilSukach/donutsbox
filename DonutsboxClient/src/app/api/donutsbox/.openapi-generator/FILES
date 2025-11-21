@@ -8,6 +8,7 @@ api/contentPost.service.ts
 api/creatorPageData.service.ts
 api/creatorPost.service.ts
 api/files.service.ts
+api/payments.service.ts
 api/postComment.service.ts
 api/subscription.service.ts
 api/user.service.ts
@@ -46,9 +47,14 @@ model/postDetailsDto.ts
 model/postDraftResponseDto.ts
 model/postVideoDto.ts
 model/publishPostResponseDto.ts
+model/subscriptionAccessOptionDto.ts
 model/subscriptionCreateDto.ts
 model/subscriptionDto.ts
+model/subscriptionPaymentRequestDto.ts
+model/subscriptionPaymentResponseDto.ts
+model/subscriptionPaymentStatusDto.ts
 model/updateCommentRequestDto.ts
+model/updatePostAccessRequestDto.ts
 model/uploadImagesResponseDto.ts
 model/userAuthDto.ts
 model/userDataDto.ts
@@ -59,6 +65,10 @@ model/userSubscriptionDto.ts
 model/userTypeDto.ts
 model/videoDto.ts
 model/videoUploadResponseDto.ts
+model/yooKassaAmount.ts
+model/yooKassaConfirmationResponse.ts
+model/yooKassaPaymentResponse.ts
+model/yooKassaWebhook.ts
 param.ts
 provide-api.ts
 variables.ts

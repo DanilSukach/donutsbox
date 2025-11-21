@@ -38,4 +38,8 @@ public class SubscriptionDto
     /// Родительская подписка (уровень)
     /// </summary>
     public Guid? ParentSubscriptionId { get; set; }
+    /// <summary>
+    /// Идентификатор страницы автора, к которой относится подписка
+    /// </summary>
+    public Guid? CreatorPageDataId { get; set; }
 }

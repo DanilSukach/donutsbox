@@ -24,6 +24,7 @@ public class UserInteractionService(
         if (subscription?.CreatorPageDataId == null)
             throw new InvalidOperationException("Subscription has no creator page");
 
+        var now = DateTime.UtcNow;
         var userSubscriptionEntity = new UserSubscription
         {
             Id = Guid.NewGuid(),
@@ -31,8 +32,12 @@ public class UserInteractionService(
             SubscriptionId = userSubscription.SubscriptionId,
             User = userEntity!,
             Subscription = subscription!,
-            BeginDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddMonths(subscription!.SubscriptionPeriod.Months)
+            BeginDate = now,
+            EndDate = now.AddMonths(subscription!.SubscriptionPeriod.Months),
+            Status = "active",
+            PaymentId = null,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
         };
         var result = await userSubscriptionRepository.AddAsync(userSubscriptionEntity);
 
@@ -48,7 +53,11 @@ public class UserInteractionService(
             UserId = result.UserId,
             SubscriptionId = result.SubscriptionId,
             BeginDate = result.BeginDate,
-            EndDate = result.EndDate
+            EndDate = result.EndDate,
+            Status = result.Status,
+            PaymentId = result.PaymentId,
+            CreatedAt = result.CreatedAt,
+            UpdatedAt = result.UpdatedAt
         };
     }
 
