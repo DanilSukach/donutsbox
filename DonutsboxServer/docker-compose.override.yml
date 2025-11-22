@@ -54,3 +54,22 @@ services:
         - postgres
         - kafka
         - minio
+
+  file.service.api:
+      environment:
+        - ASPNETCORE_ENVIRONMENT=Development
+        - ASPNETCORE_URLS=http://+:8086
+        - Kafka__BootstrapServers=kafka:9092
+        - Kafka__Topics__VideoUploaded=video.uploaded
+        - Kafka__Topics__VideoProcessed=video.processed
+        - Kafka__GroupId=video-processor
+        - Minio__Endpoint=minio:9000
+        - Minio__AccessKey=minio
+        - Minio__SecretKey=minio123
+        - Minio__UseSSL=false
+        - Minio__BucketTemp=video-temp
+        - Minio__BucketProcessed=video-processed
+        - FFmpeg__Path=/usr/bin/ffmpeg
+      depends_on:
+        - kafka
+        - minio
