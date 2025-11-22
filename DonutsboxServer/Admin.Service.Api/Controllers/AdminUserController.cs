@@ -13,9 +13,6 @@ namespace Admin.Service.Api.Controllers;
 [Authorize(Roles = "Administrator")]
 public class AdminUserController(IAdminUserService adminUserService, ILogger<AdminUserController> logger) : ControllerBase
 {
-    private readonly IAdminUserService _adminUserService = adminUserService;
-    private readonly ILogger<AdminUserController> _logger = logger;
-
     /// <summary>
     /// Получить список всех пользователей
     /// </summary>
@@ -29,12 +26,34 @@ public class AdminUserController(IAdminUserService adminUserService, ILogger<Adm
     {
         try
         {
-            var users = await _adminUserService.GetAllUsersAsync();
+            var users = await adminUserService.GetAllUsersAsync();
             return Ok(users);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при получении списка пользователей");
+            logger.LogError(ex, "Ошибка при получении списка пользователей");
+            return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+        }
+    }
+
+    /// <summary>
+    /// Получить список всех авторов
+    /// </summary>
+    /// <response code="200">Список авторов получен</response>
+    /// <response code="401">Не авторизован</response>
+    /// <response code="403">Недостаточно прав (требуется роль Administrator)</response>
+    [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<AdminAuthorListDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<AdminAuthorListDto>>> GetAllAuthors()
+    {
+        try
+        {
+            var authors = await adminUserService.GetAllAuthors();
+            return Ok(authors);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Ошибка при получении списка авторов");
             return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
         }
     }
@@ -55,7 +74,7 @@ public class AdminUserController(IAdminUserService adminUserService, ILogger<Adm
     {
         try
         {
-            var user = await _adminUserService.GetUserByIdAsync(id);
+            var user = await adminUserService.GetUserByIdAsync(id);
             if (user == null)
             {
                 return NotFound(new { message = $"Пользователь с ID {id} не найден" });
@@ -64,7 +83,7 @@ public class AdminUserController(IAdminUserService adminUserService, ILogger<Adm
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при получении пользователя {UserId}", id);
+            logger.LogError(ex, "Ошибка при получении пользователя {UserId}", id);
             return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
         }
     }
@@ -85,7 +104,7 @@ public class AdminUserController(IAdminUserService adminUserService, ILogger<Adm
     {
         try
         {
-            var result = await _adminUserService.DeleteUserAsync(id);
+            var result = await adminUserService.DeleteUserAsync(id);
             if (!result.Success)
             {
                 return NotFound(result);
@@ -94,7 +113,7 @@ public class AdminUserController(IAdminUserService adminUserService, ILogger<Adm
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при удалении пользователя {UserId}", id);
+            logger.LogError(ex, "Ошибка при удалении пользователя {UserId}", id);
             return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
         }
     }
@@ -120,12 +139,12 @@ public class AdminUserController(IAdminUserService adminUserService, ILogger<Adm
                 return BadRequest(new { message = "Список ID пользователей пуст" });
             }
 
-            var result = await _adminUserService.DeleteUsersAsync(userIds);
+            var result = await adminUserService.DeleteUsersAsync(userIds);
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка при массовом удалении пользователей");
+            logger.LogError(ex, "Ошибка при массовом удалении пользователей");
             return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
         }
     }
