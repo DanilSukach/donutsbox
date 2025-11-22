@@ -11,24 +11,16 @@ using Microsoft.Extensions.Options;
 
 namespace Donutsbox.Api.Services.Payments;
 
-public class SubscriptionPaymentService : ISubscriptionPaymentService
+public class SubscriptionPaymentService(
+    DonutsboxDbContext dbContext,
+    IYooKassaClient yooKassaClient,
+    IOptions<YooKassaOptions> options,
+    ILogger<SubscriptionPaymentService> logger) : ISubscriptionPaymentService
 {
-    private readonly DonutsboxDbContext dbContext;
-    private readonly IYooKassaClient yooKassaClient;
-    private readonly YooKassaOptions options;
-    private readonly ILogger<SubscriptionPaymentService> logger;
-
-    public SubscriptionPaymentService(
-        DonutsboxDbContext dbContext,
-        IYooKassaClient yooKassaClient,
-        IOptions<YooKassaOptions> options,
-        ILogger<SubscriptionPaymentService> logger)
-    {
-        this.dbContext = dbContext;
-        this.yooKassaClient = yooKassaClient;
-        this.options = options.Value;
-        this.logger = logger;
-    }
+    private readonly DonutsboxDbContext dbContext = dbContext;
+    private readonly IYooKassaClient yooKassaClient = yooKassaClient;
+    private readonly YooKassaOptions options = options.Value;
+    private readonly ILogger<SubscriptionPaymentService> logger = logger;
 
     public async Task<SubscriptionPaymentResponseDto> CreateSubscriptionPaymentAsync(SubscriptionPaymentRequestDto request, ClaimsPrincipal user, CancellationToken cancellationToken)
     {

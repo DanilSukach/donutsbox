@@ -4,12 +4,14 @@ using Donutsbox.Api.Mapper;
 using Donutsbox.Api.Services;
 using Donutsbox.Api.Services.AuthorService;
 using Donutsbox.Api.Services.CreatorPostService;
+using Donutsbox.Api.Services.FilesService;
 using Donutsbox.Api.Services.Kafka;
 using Donutsbox.Api.Services.MinioService;
-using Donutsbox.Api.Services.PostCommentService;
 using Donutsbox.Api.Services.Payments;
+using Donutsbox.Api.Services.PostCommentService;
 using Donutsbox.Api.Services.UserInteractionService;
 using Donutsbox.Api.Services.UserSubscriptionsService;
+using Donutsbox.Domain.Constants;
 using Donutsbox.Domain.Context;
 using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.AuthorRepository;
@@ -17,8 +19,8 @@ using Donutsbox.Domain.Repositories.EntityRepository;
 using Donutsbox.Domain.Repositories.ProfileRepository;
 using Donutsbox.Domain.Repositories.UserSubscriptionsRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
@@ -108,6 +110,13 @@ builder.Services.AddAuthentication(options =>
                 context.Token = mediaToken;
             }
 
+            if (string.IsNullOrEmpty(context.Token) &&
+                context.Request.Cookies.TryGetValue(AuthConstants.JwtCookieName, out var cookieToken) &&
+                !string.IsNullOrEmpty(cookieToken))
+            {
+                context.Token = cookieToken;
+            }
+
             return Task.CompletedTask;
         }
     };
@@ -157,6 +166,7 @@ builder.Services.AddScoped<IUserInteractionService, UserInteractionService>();
 builder.Services.AddScoped<ICreatorPostService, CreatorPostService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
 builder.Services.AddScoped<IPostCommentService, PostCommentService>();
+builder.Services.AddScoped<IFilesService, FilesService>();
 builder.Services.AddScoped<ISubscriptionPaymentService, SubscriptionPaymentService>();
 
 builder.Services.AddSingleton<IMinioService, MinioService>();

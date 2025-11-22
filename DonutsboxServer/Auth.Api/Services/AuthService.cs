@@ -69,7 +69,7 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
 
     public async Task<AuthResponseDto> RefreshTokenAsync(RefreshRequestDto dto)
     {
-        var user = await repository.GetByEmailAsync(dto.RefreshToken) ?? throw new UnauthorizedAccessException("Invalid refresh token");
+        var user = await repository.GetByRefreshTokenAsync(dto.RefreshToken) ?? throw new UnauthorizedAccessException("Invalid refresh token");
         var newAccessToken = jwt.GenerateAccessToken(user, false);
         var newRefreshToken = jwt.GenerateRefreshToken();
 

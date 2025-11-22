@@ -31,4 +31,8 @@
     <ProjectReference Include="..\Donutsbox.Domain\Donutsbox.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Services\FilesService\" />
+  </ItemGroup>
+
 </Project>

@@ -11,25 +11,6 @@ namespace Donutsbox.Api.Controllers;
 public class UserInteractionController(IUserInteractionService userInteractionService) : ControllerBase
 {
     /// <summary>
-    /// Подписывает пользователя на подписку
-    /// </summary>
-    /// <param name="dto"></param>
-    /// <returns></returns>
-    [HttpPost("subscribe-user")]
-    public async Task<ActionResult<UserSubscriptionDto>> SubscribeUserAsync([FromBody] UserSubscriptionCreateDto dto)
-    {
-        try
-        {
-            var subscription = await userInteractionService.SubscribeUserAsync(dto, User);
-            return Ok(subscription);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
-
-    /// <summary>
     /// Отписывает пользователя от создателя контента
     /// </summary>
     /// <param name="creatorUserId">ID пользователя-создателя от которого отписываемся</param>
