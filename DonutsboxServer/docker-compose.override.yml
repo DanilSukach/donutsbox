@@ -29,3 +29,28 @@ services:
         - postgres
         - kafka
         - minio
+
+  admin.service.api:
+      environment:
+        - ASPNETCORE_ENVIRONMENT=Development
+        - ASPNETCORE_URLS=http://+:8084
+        - ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=donutsboxdb;Username=donuts;Password=donutspw
+        - Kafka__BootstrapServers=kafka:9092
+        - Kafka__Topics__VideoUploaded=video.uploaded
+        - Kafka__Topics__VideoProcessed=video.processed
+        - Kafka__GroupIdApi=video-processed-updater
+        - Minio__Endpoint=minio:9000
+        - Minio__AccessKey=minio
+        - Minio__SecretKey=minio123
+        - Minio__UseSSL=false
+        - Minio__BucketName=donutsbox
+        - Minio__BucketTemp=video-temp
+        - Minio__BucketProcessed=video-processed
+        - Cors__AllowedOrigins__0=http://localhost:4200
+        - Cors__AllowedOrigins__1=https://localhost:4200
+      ports:
+        - "7207:8084"
+      depends_on:
+        - postgres
+        - kafka
+        - minio
