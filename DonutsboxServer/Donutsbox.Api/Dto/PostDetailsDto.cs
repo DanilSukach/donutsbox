@@ -16,4 +16,8 @@ public class PostDetailsDto
     public Guid? CreatorId { get; set; }
     public string? CreatorAvatarUrl { get; set; }
     public int ReactionTypeId { get; set; }
+    public string AudienceType { get; set; } = "Public";
+    public List<Guid> SubscriptionIds { get; set; } = [];
+    public bool IsLocked { get; set; }
+    public string? LockedMessage { get; set; }
 }

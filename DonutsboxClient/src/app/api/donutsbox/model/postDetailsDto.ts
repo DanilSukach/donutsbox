@@ -23,10 +23,11 @@ export interface PostDetailsDto {
     pictureUrls?: Array<string> | null;
     creatorPageName?: string | null;
     creatorId?: string | null;
-    creatorPageId?: string | null;
     creatorAvatarUrl?: string | null;
     reactionTypeId?: number;
-    isPublic?: boolean;
-    allowedSubscriptionIds?: Array<string> | null;
+    audienceType?: string | null;
+    subscriptionIds?: Array<string> | null;
+    isLocked?: boolean;
+    lockedMessage?: string | null;
 }
 

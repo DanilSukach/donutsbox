@@ -1,15 +1,14 @@
 import { inject, Injectable } from '@angular/core';
 import { CreatePostCommentDto, PostCommentDto, PostCommentService, UpdateCommentRequestDto } from '@app/api/donutsbox';
-import { TokenService } from './token.service';
 import * as signalR from '@microsoft/signalr';
 import { Observable, Subject } from 'rxjs';
+import { environment } from '@env/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CommentsFacade {
- private postCommentService = inject(PostCommentService);
-  private tokenService = inject(TokenService);
+  private postCommentService = inject(PostCommentService);
   private hubConnection?: signalR.HubConnection;
   private joinedPosts = new Set<string>();
 
@@ -24,11 +23,8 @@ export class CommentsFacade {
 
   private initSignalR(): void {
     this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl('https://localhost:7133/hubs/comments', {
-        accessTokenFactory: () => {
-          const token = this.tokenService.getAccessToken();
-          return token || '';
-        }
+      .withUrl(environment.commentsHubUrl, {
+        withCredentials: true
       })
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Debug)

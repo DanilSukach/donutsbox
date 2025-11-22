@@ -1,8 +1,8 @@
-import { Component, effect, inject, input, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy, untracked } from '@angular/core';
+import { Component, effect, inject, input, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy, untracked, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { PostCard } from '@app/shared/components/post-card/post-card';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
-import { TokenService } from '@app/core/services/token.service';
-import { JwtDecodeService } from '@app/core/services/jwt-decode.service';
+import { SessionService } from '@app/core/services/session.service';
 import { Observable } from 'rxjs';
 
 export type FeedMode = 'creator' | 'subscriptions';
@@ -22,8 +22,9 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
   readonly showAuthorInfo = input<boolean>(false); // Показывать ли аватарку автора
   
   private postsRefreshService = inject(PostsRefresh);
-  private tokenService = inject(TokenService);
-  private jwtService = inject(JwtDecodeService);
+  private sessionService = inject(SessionService);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
 
   // State
   readonly posts = signal<any[]>([]);
@@ -32,13 +33,21 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
   readonly currentPage = signal(1);
   readonly pageSize = 10;
   readonly error = signal<string | null>(null);
+  readonly initialLoadCompleted = signal(false);
+  readonly initialLoadError = signal(false);
 
   @ViewChild('sentinel', { read: ElementRef }) sentinel?: ElementRef;
   private observer?: IntersectionObserver;
   private lastTrigger = -1;
 
   constructor() {
+    if (this.isBrowser) {
+      this.sessionService.ensureSession().subscribe();
+    }
     effect(() => {
+      if (!this.isBrowser) {
+        return;
+      }
       const trigger = this.postsRefreshService.refreshTrigger();
       
       // Избегаем повторной загрузки для того же trigger
@@ -57,6 +66,9 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
+    if (!this.isBrowser) {
+      return;
+    }
     this.setupInfiniteScroll();
   }
 
@@ -65,7 +77,7 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
   }
 
   private setupInfiniteScroll(): void {
-    if (!this.sentinel) return;
+    if (!this.isBrowser || !this.sentinel) return;
 
     this.observer = new IntersectionObserver(
       (entries) => {
@@ -82,8 +94,7 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
   }
 
   isPostOwner(post: any): boolean {
-    const token = this.tokenService.getAccessToken();
-    const currentUserGuid = this.jwtService.getGuid(token);
+    const currentUserGuid = this.sessionService.userId();
     
     // В режиме creator проверяем по creatorId
     if (this.mode() === 'creator') {
@@ -95,16 +106,21 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
   }
 
   resetAndLoad(): void {
+    if (!this.isBrowser) {
+      return;
+    }
     console.log('🔄 Сброс и загрузка постов');
     this.posts.set([]);
     this.currentPage.set(1);
     this.hasMore.set(true);
     this.error.set(null);
+    this.initialLoadCompleted.set(false);
+    this.initialLoadError.set(false);
     this.loadPosts();
   }
 
   private loadPosts(): void {
-    if (this.isLoading()) return;
+    if (!this.isBrowser || this.isLoading()) return;
 
     this.isLoading.set(true);
     this.error.set(null);
@@ -129,18 +145,26 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
         const loadedCount = this.currentPage() * this.pageSize;
         this.hasMore.set(loadedCount < total);
 
+        if (!this.initialLoadCompleted()) {
+          this.initialLoadCompleted.set(true);
+        }
+        this.initialLoadError.set(false);
         this.isLoading.set(false);
       },
       error: (err) => {
         console.error('❌ Ошибка загрузки постов:', err);
-        this.error.set('Не удалось загрузить посты');
+        if (this.currentPage() === 1 && !this.initialLoadCompleted()) {
+          this.initialLoadError.set(true);
+        } else {
+          this.error.set('Не удалось загрузить посты');
+        }
         this.isLoading.set(false);
       }
     });
   }
 
   loadMore(): void {
-    if (!this.hasMore() || this.isLoading()) return;
+    if (!this.isBrowser || !this.hasMore() || this.isLoading()) return;
     
     this.currentPage.update(p => p + 1);
     this.loadPosts();

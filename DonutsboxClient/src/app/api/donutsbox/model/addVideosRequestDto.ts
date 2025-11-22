@@ -11,5 +11,7 @@
 
 export interface AddVideosRequestDto { 
     videoIds?: Array<string> | null;
+    isPublic?: boolean | null;
+    subscriptionIds?: Array<string> | null;
 }
 

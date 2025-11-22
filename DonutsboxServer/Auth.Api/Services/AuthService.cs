@@ -1,4 +1,5 @@
-﻿using Auth.Api.Dto;
+﻿using System;
+using Auth.Api.Dto;
 using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.AuthRepository;
 
@@ -41,15 +42,9 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.Password))
             throw new UnauthorizedAccessException("Invalid credentials");
 
-        string accessToken;
-        if (user.LastAuth == null && user.User!.UserType.Name == "Creator")
-        {
-            accessToken = jwt.GenerateAccessToken(user, true);
-        }
-        else
-        {
-            accessToken = jwt.GenerateAccessToken(user, false);
-        }
+        var isCreator = string.Equals(user.User!.UserType.Name, "Creator", StringComparison.OrdinalIgnoreCase);
+        var isNewCreator = isCreator && user.LastAuth == null;
+        string accessToken = jwt.GenerateAccessToken(user, isNewCreator);
         var refreshToken = jwt.GenerateRefreshToken();
 
         user.LastAuth = DateTime.UtcNow;
@@ -61,7 +56,13 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         var tokens = new AuthResponseDto
         {
             AccessToken = accessToken,
-            RefreshToken = refreshToken
+            RefreshToken = refreshToken,
+            UserId = user.User.Id,
+            Role = user.User.UserType.Name,
+            IsCreator = isCreator,
+            HasCreatorPage = user.User.CreatorPageData != null,
+            CreatorPageId = user.User.CreatorPageData?.Id,
+            IsNewCreator = isNewCreator
         };
 
         return tokens;
@@ -83,7 +84,13 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         var tokens = new AuthResponseDto
         {
             AccessToken = newAccessToken,
-            RefreshToken = newRefreshToken
+            RefreshToken = newRefreshToken,
+            UserId = user.User!.Id,
+            Role = user.User!.UserType.Name,
+            IsCreator = string.Equals(user.User.UserType.Name, "Creator", StringComparison.OrdinalIgnoreCase),
+            HasCreatorPage = user.User.CreatorPageData != null,
+            CreatorPageId = user.User.CreatorPageData?.Id,
+            IsNewCreator = false
         };
 
         return tokens;

@@ -1,25 +1,27 @@
-import { inject } from '@angular/core';
+import { inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformServer } from '@angular/common';
 import { CanActivateFn, Router } from '@angular/router';
-import { TokenService } from '../services/token.service';
-import { JwtDecodeService } from '../services/jwt-decode.service';
+import { SessionService } from '../services/session.service';
+import { catchError, map, of } from 'rxjs';
 
 export const guestOnlyGuard: CanActivateFn = (route, state) => {
-  const tokenService = inject(TokenService);
-  const jwt = inject(JwtDecodeService);
+  const sessionService = inject(SessionService);
   const router = inject(Router);
+  const platformId = inject(PLATFORM_ID);
 
-  const token = tokenService.getAccessToken();
-  if (!token) {
-    return true;
+  if (isPlatformServer(platformId)) {
+    return of(true);
   }
 
-  const userId = jwt.getGuid(token);
-  if (userId) {
-    router.navigate(['/profile', userId]);
-  } else {
-    router.navigate(['/auth/login']);
-  }
-  return false;
+  return sessionService.ensureSession().pipe(
+    map((session) => {
+      if (session) {
+        return router.createUrlTree(['/feed']);
+      }
+      return true;
+    }),
+    catchError(() => of(true))
+  );
 };
 
 

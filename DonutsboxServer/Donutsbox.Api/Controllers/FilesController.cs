@@ -15,7 +15,7 @@ public class FilesController(IFilesService filesService) : ControllerBase
     /// </summary>
     [Authorize(Roles = "Creator")]
     [HttpPost("upload")]
-    [RequestSizeLimit(2L * 1024 * 1024 * 1024)] // 2 GB
+    [RequestSizeLimit(10L * 1024 * 1024 * 1024)]
     public async Task<ActionResult<VideoUploadResponseDto>> Upload([FromForm] VideoUploadRequestDto request)
     {
         return await ExecuteAsync(() => filesService.UploadVideoAsync(GetUserId(), request));

@@ -21,5 +21,11 @@ export interface AuthResponseDto {
      * Refresh токен
      */
     refreshToken: string | null;
+    userId?: string;
+    role?: string | null;
+    isCreator?: boolean;
+    creatorPageId?: string | null;
+    hasCreatorPage?: boolean;
+    isNewCreator?: boolean;
 }
 

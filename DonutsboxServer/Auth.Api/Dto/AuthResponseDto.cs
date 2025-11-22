@@ -1,4 +1,6 @@
-﻿namespace Auth.Api.Dto;
+﻿using System;
+
+namespace Auth.Api.Dto;
 
 /// <summary>
 /// Класс для отправки токенов
@@ -13,4 +15,11 @@ public class AuthResponseDto
     /// Refresh токен
     /// </summary>
     public required string RefreshToken { get; set; }
+
+    public Guid UserId { get; set; }
+    public string Role { get; set; } = string.Empty;
+    public bool IsCreator { get; set; }
+    public Guid? CreatorPageId { get; set; }
+    public bool HasCreatorPage { get; set; }
+    public bool IsNewCreator { get; set; }
 }

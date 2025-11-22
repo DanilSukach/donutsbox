@@ -165,26 +165,8 @@
                   <!-- Модальное окно отписки -->
                   @if (showUnsubscribeModal()) {
                     <div class="unsubscribe-modal absolute top-full left-0 right-0 mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50" (click)="$event.stopPropagation()">
-                      <div class="p-4">
-                        <div class="flex items-center mb-3">
-                          <div class="w-8 h-8 rounded-full overflow-hidden mr-2 bg-gray-200">
-                            @if (author()?.avatarUrl) {
-                              <img 
-                                [src]="author()!.avatarUrl" 
-                                [alt]="author()!.pageName || 'Автор'"
-                                class="w-full h-full object-cover"
-                              />
-                            }
-                          </div>
-                          <div>
-                            <h4 class="text-sm font-medium text-gray-900">{{ author()?.pageName || 'Автор' }}</h4>
-                          </div>
-                        </div>
-                        
-                        <p class="text-xs text-gray-600 mb-4">
-                          Отписаться от этого автора?
-                        </p>
-                        
+                      <div class="p-4 space-y-4 text-center">
+                        <h4 class="text-sm font-semibold text-gray-900">Отписаться от автора?</h4>
                         <div class="flex gap-2">
                           <button 
                             type="button"

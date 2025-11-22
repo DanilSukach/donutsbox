@@ -156,7 +156,8 @@ namespace Donutsbox.Domain.Migrations
                     dislikes_count = table.Column<int>(type: "integer", nullable: false),
                     comments_count = table.Column<int>(type: "integer", nullable: false),
                     audio_urls = table.Column<List<string>>(type: "text[]", nullable: false),
-                    picture_urls = table.Column<List<string>>(type: "text[]", nullable: false)
+                    picture_urls = table.Column<List<string>>(type: "text[]", nullable: false),
+                    AudienceType = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {

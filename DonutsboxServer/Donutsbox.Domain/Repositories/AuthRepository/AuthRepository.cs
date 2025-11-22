@@ -11,6 +11,8 @@ public class AuthRepository(DonutsboxDbContext db) : IAuthRepository
         var userAuth = await db.UsersAuths
             .Include(u => u.User)
                 .ThenInclude(u => u!.UserType)
+            .Include(u => u.User)
+                .ThenInclude(u => u!.CreatorPageData)
             .FirstOrDefaultAsync(ua => ua.AuthEmail == email);
         return userAuth;
     }
@@ -20,6 +22,8 @@ public class AuthRepository(DonutsboxDbContext db) : IAuthRepository
         var userAuth = await db.UsersAuths
             .Include(u => u.User)
                 .ThenInclude(u => u!.UserType)
+            .Include(u => u.User)
+                .ThenInclude(u => u!.CreatorPageData)
             .FirstOrDefaultAsync(u =>
                 u.RefreshToken == refreshToken &&
                 u.RefreshTokenExpiryTime > DateTime.UtcNow

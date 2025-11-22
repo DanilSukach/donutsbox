@@ -82,6 +82,7 @@ public class ContentPost
     [Column("picture_urls")]
     [Required]
     public List<string> Images { get; set; } = [];
+    public string AudienceType { get; set; } = "Public";
     public List<PostReaction> PostReactions { get; set; } = [];
     public List<PostComment> PostComments { get; set; } = [];
     public List<Subscription> Subscriptions { get; set; } = [];

@@ -13,6 +13,8 @@ public class CreatorPostService(
     IMinioService minio,
     ILogger<CreatorPostService> logger) : ICreatorPostService
 {
+    private const string AudiencePublic = "Public";
+    private const string AudienceSubscribers = "Subscribers";
     public async Task<PostDraftResponseDto> CreateDraftAsync(CreateDraftRequestDto request, ClaimsPrincipal user)
     {
         var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -29,6 +31,11 @@ public class CreatorPostService(
         if (currentUser.CreatorPageData == null)
             throw new InvalidOperationException("Creator page not found");
 
+        var draftSubscriptionIds = request.SubscriptionIds ?? [];
+        var audienceType = DetermineAudienceType(request.IsPublic, draftSubscriptionIds);
+        var targetSubscriptions = await LoadCreatorSubscriptionsAsync(currentUser.CreatorPageData.Id, draftSubscriptionIds);
+        ValidateAudienceConfiguration(audienceType, targetSubscriptions);
+
         var post = new ContentPost
         {
             Id = Guid.NewGuid(),
@@ -41,6 +48,8 @@ public class CreatorPostService(
             LikesCount = 0,
             DislikesCount = 0,
             CommentsCount = 0,
+            AudienceType = audienceType,
+            Subscriptions = targetSubscriptions
         };
 
         db.ContentPosts.Add(post);
@@ -71,11 +80,14 @@ public class CreatorPostService(
 
         var post = await db.ContentPosts
             .Include(p => p.Videos)
+            .Include(p => p.Subscriptions)
             .FirstOrDefaultAsync(p =>
                 p.Id == postId &&
                 p.CreatorPageDataId == currentUser.CreatorPageData.Id) ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
         if (post.IsPublished)
             throw new InvalidOperationException("Cannot add videos to published post");
+
+        await UpdatePostAudienceAsync(post, currentUser.CreatorPageData.Id, request.IsPublic, request.SubscriptionIds ?? []);
 
         var videos = await db.Videos
             .Where(v => request.VideoIds.Contains(v.Id) && v.UserId == userId)
@@ -189,11 +201,14 @@ public class CreatorPostService(
 
         var post = await db.ContentPosts
             .Include(p => p.Videos)
+            .Include(p => p.Subscriptions)
             .FirstOrDefaultAsync(p =>
                 p.Id == postId &&
                 p.CreatorPageDataId == currentUser.CreatorPageData.Id) ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
         if (post.IsPublished)
             throw new InvalidOperationException("Post is already published");
+
+        ValidateAudienceConfiguration(post.AudienceType ?? AudiencePublic, post.Subscriptions);
 
         post.IsPublished = true;
         post.CreatedAt = DateTimeOffset.UtcNow;
@@ -252,6 +267,7 @@ public class CreatorPostService(
         var query = db.ContentPosts
             .Where(p => p.CreatorPageDataId == currentUser.CreatorPageData.Id)
             .Include(p => p.Videos)
+            .Include(p => p.Subscriptions)
             .AsQueryable();
 
         if (isPublished.HasValue)
@@ -281,7 +297,11 @@ public class CreatorPostService(
                     ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
                     HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
                 }).ToList(),
-                PictureUrls = new List<string>() // Инициализируем пустым списком, заполним ниже
+                PictureUrls = new List<string>(), // Инициализируем пустым списком, заполним ниже
+                AudienceType = p.AudienceType ?? AudiencePublic,
+                SubscriptionIds = p.Subscriptions.Select(s => s.Id).ToList(),
+                IsLocked = false,
+                LockedMessage = null
             })
             .ToListAsync();
 
@@ -337,12 +357,28 @@ public class CreatorPostService(
         if (creator?.CreatorPageData == null)
             throw new InvalidOperationException("Creator not found");
 
-        var query = db.ContentPosts
+        var isOwner = userId == creatorId;
+
+        IQueryable<ContentPost> query = db.ContentPosts
             .Where(p =>
                 p.CreatorPageDataId == creator.CreatorPageData.Id &&
-                p.IsPublished == true)
+                p.IsPublished == true);
+
+        query = query
             .Include(p => p.Videos.Where(v => v.Status == "READY"))
-            .OrderByDescending(p => p.CreatedAt);
+            .Include(p => p.Subscriptions);
+
+        var viewerSubscriptionIds = new List<Guid>();
+        if (!isOwner)
+        {
+            var now = DateTime.UtcNow;
+            viewerSubscriptionIds = await db.UsersSubscriptions
+                .Where(us => us.UserId == userId && us.Status == "active" && us.EndDate >= now)
+                .Select(us => us.SubscriptionId)
+                .ToListAsync();
+        }
+
+        query = query.OrderByDescending(p => p.CreatedAt);
 
         var total = await query.CountAsync();
         var posts = await query
@@ -352,25 +388,39 @@ public class CreatorPostService(
             {
                 Id = p.Id,
                 Title = p.Title,
-                Text = p.Text,
+                Text = (isOwner || (p.AudienceType ?? AudiencePublic) == AudiencePublic || p.Subscriptions.Any(s => viewerSubscriptionIds.Contains(s.Id)))
+                    ? p.Text
+                    : null,
                 CreatedAt = (DateTimeOffset)p.CreatedAt!,
                 IsPublished = p.IsPublished,
                 LikesCount = p.LikesCount,
                 DislikesCount = p.DislikesCount,
                 CommentsCount = p.PostComments.Count,
-                Videos = p.Videos.Select(v => new PostVideoDto
-                {
-                    Id = v.Id,
-                    Title = v.Title,
-                    Status = v.Status,
-                    ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
-                    HlsUrl = $"/api/files/{v.Id}/hls/index.m3u8"
-                }).ToList(),
+                Videos = (isOwner || (p.AudienceType ?? AudiencePublic) == AudiencePublic || p.Subscriptions.Any(s => viewerSubscriptionIds.Contains(s.Id)))
+                    ? p.Videos.Select(v => new PostVideoDto
+                    {
+                        Id = v.Id,
+                        Title = v.Title,
+                        Status = v.Status,
+                        ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
+                        HlsUrl = $"/api/files/{v.Id}/hls/index.m3u8"
+                    }).ToList()
+                    : new List<PostVideoDto>(),
                 PictureUrls = new List<string>(), // Инициализируем пустым списком, заполним ниже
                 ReactionTypeId = p.PostReactions
                                     .Where(pr => pr.UserId == userId)
                                     .Select(pr => (int?)pr.ReactionTypeId)
-                                    .FirstOrDefault() ?? 0
+                                    .FirstOrDefault() ?? 0,
+                AudienceType = p.AudienceType ?? AudiencePublic,
+                SubscriptionIds = p.Subscriptions.Select(s => s.Id).ToList(),
+                IsLocked = !(isOwner ||
+                             (p.AudienceType ?? AudiencePublic) == AudiencePublic ||
+                             p.Subscriptions.Any(s => viewerSubscriptionIds.Contains(s.Id))),
+                LockedMessage = !(isOwner ||
+                                  (p.AudienceType ?? AudiencePublic) == AudiencePublic ||
+                                  p.Subscriptions.Any(s => viewerSubscriptionIds.Contains(s.Id)))
+                    ? "Оформите подписку, чтобы посмотреть этот контент"
+                    : null
             })
             .ToListAsync();
 
@@ -382,6 +432,11 @@ public class CreatorPostService(
 
         foreach (var post in posts)
         {
+            if (post.IsLocked)
+            {
+                continue;
+            }
+
             var postImages = images.Where(img => img.ContentPostId == post.Id).ToList();
             var presignedUrls = new List<string>();
             
@@ -542,10 +597,11 @@ public class CreatorPostService(
         var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
             ?? throw new InvalidOperationException("User ID claim not found"));
 
+        var now = DateTime.UtcNow;
         var userSubscriptions = await db.Set<UserSubscription>()
             .Include(us => us.Subscription)
                 .ThenInclude(s => s.CreatorPageData)
-            .Where(us => us.UserId == userId)
+            .Where(us => us.UserId == userId && us.Status == "active" && us.EndDate >= now)
             .ToListAsync();
 
         if (userSubscriptions.Count == 0)
@@ -564,12 +620,22 @@ public class CreatorPostService(
             .Distinct()
             .ToList();
 
-        var query = db.ContentPosts
-            .Where(p => creatorPageIds.Contains(p.CreatorPageDataId) && p.IsPublished == true)
+        var subscriptionIds = userSubscriptions.Select(us => us.SubscriptionId).Distinct().ToList();
+
+        IQueryable<ContentPost> query = db.ContentPosts
+            .Where(p => creatorPageIds.Contains(p.CreatorPageDataId) && p.IsPublished == true);
+
+        query = query
             .Include(p => p.Videos.Where(v => v.Status == "READY"))
             .Include(p => p.CreatorPageData)
                 .ThenInclude(cpd => cpd.User)
-            .OrderByDescending(p => p.CreatedAt);
+            .Include(p => p.Subscriptions);
+
+        query = query.Where(p =>
+            (p.AudienceType ?? AudiencePublic) == AudiencePublic ||
+            p.Subscriptions.Any(s => subscriptionIds.Contains(s.Id)));
+
+        query = query.OrderByDescending(p => p.CreatedAt);
 
         var total = await query.CountAsync();
         var posts = await query
@@ -600,7 +666,11 @@ public class CreatorPostService(
                 ReactionTypeId = p.PostReactions
                                     .Where(pr => pr.UserId == userId)
                                     .Select(pr => (int?)pr.ReactionTypeId)
-                                    .FirstOrDefault() ?? 0
+                                    .FirstOrDefault() ?? 0,
+                AudienceType = p.AudienceType ?? AudiencePublic,
+                SubscriptionIds = p.Subscriptions.Select(s => s.Id).ToList(),
+                IsLocked = false,
+                LockedMessage = null
             })
             .ToListAsync();
 
@@ -635,7 +705,7 @@ public class CreatorPostService(
             post.PictureUrls = presignedUrls;
 
             // Генерируем presigned URL для аватара создателя
-            if (!string.IsNullOrEmpty(post.CreatorAvatarUrl))
+            if (!post.IsLocked && !string.IsNullOrEmpty(post.CreatorAvatarUrl))
             {
                 try
                 {
@@ -663,5 +733,61 @@ public class CreatorPostService(
             PageSize = pageSize,
             Posts = posts
         };
+    }
+
+    private static string DetermineAudienceType(bool? isPublic, List<Guid> subscriptionIds, string? fallback = AudiencePublic)
+    {
+        if (isPublic.HasValue)
+            return isPublic.Value ? AudiencePublic : AudienceSubscribers;
+
+        if (subscriptionIds.Count > 0)
+            return AudienceSubscribers;
+
+        return string.IsNullOrWhiteSpace(fallback) ? AudiencePublic : fallback!;
+    }
+
+    private async Task<List<Subscription>> LoadCreatorSubscriptionsAsync(Guid creatorPageDataId, List<Guid> subscriptionIds)
+    {
+        if (subscriptionIds.Count == 0)
+            return [];
+
+        var subscriptions = await db.Subscriptions
+            .Where(s => s.CreatorPageDataId == creatorPageDataId && subscriptionIds.Contains(s.Id))
+            .ToListAsync();
+
+        if (subscriptions.Count != subscriptionIds.Count)
+            throw new InvalidOperationException("Subscription list contains invalid entries");
+
+        return subscriptions;
+    }
+
+    private static void ValidateAudienceConfiguration(string audienceType, List<Subscription>? subscriptions)
+    {
+        if ((audienceType ?? AudiencePublic) == AudienceSubscribers && (subscriptions == null || subscriptions.Count == 0))
+            throw new InvalidOperationException("Выберите хотя бы одну подписку для ограниченного поста");
+    }
+
+    private async Task UpdatePostAudienceAsync(ContentPost post, Guid creatorPageDataId, bool? isPublic, List<Guid> subscriptionIds)
+    {
+        var shouldUpdateAudience = isPublic.HasValue || subscriptionIds.Count > 0;
+        if (!shouldUpdateAudience)
+            return;
+
+        var audienceType = DetermineAudienceType(isPublic, subscriptionIds, post.AudienceType);
+        List<Subscription> newSubscriptions = [];
+
+        if (audienceType == AudienceSubscribers)
+        {
+            newSubscriptions = await LoadCreatorSubscriptionsAsync(creatorPageDataId, subscriptionIds);
+        }
+
+        post.Subscriptions.Clear();
+        foreach (var subscription in newSubscriptions)
+        {
+            post.Subscriptions.Add(subscription);
+        }
+
+        ValidateAudienceConfiguration(audienceType, post.Subscriptions);
+        post.AudienceType = audienceType;
     }
 }

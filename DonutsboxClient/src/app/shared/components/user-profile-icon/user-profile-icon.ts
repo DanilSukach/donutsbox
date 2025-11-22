@@ -1,7 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { TokenService } from '@app/core/services/token.service';
-import { JwtDecodeService } from '@app/core/services/jwt-decode.service';
+import { SessionService } from '@app/core/services/session.service';
 
 @Component({
   selector: 'app-user-profile-icon',
@@ -17,18 +16,17 @@ import { JwtDecodeService } from '@app/core/services/jwt-decode.service';
   `
 })
 export class UserProfileIcon {
-  private tokenService = inject(TokenService);
-  private jwtService = inject(JwtDecodeService);
+  private sessionService = inject(SessionService);
   private router = inject(Router);
 
   navigateToProfile(): void {
-    const token = this.tokenService.getAccessToken();
-    const userGuid = this.jwtService.getGuid(token);
-    
-    if (userGuid) {
-      this.router.navigate(['/profile', userGuid]);
-    } else {
-      this.router.navigate(['/auth/login']);
-    }
+    this.sessionService.ensureSession().subscribe(() => {
+      const userGuid = this.sessionService.userId();
+      if (userGuid) {
+        this.router.navigate(['/profile', userGuid]);
+      } else {
+        this.router.navigate(['/auth/login']);
+      }
+    });
   }
 }

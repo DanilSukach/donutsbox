@@ -1,8 +1,8 @@
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, OnInit, inject, output, signal } from '@angular/core';
 import { PostsFacade } from '../../services/posts-facade';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 import { VideoStatusPollService } from '../../services/video-status-poll.service';
-import { FilesService } from '@app/api/donutsbox';
+import { CreateDraftRequestDto, FilesService, SubscriptionDto } from '@app/api/donutsbox';
 
 type ModalStep = 'create' | 'upload-video' | 'publish' | 'done';
 
@@ -26,7 +26,7 @@ interface UploadedImage {
   templateUrl: './create-post-modal.html',
   styleUrl: './create-post-modal.css',
 })
-export class CreatePostModal {
+export class CreatePostModal implements OnInit {
   private postsFacade = inject(PostsFacade);
   private postsRefreshService = inject(PostsRefresh);
   private videoStatusPollService = inject(VideoStatusPollService);
@@ -43,6 +43,11 @@ export class CreatePostModal {
   readonly postTitle = signal('');
   readonly postText = signal('');
   readonly postId = signal<string | null>(null);
+  readonly audienceType = signal<'public' | 'subscribers'>('public');
+  readonly availableSubscriptions = signal<SubscriptionDto[]>([]);
+  readonly subscriptionsLoading = signal(false);
+  readonly subscriptionsError = signal<string | null>(null);
+  readonly selectedSubscriptionIds = signal<Set<string>>(new Set<string>());
 
   readonly videos = signal<UploadedVideo[]>([]);
   readonly videoTitle = signal('');
@@ -55,6 +60,87 @@ export class CreatePostModal {
   readonly imageTitle = signal('');
   readonly selectedImageFiles = signal<File[]>([]);
   readonly isImageFormExpanded = signal(false);
+
+  ngOnInit(): void {
+    this.loadCreatorSubscriptions();
+  }
+
+  private loadCreatorSubscriptions(): void {
+    this.subscriptionsLoading.set(true);
+    this.subscriptionsError.set(null);
+
+    this.postsFacade.getCreatorSubscriptions().subscribe({
+      next: (subs) => {
+        this.availableSubscriptions.set(subs);
+        this.subscriptionsLoading.set(false);
+      },
+      error: () => {
+        this.subscriptionsLoading.set(false);
+        this.subscriptionsError.set('Не удалось загрузить подписки. Попробуйте обновить страницу.');
+      }
+    });
+  }
+
+  setAudience(type: 'public' | 'subscribers'): void {
+    this.audienceType.set(type);
+    if (type === 'public') {
+      this.selectedSubscriptionIds.set(new Set<string>());
+    }
+  }
+
+  toggleSubscription(subscriptionId: string | undefined): void {
+    if (!subscriptionId) {
+      return;
+    }
+    this.selectedSubscriptionIds.update((current) => {
+      const next = new Set(current);
+      if (next.has(subscriptionId)) {
+        next.delete(subscriptionId);
+      } else {
+        next.add(subscriptionId);
+      }
+      return next;
+    });
+  }
+
+  isSubscriptionSelected(subscriptionId: string | undefined): boolean {
+    if (!subscriptionId) return false;
+    return this.selectedSubscriptionIds().has(subscriptionId);
+  }
+
+  getAudienceDescription(): string {
+    if (this.audienceType() === 'public') {
+      return 'Пост увидят все пользователи (включая тех, кто без подписки).';
+    }
+
+    const selectedIds = this.getSelectedSubscriptionIds();
+    if (selectedIds.length === 0) {
+      return 'Выбран режим «Только подписчики». Необходимо выбрать хотя бы одну подписку.';
+    }
+
+    const titles = this.availableSubscriptions()
+      .filter(sub => sub.id && selectedIds.includes(sub.id))
+      .map(sub => sub.name)
+      .filter(Boolean);
+
+    if (titles.length === 0) {
+      return 'Пост увидят подписчики выбранных тарифов.';
+    }
+
+    return `Пост увидят подписчики тарифов: ${titles.join(', ')}`;
+  }
+
+  getSelectedSubscriptionIds(): string[] {
+    return Array.from(this.selectedSubscriptionIds()).map((id) => id);
+  }
+
+  private validateAudienceSelection(): boolean {
+    if (this.audienceType() === 'subscribers' && this.selectedSubscriptionIds().size === 0) {
+      this.error.set('Выберите хотя бы одну подписку, которая сможет видеть пост.');
+      return false;
+    }
+    return true;
+  }
 
   onVideoFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -93,16 +179,24 @@ export class CreatePostModal {
       return;
     }
 
+    if (!this.validateAudienceSelection()) {
+      return;
+    }
+
     this.isLoading.set(true);
     this.error.set(null);
 
+    const request: CreateDraftRequestDto = {
+      title: this.postTitle(),
+      text: this.postText(),
+      pictureUrls: [],
+      audioUrls: [],
+      isPublic: this.audienceType() === 'public',
+      subscriptionIds: this.audienceType() === 'subscribers' ? this.getSelectedSubscriptionIds() : []
+    };
+
     this.postsFacade
-      .createDraft({
-        title: this.postTitle(),
-        text: this.postText(),
-        pictureUrls: [],
-        audioUrls: [],
-      })
+      .createDraft(request)
       .subscribe({
         next: (response) => {
           this.postId.set(response.postId!);
@@ -246,6 +340,9 @@ export class CreatePostModal {
   }
 
   proceedToPublish(): void {
+    if (!this.validateAudienceSelection()) {
+      return;
+    }
     this.currentStep.set('publish');
   }
 
@@ -287,6 +384,8 @@ export class CreatePostModal {
     this.postTitle.set('');
     this.postText.set('');
     this.postId.set(null);
+    this.audienceType.set('public');
+    this.selectedSubscriptionIds.set(new Set<string>());
     this.videos.set([]);
     this.videoTitle.set('');
     this.videoDescription.set('');

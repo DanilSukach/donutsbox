@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Donutsbox.Domain.Migrations
 {
     [DbContext(typeof(DonutsboxDbContext))]
-    [Migration("20251121195743_InitialCreate")]
+    [Migration("20251122104607_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -47,6 +47,10 @@ namespace Donutsbox.Domain.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<string>("AudienceType")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.PrimitiveCollection<List<string>>("AudioURLs")
                         .IsRequired()

@@ -4,7 +4,5 @@ import { App } from './app/app';
 import 'vidstack/player';
 import 'vidstack/player/layouts';
 import 'vidstack/player/ui';
-import 'media-icons'; 
-
 bootstrapApplication(App, appConfig)
   .catch((err) => console.error(err));

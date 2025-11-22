@@ -1,10 +1,10 @@
-import { inject, Injectable, signal, computed } from '@angular/core';
+import { inject, Injectable, signal, computed, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthorsService, FilesService, CreatorPostService } from '@app/api/donutsbox';
 import { AuthorRequestDto } from '@app/api/donutsbox/model/authorRequestDto';
 import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
-import { TokenService } from '@app/core/services/token.service';
-import { JwtDecodeService } from '@app/core/services/jwt-decode.service';
+import { SessionService } from '@app/core/services/session.service';
 import { UserSubscriptionsFacade } from '@app/features/profile/services/user-subscriptions-facade';
 
 @Injectable({
@@ -14,15 +14,17 @@ export class FeedFacade {
  private readonly authorsService = inject(AuthorsService);
   private readonly filesService = inject(FilesService);
   private readonly creatorPostService = inject(CreatorPostService);
-  private readonly tokenService = inject(TokenService);
-  private readonly jwtService = inject(JwtDecodeService);
+  private readonly sessionService = inject(SessionService);
   private readonly router = inject(Router);
   private readonly userSubscriptionsFacade = inject(UserSubscriptionsFacade);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
 
   // Состояние
   readonly topAuthors = signal<AuthorRequestDto[]>([]);
   readonly isLoadingTopAuthors = signal(false);
   readonly topAuthorsError = signal<string | null>(null);
+  readonly topAuthorsLoaded = signal(false);
 
   // Состояние поиска
   readonly searchResults = signal<AuthorRequestDto[]>([]);
@@ -42,20 +44,31 @@ export class FeedFacade {
   });
 
   constructor() {
-    this.initializeUserData();
-    // Загружаем подписки пользователя при инициализации
-    this.userSubscriptionsFacade.loadUserSubscriptions().subscribe();
+    if (this.isBrowser) {
+      this.initializeUserData();
+      // Загружаем подписки пользователя при инициализации
+      this.userSubscriptionsFacade.loadUserSubscriptions().subscribe();
+    } else {
+      this.isLoadingUserData.set(false);
+    }
   }
 
   private initializeUserData(): void {
+    if (!this.isBrowser) {
+      this.isLoadingUserData.set(false);
+      return;
+    }
     this.isLoadingUserData.set(true);
-    const token = this.tokenService.getAccessToken();
-    const guid = this.jwtService.getGuid(token);
-    if (guid) this.userGuid.set(guid);
-    this.isLoadingUserData.set(false);
+    this.sessionService.ensureSession().subscribe(() => {
+      this.userGuid.set(this.sessionService.userId());
+      this.isLoadingUserData.set(false);
+    });
   }
 
   loadTopAuthors(count: number = 10): Observable<AuthorRequestDto[]> {
+    if (!this.isBrowser) {
+      return of([]);
+    }
     this.isLoadingTopAuthors.set(true);
     this.topAuthorsError.set(null);
 
@@ -63,6 +76,7 @@ export class FeedFacade {
       tap((authors) => {
         this.topAuthors.set(authors);
         this.isLoadingTopAuthors.set(false);
+        this.topAuthorsLoaded.set(true);
         this.loadAvatarSignedUrls(authors);
       }),
       catchError((error) => {
@@ -79,6 +93,9 @@ export class FeedFacade {
   }
 
   searchAuthors(query: string): Observable<AuthorRequestDto[]> {
+    if (!this.isBrowser) {
+      return of([]);
+    }
     if (!query.trim()) {
       this.searchResults.set([]);
       this.searchError.set(null);
@@ -111,6 +128,9 @@ export class FeedFacade {
   }
 
   private loadAvatarSignedUrls(authors: AuthorRequestDto[]): void {
+    if (!this.isBrowser) {
+      return;
+    }
     const requests = authors
       .filter(a => !!a.id && !!a.avatarUrl)
       .map(a =>
@@ -146,6 +166,9 @@ export class FeedFacade {
   }
 
   getSubscriptionFeed(page: number = 1, pageSize: number = 10): Observable<any> {
+    if (!this.isBrowser) {
+      return of({ posts: [], total: 0 });
+    }
     return this.creatorPostService.apiCreatorPostFeedGet(page, pageSize).pipe(
       tap((response) => {
         console.log('Feed posts loaded:', response);
@@ -158,14 +181,25 @@ export class FeedFacade {
   }
 
   refreshUserData(): void {
-    this.initializeUserData();
+    if (!this.isBrowser) {
+      return;
+    }
+    this.sessionService.refreshSession().subscribe(() => {
+      this.userGuid.set(this.sessionService.userId());
+    });
   }
 
   loadUserSubscriptions(): void {
+    if (!this.isBrowser) {
+      return;
+    }
     this.userSubscriptionsFacade.loadUserSubscriptions().subscribe();
   }
 
   navigateToAuthor(authorId: string): void {
+    if (!this.isBrowser) {
+      return;
+    }
     this.router.navigate(['/profile', authorId]);
   }
 
@@ -174,6 +208,7 @@ export class FeedFacade {
     this.topAuthors.set([]);
     this.isLoadingTopAuthors.set(false);
     this.topAuthorsError.set(null);
+    this.topAuthorsLoaded.set(false);
     this.isLoadingUserData.set(false);
   }
 }

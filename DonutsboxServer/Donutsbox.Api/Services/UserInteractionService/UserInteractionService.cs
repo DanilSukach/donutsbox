@@ -19,12 +19,16 @@ public class UserInteractionService(
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
         var userId = Guid.Parse(userIdClaim.Value);
 
-        var creatorUser = await userRepository.GetByIdAsync(creatorUserId) ?? throw new ArgumentException("Creator user not found");
+        _ = await userRepository.GetByIdAsync(creatorUserId) ?? throw new ArgumentException("Creator user not found");
 
         var userSubscriptions = await userSubscriptionRepository.GetAllAsync();
+        var now = DateTime.UtcNow;
         var activeSubscriptions = userSubscriptions
-            .Where(us => us.UserId == userId &&
-                        us.Subscription.CreatorPageData.UserId == creatorUserId)
+            .Where(us =>
+                us.UserId == userId &&
+                us.Subscription.CreatorPageData.UserId == creatorUserId &&
+                string.Equals(us.Status, "active", StringComparison.OrdinalIgnoreCase) &&
+                us.EndDate >= now)
             .ToList();
 
         if (activeSubscriptions.Count == 0)
@@ -34,7 +38,11 @@ public class UserInteractionService(
 
         foreach (var subscription in activeSubscriptions)
         {
-            await userSubscriptionRepository.DeleteAsync(subscription.Id);
+            subscription.Status = "cancelled";
+            subscription.EndDate = now;
+            subscription.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await userSubscriptionRepository.UpdateAsync(subscription, subscription.Id);
 
             var creatorPage = await creatorPageRepository.GetByIdAsync(subscription.Subscription.CreatorPageDataId);
             if (creatorPage != null)

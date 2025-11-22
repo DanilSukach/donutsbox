@@ -1,33 +1,32 @@
-import { inject } from '@angular/core';
+import { inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformServer } from '@angular/common';
 import { CanActivateFn, Router } from '@angular/router';
-import { TokenService } from '../services/token.service';
-import { JwtDecodeService } from '../services/jwt-decode.service';
+import { SessionService } from '../services/session.service';
+import { catchError, map, of } from 'rxjs';
 
 export const authGuard: CanActivateFn = (route, state) => {
-  const tokenService = inject(TokenService);
-  const jwtService = inject(JwtDecodeService);
+  const sessionService = inject(SessionService);
   const router = inject(Router);
+  const platformId = inject(PLATFORM_ID);
 
-  const token = tokenService.getAccessToken();
-  
-  if (!token) {
-    router.navigate(['/auth/login']);
-    return false;
+  if (isPlatformServer(platformId)) {
+    return of(true);
   }
 
-  const userGuid = jwtService.getGuid(token);
-  if (!userGuid) {
-    tokenService.clear();
-    router.navigate(['/auth/login']);
-    return false;
-  }
+  return sessionService.ensureSession().pipe(
+    map((session) => {
+      if (!session) {
+        return router.createUrlTree(['/auth/login']);
+      }
 
-  const isNewCreator = tokenService.isNewCreator();
-  
-  if (isNewCreator) {
-    router.navigate(['/profile/setup']);
-    return false;
-  }
+      if (session.isCreator && !session.hasCreatorPage) {
+        return router.createUrlTree(['/profile/setup']);
+      }
 
-  return true;
+      return true;
+    }),
+    catchError(() => {
+      return of(router.createUrlTree(['/auth/login']));
+    })
+  );
 };

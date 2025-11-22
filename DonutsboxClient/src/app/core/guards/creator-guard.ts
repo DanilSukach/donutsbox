@@ -1,27 +1,27 @@
-import { inject } from '@angular/core';
+import { inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformServer } from '@angular/common';
 import { CanActivateFn, Router } from '@angular/router';
-import { TokenService } from '../services/token.service';
-import { JwtDecodeService } from '../services/jwt-decode.service';
+import { SessionService } from '../services/session.service';
+import { catchError, map, of } from 'rxjs';
 
 export const creatorGuard: CanActivateFn = (route, state) => {
-  const tokenService = inject(TokenService);
-  const jwtService = inject(JwtDecodeService);
+  const sessionService = inject(SessionService);
   const router = inject(Router);
+  const platformId = inject(PLATFORM_ID);
 
-  const token = tokenService.getAccessToken();
-  
-  // Если токена нет, перенаправляем на логин
-  if (!token) {
-    router.navigate(['/auth/login']);
-    return false;
+  if (isPlatformServer(platformId)) {
+    return of(true);
   }
 
-  // Проверяем, что пользователь является создателем
-  if (!jwtService.isCreator(token)) {
-    router.navigate(['/']);
-    return false;
-  }
-
-  // Создатель может получить доступ
-  return true;
+  return sessionService.ensureSession().pipe(
+    map((session) => {
+      if (session?.isCreator) {
+        return true;
+      }
+      return router.createUrlTree(['/auth/login']);
+    }),
+    catchError(() => {
+      return of(router.createUrlTree(['/auth/login']));
+    })
+  );
 };
