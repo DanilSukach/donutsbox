@@ -10,6 +10,7 @@ public class DonutsboxDbContext(DbContextOptions<DonutsboxDbContext> options) : 
     public required DbSet<UserAuth> UsersAuths { get; set; }
     public required DbSet<UserData> UsersData { get; set; }
     public required DbSet<UserSubscription> UsersSubscriptions { get; set; }
+    public required DbSet<SubscriptionPayment> SubscriptionPayments { get; set; }
     public required DbSet<Subscription> Subscriptions { get; set; }
     public required DbSet<CreatorPageData> CreatorsPageData { get; set; }
     public required DbSet<ContentPost> ContentPosts { get; set; }

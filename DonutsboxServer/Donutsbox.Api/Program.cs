@@ -4,11 +4,14 @@ using Donutsbox.Api.Mapper;
 using Donutsbox.Api.Services;
 using Donutsbox.Api.Services.AuthorService;
 using Donutsbox.Api.Services.CreatorPostService;
+using Donutsbox.Api.Services.FilesService;
 using Donutsbox.Api.Services.Kafka;
 using Donutsbox.Api.Services.MinioService;
+using Donutsbox.Api.Services.Payments;
 using Donutsbox.Api.Services.PostCommentService;
 using Donutsbox.Api.Services.UserInteractionService;
 using Donutsbox.Api.Services.UserSubscriptionsService;
+using Donutsbox.Domain.Constants;
 using Donutsbox.Domain.Context;
 using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.AuthorRepository;
@@ -16,6 +19,7 @@ using Donutsbox.Domain.Repositories.EntityRepository;
 using Donutsbox.Domain.Repositories.ProfileRepository;
 using Donutsbox.Domain.Repositories.UserSubscriptionsRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -90,13 +94,27 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = context =>
         {
-            var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
 
+            var accessToken = context.Request.Query["access_token"];
             if (!string.IsNullOrEmpty(accessToken) &&
                 path.StartsWithSegments("/hubs"))
             {
                 context.Token = accessToken;
+            }
+
+            var mediaToken = context.Request.Query["token"];
+            if (!string.IsNullOrEmpty(mediaToken) &&
+                path.StartsWithSegments("/api/files"))
+            {
+                context.Token = mediaToken;
+            }
+
+            if (string.IsNullOrEmpty(context.Token) &&
+                context.Request.Cookies.TryGetValue(AuthConstants.JwtCookieName, out var cookieToken) &&
+                !string.IsNullOrEmpty(cookieToken))
+            {
+                context.Token = cookieToken;
             }
 
             return Task.CompletedTask;
@@ -124,6 +142,7 @@ builder.Services.AddScoped<IEntityRepository<UserData, Guid>, UserDataRepository
 builder.Services.AddScoped<IEntityRepository<UserSubscription, Guid>, UserSubscriptionRepository>();
 builder.Services.AddScoped<IEntityRepository<UserType, int>, UserTypeRepository>();
 builder.Services.AddScoped<IEntityRepository<Subscription, Guid>, SubscriptionRepository>();
+builder.Services.AddScoped<IEntityRepository<SubscriptionPayment, Guid>, SubscriptionPaymentRepository>();
 builder.Services.AddScoped<IEntityRepository<CreatorPageData, Guid>, CreatorPageDataRepository>();
 builder.Services.AddScoped<IEntityRepository<ContentPost, Guid>, ContentPostRepository>();
 builder.Services.AddScoped<IEntityRepository<SubscriptionPeriod, int>, SubscriptionPeriodRepository>();
@@ -147,6 +166,8 @@ builder.Services.AddScoped<IUserInteractionService, UserInteractionService>();
 builder.Services.AddScoped<ICreatorPostService, CreatorPostService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
 builder.Services.AddScoped<IPostCommentService, PostCommentService>();
+builder.Services.AddScoped<IFilesService, FilesService>();
+builder.Services.AddScoped<ISubscriptionPaymentService, SubscriptionPaymentService>();
 
 builder.Services.AddSingleton<IMinioService, MinioService>();
 
@@ -155,6 +176,9 @@ builder.Services.AddScoped<IMessageProducer, KafkaMessageProducer>();
 builder.Services.AddSignalR();
 
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => { policy.WithOrigins("http://localhost:4200"); policy.AllowAnyMethod(); policy.AllowAnyHeader(); policy.AllowCredentials(); }));
+
+builder.Services.Configure<YooKassaOptions>(builder.Configuration.GetSection("YooKassa"));
+builder.Services.AddHttpClient<IYooKassaClient, YooKassaClient>();
 
 builder.Services.AddControllers();
 
@@ -173,6 +197,7 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = string.Empty;
     });
 }
+app.UseForwardedHeaders();
 app.UseCors();
 
 app.UseAuthentication();

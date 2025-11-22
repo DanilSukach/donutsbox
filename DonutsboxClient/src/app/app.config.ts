@@ -6,13 +6,14 @@ import { provideClientHydration, withEventReplay } from '@angular/platform-brows
 import { provideApi } from './api/api-config.provider';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { jwtInterceptor } from './core/interseptors/jwt.interceptor';
+import { credentialsInterceptor } from './core/interseptors/credentials.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
     provideRouter(routes), provideClientHydration(withEventReplay()),
-    provideHttpClient(withInterceptors([jwtInterceptor]),withFetch()),
+    provideHttpClient(withInterceptors([credentialsInterceptor, jwtInterceptor]),withFetch()),
     provideApi()
   ]
 };

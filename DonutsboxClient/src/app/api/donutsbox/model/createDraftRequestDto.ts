@@ -14,5 +14,7 @@ export interface CreateDraftRequestDto {
     text?: string | null;
     pictureUrls?: Array<string> | null;
     audioUrls?: Array<string> | null;
+    isPublic?: boolean | null;
+    subscriptionIds?: Array<string> | null;
 }
 

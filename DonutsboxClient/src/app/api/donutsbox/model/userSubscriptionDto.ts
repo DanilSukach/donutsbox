@@ -30,5 +30,21 @@ export interface UserSubscriptionDto {
      * Дата конца подписки
      */
     endDate: string;
+    /**
+     * Статус подписки
+     */
+    status: string | null;
+    /**
+     * Идентификатор платежа, активировавшего подписку
+     */
+    paymentId?: string | null;
+    /**
+     * Дата создания записи подписки
+     */
+    createdAt: string;
+    /**
+     * Дата последнего обновления записи подписки
+     */
+    updatedAt: string;
 }
 

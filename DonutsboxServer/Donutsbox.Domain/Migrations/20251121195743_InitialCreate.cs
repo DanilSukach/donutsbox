@@ -344,7 +344,11 @@ namespace Donutsbox.Domain.Migrations
                     user_id = table.Column<Guid>(type: "uuid", nullable: false),
                     subscription_id = table.Column<Guid>(type: "uuid", nullable: false),
                     begin_date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    end_date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    end_date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    status = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    payment_id = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -357,6 +361,47 @@ namespace Donutsbox.Domain.Migrations
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_user_subscription_user_user_id",
+                        column: x => x.user_id,
+                        principalTable: "user",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "subscription_payment",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    subscription_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    payment_id = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
+                    status = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    amount = table.Column<decimal>(type: "numeric(12,2)", nullable: false),
+                    currency = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false),
+                    confirmation_url = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
+                    description = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    idempotence_key = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false),
+                    expires_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
+                    metadata_json = table.Column<string>(type: "text", nullable: true),
+                    user_subscription_id = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_subscription_payment", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_subscription_payment_subscription_subscription_id",
+                        column: x => x.subscription_id,
+                        principalTable: "subscription",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_subscription_payment_user_subscription_user_subscription_id",
+                        column: x => x.user_subscription_id,
+                        principalTable: "user_subscription",
+                        principalColumn: "id");
+                    table.ForeignKey(
+                        name: "FK_subscription_payment_user_user_id",
                         column: x => x.user_id,
                         principalTable: "user",
                         principalColumn: "id",
@@ -455,6 +500,21 @@ namespace Donutsbox.Domain.Migrations
                 column: "subscription_period_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_subscription_payment_subscription_id",
+                table: "subscription_payment",
+                column: "subscription_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_subscription_payment_user_id",
+                table: "subscription_payment",
+                column: "user_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_subscription_payment_user_subscription_id",
+                table: "subscription_payment",
+                column: "user_subscription_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_user_user_auth_id",
                 table: "user",
                 column: "user_auth_id",
@@ -503,10 +563,10 @@ namespace Donutsbox.Domain.Migrations
                 name: "post_reaction");
 
             migrationBuilder.DropTable(
-                name: "user_data");
+                name: "subscription_payment");
 
             migrationBuilder.DropTable(
-                name: "user_subscription");
+                name: "user_data");
 
             migrationBuilder.DropTable(
                 name: "Videos");
@@ -515,16 +575,19 @@ namespace Donutsbox.Domain.Migrations
                 name: "reaction_type");
 
             migrationBuilder.DropTable(
-                name: "subscription");
+                name: "user_subscription");
 
             migrationBuilder.DropTable(
                 name: "content_post");
 
             migrationBuilder.DropTable(
-                name: "subscription_period");
+                name: "subscription");
 
             migrationBuilder.DropTable(
                 name: "creator_page_data");
+
+            migrationBuilder.DropTable(
+                name: "subscription_period");
 
             migrationBuilder.DropTable(
                 name: "user");

@@ -1,13 +1,18 @@
 ﻿using Auth.Api.Dto;
 using Auth.Api.Services;
+using Donutsbox.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Auth.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class AuthController(IAuthService auth) : ControllerBase
+public class AuthController(IAuthService auth, IConfiguration configuration) : ControllerBase
 {
+    private readonly int cookieLifetimeMinutes = configuration.GetValue<int?>("Jwt:AccessTokenLifetimeMinutes") ?? 60;
+
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
     {
@@ -38,6 +43,7 @@ public class AuthController(IAuthService auth) : ControllerBase
         try
         {
             var tokens = await auth.LoginAsync(request);
+            AppendAuthCookie(tokens.AccessToken);
             return Ok(tokens);
         }
         catch (UnauthorizedAccessException)
@@ -52,11 +58,44 @@ public class AuthController(IAuthService auth) : ControllerBase
         try
         {
             var tokens = await auth.RefreshTokenAsync(refreshToken);
+            AppendAuthCookie(tokens.AccessToken);
             return Ok(tokens);
         }
         catch (UnauthorizedAccessException)
         {
             return Unauthorized("Invalid refresh token");
         }
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        DeleteAuthCookie();
+        return Ok(new { message = "Logged out" });
+    }
+
+    private void AppendAuthCookie(string accessToken)
+    {
+        var options = BuildCookieOptions(DateTimeOffset.UtcNow.AddMinutes(cookieLifetimeMinutes));
+        Response.Cookies.Append(AuthConstants.JwtCookieName, accessToken, options);
+    }
+
+    private void DeleteAuthCookie()
+    {
+        var options = BuildCookieOptions(DateTimeOffset.UtcNow.AddDays(-1));
+        Response.Cookies.Delete(AuthConstants.JwtCookieName, options);
+    }
+
+    private static CookieOptions BuildCookieOptions(DateTimeOffset? expires)
+    {
+        return new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Path = "/",
+            Expires = expires
+        };
     }
 }

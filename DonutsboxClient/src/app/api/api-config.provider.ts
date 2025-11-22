@@ -7,13 +7,15 @@ import { Configuration as AuthConfiguration, ConfigurationParameters as AuthConf
 export function donutsboxApiConfigFactory(): Configuration {
   const params: ConfigurationParameters = {
     basePath: 'https://localhost:7133',
+    withCredentials: true
   };
   return new Configuration(params);
 }
 
 export function authApiConfigFactory(): AuthConfiguration {
     const params: AuthConfigurationParameters = {
-      basePath: 'https://localhost:7016', 
+      basePath: 'https://localhost:7016',
+      withCredentials: true
     };
     return new AuthConfiguration(params);
 }

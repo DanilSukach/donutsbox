@@ -41,5 +41,29 @@ public class UserSubscription
     [Column("end_date")]
     [Required]
     public required DateTime EndDate { get; set; }
-
+    /// <summary>
+    /// Статус подписки (pending, active, expired, cancelled)
+    /// </summary>
+    [Column("status")]
+    [MaxLength(32)]
+    [Required]
+    public string Status { get; set; } = "active";
+    /// <summary>
+    /// Идентификатор платежа, активировавшего подписку
+    /// </summary>
+    [Column("payment_id")]
+    [MaxLength(128)]
+    public string? PaymentId { get; set; }
+    /// <summary>
+    /// Дата создания записи
+    /// </summary>
+    [Column("created_at", TypeName = "timestamptz")]
+    [Required]
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    /// <summary>
+    /// Дата обновления записи
+    /// </summary>
+    [Column("updated_at", TypeName = "timestamptz")]
+    [Required]
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

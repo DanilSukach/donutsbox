@@ -35,16 +35,20 @@ export interface SubscriptionDto {
      */
     subscriptionPeriodId: number;
     /**
-     * Количество месяцев в периоде
+     * Количество месяцев в периоде подписки
      */
     subscriptionPeriodMonths: number;
     /**
-     * Цена в расчете за месяц
+     * Цена в расчете на один месяц
      */
     monthlyPrice: string | null;
     /**
-     * Родительская подписка
+     * Родительская подписка (уровень)
      */
     parentSubscriptionId?: string | null;
+    /**
+     * Идентификатор страницы автора, к которой относится подписка
+     */
+    creatorPageDataId?: string | null;
 }
 

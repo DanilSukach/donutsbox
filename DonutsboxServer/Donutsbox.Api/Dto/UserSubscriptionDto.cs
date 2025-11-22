@@ -22,4 +22,20 @@ public class UserSubscriptionDto
     /// Дата конца подписки
     /// </summary>
     public required DateTime EndDate { get; set; }
+    /// <summary>
+    /// Статус подписки
+    /// </summary>
+    public required string Status { get; set; }
+    /// <summary>
+    /// Идентификатор платежа, активировавшего подписку
+    /// </summary>
+    public string? PaymentId { get; set; }
+    /// <summary>
+    /// Дата создания записи подписки
+    /// </summary>
+    public required DateTimeOffset CreatedAt { get; set; }
+    /// <summary>
+    /// Дата последнего обновления записи подписки
+    /// </summary>
+    public required DateTimeOffset UpdatedAt { get; set; }
 }

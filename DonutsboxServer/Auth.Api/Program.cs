@@ -1,14 +1,15 @@
-using Microsoft.EntityFrameworkCore;
-using System.Reflection;
-using Donutsbox.Domain.Context;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Microsoft.OpenApi.Models;
-using Donutsbox.Domain.Entities;
 using Auth.Api.Services;
-using Donutsbox.Domain.Repositories.EntityRepository;
+using Donutsbox.Domain.Constants;
+using Donutsbox.Domain.Context;
+using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.AuthRepository;
+using Donutsbox.Domain.Repositories.EntityRepository;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Reflection;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +65,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(key),
             ClockSkew = TimeSpan.Zero
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (string.IsNullOrEmpty(context.Token) &&
+                    context.Request.Cookies.TryGetValue(AuthConstants.JwtCookieName, out var cookieToken) &&
+                    !string.IsNullOrEmpty(cookieToken))
+                {
+                    context.Token = cookieToken;
+                }
+
+                return Task.CompletedTask;
+            }
         };
     });
 
