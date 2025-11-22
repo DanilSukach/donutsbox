@@ -51,6 +51,36 @@ public class AdminUserService(DonutsboxDbContext context,
         return result;
     }
 
+    public async Task<IEnumerable<AdminAuthorListDto>> GetAllAuthors()
+    {
+        var authors = await context.Users
+            .Include(u => u.UserAuth)
+            .Include(u => u.UserType)
+            .Include(u => u.CreatorPageData)
+            .Include(u => u.UserSubscriptions)
+            .Where(u => u.CreatorPageData != null)
+            .ToListAsync();
+        var result = new List<AdminAuthorListDto>();
+        foreach (var author in authors)
+        {
+            var postsCount = await context.ContentPosts
+                .CountAsync(p => p.CreatorPageDataId == author.CreatorPageData!.Id);
+            result.Add(new AdminAuthorListDto
+            {
+                Id = author.Id,
+                CreatorPageId = author.CreatorPageData!.Id,
+                Name = author.Name,
+                Email = author.UserAuth.AuthEmail,
+                UserType = author.UserType.Name,
+                CreatedAt = (DateTime)author.UserAuth.LastAuth!,
+                PostsCount = postsCount,
+                SubscriptionsCount = author.UserSubscriptions?.Count ?? 0,
+                SubscribersCount = author.CreatorPageData.SubscribersCount
+            });
+        }
+        return result;
+    }
+
     public async Task<AdminUserListDto?> GetUserByIdAsync(Guid userId)
     {
         var user = await context.Users
