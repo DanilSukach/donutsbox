@@ -238,7 +238,6 @@ services:
     restart: always
     volumes:
       - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     command: -config.file=/etc/promtail/config.yml
     depends_on:
@@ -267,6 +266,29 @@ services:
       timeout: 10s
       retries: 3
 
+  frontend:
+    image: ${DOCKER_REGISTRY-}donutsboxclient
+    build:
+      context: ../DonutsboxClient
+      dockerfile: Dockerfile
+    container_name: donutsbox-client
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+    depends_on:
+      - auth.api
+      - donutsbox.api
+      - admin.service.api
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   nginx:
     image: nginx:alpine
     container_name: nginx
@@ -279,6 +301,7 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - nginx_logs:/var/log/nginx
     depends_on:
+      - frontend
       - auth.api
       - donutsbox.api
       - admin.service.api
