@@ -89,16 +89,25 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddControllers();
 
+// CORS
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy
-          .WithOrigins("https://localhost:4200")
-          .AllowAnyMethod()
-          .AllowAnyHeader()
-          .AllowCredentials();
-
+        if (corsOrigins.Length == 0)
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else
+        {
+            policy.WithOrigins(corsOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
 

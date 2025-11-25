@@ -52,6 +52,8 @@ services:
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
+      # Настройка для работы через прокси
+      MINIO_BROWSER_REDIRECT_URL: https://localhost/minio-console
     volumes:
       - minio_data:/data
     healthcheck:
@@ -76,6 +78,10 @@ services:
       - Kafka__BootstrapServers=kafka:9092
       - Kafka__Topics__VideoUploaded=video.uploaded
       - Kafka__Topics__VideoProcessed=video.processed
+      - Cors__AllowedOrigins__0=https://localhost
+      - Cors__AllowedOrigins__1=http://localhost
+      - Cors__AllowedOrigins__2=https://192.168.0.13
+      - Cors__AllowedOrigins__3=http://192.168.0.13
     depends_on:
       postgres:
         condition: service_healthy
@@ -109,8 +115,11 @@ services:
       - Minio__SecretKey=minio123
       - Minio__UseSSL=false
       - Minio__BucketName=my-bucket
-      - Cors__AllowedOrigins__0=http://localhost:4200
-      - Cors__AllowedOrigins__1=https://localhost:4200
+      - Minio__PublicEndpoint=https://localhost/minio
+      - Cors__AllowedOrigins__0=https://localhost
+      - Cors__AllowedOrigins__1=http://localhost
+      - Cors__AllowedOrigins__2=https://192.168.0.13
+      - Cors__AllowedOrigins__3=http://192.168.0.13
     depends_on:
       postgres:
         condition: service_healthy
@@ -149,8 +158,11 @@ services:
       - Minio__BucketName=donutsbox
       - Minio__BucketTemp=video-temp
       - Minio__BucketProcessed=video-processed
-      - Cors__AllowedOrigins__0=http://localhost:4200
-      - Cors__AllowedOrigins__1=https://localhost:4200
+      - Minio__PublicEndpoint=https://localhost/minio
+      - Cors__AllowedOrigins__0=https://localhost
+      - Cors__AllowedOrigins__1=http://localhost
+      - Cors__AllowedOrigins__2=https://192.168.0.13
+      - Cors__AllowedOrigins__3=http://192.168.0.13
     depends_on:
       postgres:
         condition: service_healthy
@@ -185,6 +197,7 @@ services:
       - Minio__UseSSL=false
       - Minio__BucketTemp=video-temp
       - Minio__BucketProcessed=video-processed
+      - Minio__PublicEndpoint=https://localhost/minio
       - FFmpeg__Path=/usr/bin/ffmpeg
     depends_on:
       kafka:
