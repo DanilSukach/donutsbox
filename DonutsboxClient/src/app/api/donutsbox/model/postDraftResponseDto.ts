@@ -13,8 +13,6 @@ export interface PostDraftResponseDto {
     postId?: string;
     title?: string | null;
     isPublished?: boolean;
-    isPublic?: boolean;
-    allowedSubscriptionIds?: Array<string> | null;
     message?: string | null;
 }
 

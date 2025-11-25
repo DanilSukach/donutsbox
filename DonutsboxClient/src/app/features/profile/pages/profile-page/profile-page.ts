@@ -2,8 +2,6 @@ import { Component, inject, OnInit, signal, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthFacade } from '../../../auth/services/auth-facade';
-import { TokenService } from '@app/core/services/token.service';
-import { JwtDecodeService } from '@app/core/services/jwt-decode.service';
 import { AuthorSupporters } from '../../components/author-supporters/author-supporters';
 import { CreatePostModal } from '../../components/create-post-modal/create-post-modal';
 import { PostsFeed } from '@app/shared/components/posts-feed/posts-feed';
@@ -16,6 +14,7 @@ import { SubscriptionModalService } from '@app/shared/services/subscription-moda
 import { CreateSubscriptionModalService } from '@app/shared/services/create-subscription-modal.service';
 import { AuthorRequestDto } from '@app/api/donutsbox';
 import { of, Subscription } from 'rxjs';
+import { SessionService } from '@app/core/services/session.service';
 
 @Component({
   selector: 'app-profile-page',
@@ -28,8 +27,7 @@ export class ProfilePage implements OnInit, OnDestroy {
    private authFacade = inject(AuthFacade);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private tokenService = inject(TokenService);
-  private jwtService = inject(JwtDecodeService);
+  private sessionService = inject(SessionService);
   private profileFacade = inject(ProfileFacade);
   private postsFacade = inject(PostsFacade);
   private userSubscriptionsFacade = inject(UserSubscriptionsFacade);
@@ -76,7 +74,10 @@ export class ProfilePage implements OnInit, OnDestroy {
       }
     });
     
-    this.checkUserRole();
+    this.sessionService.ensureSession().subscribe(() => {
+      this.checkProfileOwnership();
+      this.checkUserRole();
+    });
     
     // Подписываемся на успешную подписку
     this.subscriptionSuccessSub = this.subscriptionModalService.subscriptionSuccess.subscribe(() => {
@@ -117,6 +118,17 @@ export class ProfilePage implements OnInit, OnDestroy {
       return;
     }
 
+    const session = this.sessionService.session();
+    const isOwnNonCreatorProfile =
+      !!session && profileId === session.userId && !session.hasCreatorPage;
+
+    if (isOwnNonCreatorProfile) {
+      // Logged-in user is not a creator, no author data exists in backend.
+      this.author.set(null);
+      this.bannerSrc.set(null);
+      return;
+    }
+
     this.profileFacade.getAuthorById(profileId).subscribe(author => {
       this.author.set(author);
       const key = author?.bannerUrl ?? null;
@@ -142,8 +154,7 @@ export class ProfilePage implements OnInit, OnDestroy {
 
   private checkProfileOwnership(): void {
     const profileId = this.profileId();
-    const token = this.tokenService.getAccessToken();
-    const currentUserGuid = this.jwtService.getGuid(token);
+    const currentUserGuid = this.sessionService.userId();
 
     if (profileId && currentUserGuid && profileId === currentUserGuid) {
       this.isOwnProfile.set(true);
@@ -153,9 +164,7 @@ export class ProfilePage implements OnInit, OnDestroy {
   }
 
   private checkUserRole(): void {
-    const token = this.tokenService.getAccessToken();
-    const isCreator = this.jwtService.isCreator(token);
-    this.isCurrentUserCreator.set(isCreator);
+    this.isCurrentUserCreator.set(this.sessionService.isCreator());
   }
 
   onAddContent(): void {
@@ -231,6 +240,13 @@ export class ProfilePage implements OnInit, OnDestroy {
         next: () => {
           this.closeUnsubscribeModal();
           this.isSubscribed.set(false);
+          this.author.update(author => {
+            if (!author) {
+              return author;
+            }
+            const updatedCount = Math.max(0, (author.subscribersCount ?? 0) - 1);
+            return { ...author, subscribersCount: updatedCount };
+          });
         },
         error: (error) => {
           console.error('Ошибка отписки от создателя:', error);

@@ -87,13 +87,14 @@ public class AuthController(IAuthService auth, IConfiguration configuration) : C
         Response.Cookies.Delete(AuthConstants.JwtCookieName, options);
     }
 
-    private static CookieOptions BuildCookieOptions(DateTimeOffset? expires)
+    private CookieOptions BuildCookieOptions(DateTimeOffset? expires)
     {
+        var isHttps = HttpContext.Request.IsHttps;
         return new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.None,
+            Secure = isHttps,
+            SameSite = isHttps ? SameSiteMode.None : SameSiteMode.Lax,
             Path = "/",
             Expires = expires
         };

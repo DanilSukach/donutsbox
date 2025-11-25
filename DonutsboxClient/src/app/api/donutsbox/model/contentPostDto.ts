@@ -46,13 +46,5 @@ export interface ContentPostDto {
      * Ссылки на картинки
      */
     pictureURLs: Array<string> | null;
-    /**
-     * Пост доступен всем пользователям без подписки
-     */
-    isPublic?: boolean;
-    /**
-     * Разрешенные подписки (если пост не публичный)
-     */
-    allowedSubscriptionIds?: Array<string> | null;
 }
 

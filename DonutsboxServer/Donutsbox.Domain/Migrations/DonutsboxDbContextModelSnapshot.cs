@@ -45,6 +45,10 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("AudienceType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.PrimitiveCollection<List<string>>("AudioURLs")
                         .IsRequired()
                         .HasColumnType("text[]")

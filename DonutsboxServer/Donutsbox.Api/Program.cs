@@ -175,7 +175,26 @@ builder.Services.AddScoped<IMessageProducer, KafkaMessageProducer>();
 
 builder.Services.AddSignalR();
 
-builder.Services.AddCors(options => options.AddDefaultPolicy(policy => { policy.WithOrigins("http://localhost:4200"); policy.AllowAnyMethod(); policy.AllowAnyHeader(); policy.AllowCredentials(); }));
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        if (corsOrigins.Length == 0)
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            policy.WithOrigins(corsOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
+    });
+});
 
 builder.Services.Configure<YooKassaOptions>(builder.Configuration.GetSection("YooKassa"));
 builder.Services.AddHttpClient<IYooKassaClient, YooKassaClient>();
@@ -195,6 +214,7 @@ if (app.Environment.IsDevelopment())
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "V1");
         c.RoutePrefix = string.Empty;
+        c.ConfigObject.AdditionalItems["withCredentials"] = true;
     });
 }
 app.UseForwardedHeaders();

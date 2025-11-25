@@ -2,8 +2,7 @@ import { Component, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { PostCommentDto } from '@app/api/donutsbox';
 import { CommentsFacade } from '@app/core/services/comments-facade';
-import { JwtDecodeService } from '@app/core/services/jwt-decode.service';
-import { TokenService } from '@app/core/services/token.service';
+import { SessionService } from '@app/core/services/session.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -16,8 +15,7 @@ export class PostComments {
    readonly postId = input.required<string>();
 
   private commentsFacade = inject(CommentsFacade);
-  private jwtDecode = inject(JwtDecodeService);
-  private tokenService = inject(TokenService);
+  private sessionService = inject(SessionService);
 
   comments = signal<PostCommentDto[]>([]);
   newCommentText = signal('');
@@ -29,8 +27,11 @@ export class PostComments {
   private subscriptions: Subscription[] = [];
 
   constructor() {
-    const token = this.tokenService.getAccessToken();
-    if (token) this.currentUserId.set(this.jwtDecode.getGuid(token));
+    this.sessionService.ensureSession().subscribe();
+    effect(() => {
+      const session = this.sessionService.session();
+      this.currentUserId.set(session?.userId ?? null);
+    });
 
     effect(() => {
       const postId = this.postId();

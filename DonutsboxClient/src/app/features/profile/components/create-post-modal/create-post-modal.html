@@ -66,6 +66,50 @@
             <textarea [value]="postText()" (input)="postText.set($any($event.target).value)" rows="8" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none" placeholder="Расскажите подробнее..." maxlength="2000"></textarea>
             <p class="text-xs text-gray-500 mt-1">{{ postText().length }}/2000</p>
           </div>
+
+          <div class="border-2 border-amber-200 rounded-xl p-4 bg-amber-50">
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+              <div class="flex-1">
+                <h3 class="font-bold text-amber-900 text-lg">🎯 Кто увидит пост</h3>
+                <p class="text-sm text-amber-800">Выберите, будет ли пост доступен всем или только подписчикам определённых тарифов.</p>
+              </div>
+              <div class="flex gap-3 text-sm">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="audience" [checked]="audienceType() === 'public'" (change)="setAudience('public')" />
+                  <span>Все пользователи</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer" [class.text-gray-400]="availableSubscriptions().length === 0">
+                  <input type="radio" name="audience" [checked]="audienceType() === 'subscribers'" (change)="setAudience('subscribers')" [disabled]="availableSubscriptions().length === 0" />
+                  <span>Только подписчики</span>
+                </label>
+              </div>
+            </div>
+
+            @if (audienceType() === 'subscribers') {
+              <div class="mt-4">
+                @if (subscriptionsLoading()) {
+                  <p class="text-sm text-amber-800">Загружаем список подписок...</p>
+                } @else if (subscriptionsError()) {
+                  <p class="text-sm text-red-600">{{ subscriptionsError() }}</p>
+                } @else if (availableSubscriptions().length === 0) {
+                  <p class="text-sm text-amber-800">У вас пока нет оформленных подписок. Создайте тарифы, чтобы ограничивать доступ к постам.</p>
+                } @else {
+                  <div class="space-y-2">
+                    @for (sub of availableSubscriptions(); track sub.id) {
+                      <label class="flex items-center gap-3 bg-white rounded-lg p-3 border border-amber-200 cursor-pointer">
+                        <input type="checkbox" [checked]="isSubscriptionSelected(sub.id!)" (change)="toggleSubscription(sub.id!)" />
+                        <div class="flex-1">
+                          <p class="font-semibold text-gray-900">{{ sub.name }}</p>
+                          <p class="text-xs text-gray-500">{{ sub.price }}</p>
+                        </div>
+                      </label>
+                    }
+                    <p class="text-xs text-amber-700">Выбрано: {{ getSelectedSubscriptionIds().length }} / {{ availableSubscriptions().length }}</p>
+                  </div>
+                }
+              </div>
+            }
+          </div>
         </div>
       }
 
@@ -233,9 +277,10 @@
               @if (images().length > 0) {
                 <div class="flex gap-3"><span class="text-green-600">✓</span><div><p class="text-sm text-gray-600">Изображения</p><p class="font-semibold text-gray-900">{{ images().length }} изображений</p></div></div>
               }
+              <div class="flex gap-3"><span class="text-green-600">✓</span><div><p class="text-sm text-gray-600">Аудитория</p><p class="font-semibold text-gray-900">{{ getAudienceDescription() }}</p></div></div>
             </div>
           </div>
-          <p class="text-gray-600 text-center">После публикации пост станет виден всем подписчикам</p>
+          <p class="text-gray-600 text-center">{{ getAudienceDescription() }}</p>
         </div>
       }
 

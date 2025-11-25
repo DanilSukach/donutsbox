@@ -2,8 +2,7 @@ import { Component, effect, inject, input, signal } from '@angular/core';
 import { PostsFacade } from '../../../features/profile/services/posts-facade';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 import { PostCard } from "@app/shared/components/post-card/post-card";
-import { TokenService } from '@app/core/services/token.service';
-import { JwtDecodeService } from '@app/core/services/jwt-decode.service';
+import { SessionService } from '@app/core/services/session.service';
 
 @Component({
   selector: 'app-posts-list',
@@ -16,8 +15,7 @@ export class PostsList {
   
   private postsFacade = inject(PostsFacade);
   private postsRefreshService = inject(PostsRefresh);
-  private tokenService = inject(TokenService); 
-  private jwtService = inject(JwtDecodeService); 
+  private sessionService = inject(SessionService);
 
   readonly posts = signal<any[]>([]);
   readonly isLoading = signal(false);
@@ -26,6 +24,7 @@ export class PostsList {
   readonly pageSize = 10;
 
   constructor() {
+    this.sessionService.ensureSession().subscribe();
     effect(() => {
       const trigger = this.postsRefreshService.refreshTrigger();
       const creatorId = this.creatorId();
@@ -42,8 +41,7 @@ export class PostsList {
   }
 
   isPostOwner(): boolean {
-    const token = this.tokenService.getAccessToken();
-    const currentUserGuid = this.jwtService.getGuid(token);
+    const currentUserGuid = this.sessionService.userId();
     return currentUserGuid === this.creatorId();
   }
 

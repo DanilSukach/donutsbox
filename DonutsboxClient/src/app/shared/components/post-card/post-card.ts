@@ -27,6 +27,8 @@ interface Post {
   videos?: PostVideo[];
   pictureUrls?: string[];
   reactionTypeId?: number; // 0 = нет реакции, 1 = лайк, 2 = дизлайк
+  isLocked?: boolean;
+  lockedMessage?: string | null;
 }
 
 @Component({
@@ -195,6 +197,9 @@ export class PostCard implements OnDestroy {
   }
 
   get displayText(): string | null {
+    if (this.post().isLocked) {
+      return null;
+    }
     return this.currentText() ?? this.post().text ?? null;
   }
 
@@ -286,6 +291,9 @@ export class PostCard implements OnDestroy {
 
   // Получаем все медиа элементы (видео и изображения) для карусели
   getMediaItems(): Array<{ type: 'video' | 'image'; url: string; videoId?: string; title?: string; thumbnailUrl?: string | null }> {
+    if (this.post().isLocked) {
+      return [];
+    }
     const items: Array<{ type: 'video' | 'image'; url: string; videoId?: string; title?: string; thumbnailUrl?: string | null }> = [];
     const videos = this.post().videos;
     const pictureUrls = this.post().pictureUrls;

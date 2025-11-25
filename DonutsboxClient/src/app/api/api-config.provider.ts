@@ -3,10 +3,11 @@ import { ApiModule as DonutsboxApiModule } from './donutsbox';
 import { ApiModule as AuthApiModule } from './auth';
 import { Configuration, ConfigurationParameters } from './donutsbox/configuration';
 import { Configuration as AuthConfiguration, ConfigurationParameters as AuthConfigurationParameters } from './auth/configuration';
+import { environment } from '@env/environment';
 
 export function donutsboxApiConfigFactory(): Configuration {
   const params: ConfigurationParameters = {
-    basePath: 'https://localhost:7133',
+    basePath: environment.donutsboxApiBaseUrl,
     withCredentials: true
   };
   return new Configuration(params);
@@ -14,7 +15,7 @@ export function donutsboxApiConfigFactory(): Configuration {
 
 export function authApiConfigFactory(): AuthConfiguration {
     const params: AuthConfigurationParameters = {
-      basePath: 'https://localhost:7016',
+      basePath: environment.authApiBaseUrl,
       withCredentials: true
     };
     return new AuthConfiguration(params);

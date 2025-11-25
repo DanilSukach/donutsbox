@@ -26,35 +26,48 @@ public class FfmpegService(ILogger<FfmpegService> logger, MinioService minio, IC
             // Скачиваем исходный файл
             await minio.DownloadFileAsync(objectKey, inputFile);
 
-            var ffmpegArgs = string.Join(" ",
-            [
-                "-i", $"\"{inputFile}\"",
-                "-c:v", "libx264",
-                "-pix_fmt", "yuv420p",      
-                "-c:a", "aac",
-                "-b:a", "128k",
-                "-ar", "44100",
-                "-profile:v", "high",            
-                "-level", "4.0",
-                "-preset", "fast",
-                "-movflags", "+faststart",
-                "-hls_time", "6",
-                "-hls_list_size", "0",
-                "-hls_segment_filename", $"\"{Path.Combine(outputDir, "segment%03d.ts")}\"",
-                "-f", "hls",
-                $"\"{outputIndex}\""
-            ]);
-
+            var segmentFilename = Path.Combine(outputDir, "segment%03d.ts");
+            
             var psi = new ProcessStartInfo
             {
                 FileName = _ffmpegPath,
-                Arguments = ffmpegArgs,
                 WorkingDirectory = tempDir,
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
+
+            // Используем ArgumentList для кроссплатформенности (правильная обработка пробелов в путях)
+            psi.ArgumentList.Add("-i");
+            psi.ArgumentList.Add(inputFile);
+            psi.ArgumentList.Add("-c:v");
+            psi.ArgumentList.Add("libx264");
+            psi.ArgumentList.Add("-pix_fmt");
+            psi.ArgumentList.Add("yuv420p");
+            psi.ArgumentList.Add("-c:a");
+            psi.ArgumentList.Add("aac");
+            psi.ArgumentList.Add("-b:a");
+            psi.ArgumentList.Add("128k");
+            psi.ArgumentList.Add("-ar");
+            psi.ArgumentList.Add("44100");
+            psi.ArgumentList.Add("-profile:v");
+            psi.ArgumentList.Add("high");
+            psi.ArgumentList.Add("-level");
+            psi.ArgumentList.Add("4.0");
+            psi.ArgumentList.Add("-preset");
+            psi.ArgumentList.Add("fast");
+            psi.ArgumentList.Add("-movflags");
+            psi.ArgumentList.Add("+faststart");
+            psi.ArgumentList.Add("-hls_time");
+            psi.ArgumentList.Add("6");
+            psi.ArgumentList.Add("-hls_list_size");
+            psi.ArgumentList.Add("0");
+            psi.ArgumentList.Add("-hls_segment_filename");
+            psi.ArgumentList.Add(segmentFilename);
+            psi.ArgumentList.Add("-f");
+            psi.ArgumentList.Add("hls");
+            psi.ArgumentList.Add(outputIndex);
 
             try
             {
@@ -73,9 +86,11 @@ public class FfmpegService(ILogger<FfmpegService> logger, MinioService minio, IC
                     throw new InvalidOperationException($"ffmpeg failed with exit code {process.ExitCode}");
                 }
             }
-            catch (System.ComponentModel.Win32Exception)
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception || 
+                                        ex is FileNotFoundException ||
+                                        (ex.Message.Contains("No such file") || ex.Message.Contains("not found")))
             {
-                logger.LogError("ffmpeg executable not found. Set 'FFmpeg:Path' in appsettings or FFMPEG_PATH env var, or add ffmpeg to PATH.");
+                logger.LogError(ex, "ffmpeg executable not found at path '{FfmpegPath}'. Set 'FFmpeg:Path' in appsettings or FFMPEG_PATH env var, or add ffmpeg to PATH.", _ffmpegPath);
                 throw;
             }
 
@@ -96,10 +111,13 @@ public class FfmpegService(ILogger<FfmpegService> logger, MinioService minio, IC
     {
         if (!Directory.Exists(path)) return;
 
-        // Снимаем атрибуты (на Windows может блокировать удаление)
-        foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
+        // Снимаем атрибуты (на Windows может блокировать удаление, на Linux игнорируется)
+        if (OperatingSystem.IsWindows())
         {
-            try { System.IO.File.SetAttributes(file, System.IO.FileAttributes.Normal); } catch { /* ignore */ }
+            foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
+            {
+                try { System.IO.File.SetAttributes(file, System.IO.FileAttributes.Normal); } catch { /* ignore */ }
+            }
         }
 
         for (var attempt = 1; attempt <= 5; attempt++)
