@@ -94,7 +94,7 @@ services:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
       # Настройка для работы через прокси
-      MINIO_BROWSER_REDIRECT_URL: https://localhost/minio-console
+      MINIO_BROWSER_REDIRECT_URL: https://192.168.0.13/minio-console
     volumes:
       - minio_data:/data
     healthcheck:
@@ -158,7 +158,7 @@ services:
       - Minio__SecretKey=minio123
       - Minio__UseSSL=false
       - Minio__BucketName=my-bucket
-      - Minio__PublicEndpoint=https://localhost/minio
+      - Minio__PublicEndpoint=https://192.168.0.13/minio
       - Cors__AllowedOrigins__0=https://localhost
       - Cors__AllowedOrigins__1=http://localhost
       - Cors__AllowedOrigins__2=https://192.168.0.13
@@ -201,7 +201,7 @@ services:
       - Minio__BucketName=donutsbox
       - Minio__BucketTemp=video-temp
       - Minio__BucketProcessed=video-processed
-      - Minio__PublicEndpoint=https://localhost/minio
+      - Minio__PublicEndpoint=https://192.168.0.13/minio
       - Cors__AllowedOrigins__0=https://localhost
       - Cors__AllowedOrigins__1=http://localhost
       - Cors__AllowedOrigins__2=https://192.168.0.13
@@ -242,7 +242,7 @@ services:
       - Minio__UseSSL=false
       - Minio__BucketTemp=video-temp
       - Minio__BucketProcessed=video-processed
-      - Minio__PublicEndpoint=https://localhost/minio
+      - Minio__PublicEndpoint=https://192.168.0.13/minio
       - FFmpeg__Path=/usr/bin/ffmpeg
     depends_on:
       kafka:
