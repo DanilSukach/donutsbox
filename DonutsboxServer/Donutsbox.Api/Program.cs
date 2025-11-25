@@ -206,6 +206,20 @@ builder.Services.AddHostedService<VideoProcessedConsumer>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<DonutsboxDbContext>();
+        context.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Произошла ошибка при применении миграций базы данных");
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
