@@ -126,6 +126,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      donutsbox.api:
+        condition: service_started
       kafka:
         condition: service_started
     healthcheck:
@@ -207,6 +209,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      donutsbox.api:
+        condition: service_started
       kafka:
         condition: service_started
       minio:
