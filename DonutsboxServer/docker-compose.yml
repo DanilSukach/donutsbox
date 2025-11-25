@@ -267,6 +267,27 @@ services:
       timeout: 10s
       retries: 3
 
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - auth.api
+      - donutsbox.api
+      - admin.service.api
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   postgres_data:
   kafka_data:
@@ -275,3 +296,4 @@ volumes:
   loki_data:
   grafana_data:
   file_service_temp:
+  nginx_logs:
