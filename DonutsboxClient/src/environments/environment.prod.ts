@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  donutsboxApiBaseUrl: '',
+  donutsboxApiBaseUrl: '/api/main',
   authApiBaseUrl: '/api/auth',
   commentsHubUrl: '/api/hubs/comments'
 };
