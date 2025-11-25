@@ -134,10 +134,19 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Инициализация админа при запуске
 using (var scope = app.Services.CreateScope())
 {
-    var adminInitService = scope.ServiceProvider.GetRequiredService<IAdminInitializationService>();
-    await adminInitService.InitializeAdminAsync();
+    try
+    {
+        var adminInitService = scope.ServiceProvider.GetRequiredService<IAdminInitializationService>();
+        adminInitService.InitializeAdminAsync().GetAwaiter().GetResult();
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Произошла ошибка при инициализации администратора");
+    }
 }
 
 app.MapControllers();
