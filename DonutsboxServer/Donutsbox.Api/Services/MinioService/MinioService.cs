@@ -83,7 +83,29 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
             .WithBucket(bucket)
             .WithObject(objectKey)
             .WithExpiry(expiresInSeconds);
-        return await _client.PresignedGetObjectAsync(args);
+        var url = await _client.PresignedGetObjectAsync(args);
+        
+        // Заменяем внутренний адрес MinIO на публичный через nginx
+        var publicEndpoint = configuration["Minio:PublicEndpoint"];
+        if (!string.IsNullOrEmpty(publicEndpoint))
+        {
+            // Парсим URL и заменяем хост на публичный endpoint
+            var uri = new Uri(url);
+            var queryString = uri.Query;
+            // Путь от MinIO уже содержит bucket: /images/banners/...
+            var path = uri.AbsolutePath;
+            
+            // Формируем новый URL через nginx
+            // publicEndpoint = https://localhost/minio
+            // path = /images/banners/... (уже содержит bucket)
+            // queryString = ?X-Amz-...
+            // Итого: https://localhost/minio/images/banners/...?X-Amz-...
+            var newUrl = $"{publicEndpoint}{path}{queryString}";
+            logger.LogDebug("Presigned URL преобразован: {OriginalUrl} -> {NewUrl}", url, newUrl);
+            return newUrl;
+        }
+        
+        return url;
     }
 
     public async Task DeleteObjectAsync(string objectKey, string bucket)
