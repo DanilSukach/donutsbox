@@ -240,6 +240,6 @@ app.UseAuthorization();
 app.UseHttpsRedirection();
 app.MapControllers();
 
-app.MapHub<CommentsHub>("/hubs/comments");
+app.MapHub<CommentsHub>("/api/hubs/comments");
 
 app.Run();
