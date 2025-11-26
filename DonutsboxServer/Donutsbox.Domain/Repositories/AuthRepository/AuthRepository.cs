@@ -17,15 +17,6 @@ public class AuthRepository(DonutsboxDbContext db) : IAuthRepository
         return userAuth;
     }
 
-    public async Task<UserAuth?> GetByIdAsync(Guid id)
-    {
-        var userAuth = await db.UsersAuths
-            .Include(u => u.User)
-                .ThenInclude(u => u!.UserType)
-            .FirstOrDefaultAsync(ua => ua.Id == id);
-        return userAuth;
-    }
-
     public async Task<UserAuth?> GetByUserIdAsync(Guid userId)
     {
         var userAuth = await db.UsersAuths
@@ -71,7 +62,6 @@ public class AuthRepository(DonutsboxDbContext db) : IAuthRepository
             UserTypeId = userType.Id,
         };
 
-        // Создаём UserData для хранения аватарки и других данных пользователя
         var userData = new UserData
         {
             Id = Guid.NewGuid(),
@@ -90,18 +80,15 @@ public class AuthRepository(DonutsboxDbContext db) : IAuthRepository
 
     public async Task UpdateAsync(UserAuth user)
     {
-        // Проверяем отслеживается ли уже эта сущность
         var trackedEntity = db.ChangeTracker.Entries<UserAuth>()
             .FirstOrDefault(e => e.Entity.Id == user.Id);
 
         if (trackedEntity != null)
         {
-            // Сущность уже отслеживается - просто сохраняем изменения
             await db.SaveChangesAsync();
         }
         else
         {
-            // Сущность не отслеживается - обновляем явно
             db.UsersAuths.Update(user);
             await db.SaveChangesAsync();
         }

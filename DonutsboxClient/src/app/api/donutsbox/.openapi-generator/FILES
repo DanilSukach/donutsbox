@@ -29,6 +29,8 @@ model/addTextRequestDto.ts
 model/addTextResponseDto.ts
 model/addVideosRequestDto.ts
 model/addVideosResponseDto.ts
+model/authorDescriptionDto.ts
+model/authorNameDto.ts
 model/authorPreviewDto.ts
 model/authorRequestDto.ts
 model/contentPostDto.ts
@@ -61,6 +63,7 @@ model/uploadImagesResponseDto.ts
 model/userAuthDto.ts
 model/userDataDto.ts
 model/userDto.ts
+model/userNameDto.ts
 model/userRequestDto.ts
 model/userSubscriptionDto.ts
 model/userTypeDto.ts

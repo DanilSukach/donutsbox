@@ -102,17 +102,32 @@ public class AuthorService(
     {
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
         var userId = Guid.Parse(userIdClaim.Value);
-        var author = await authorRepository.GetByIdAsync(userId);
+        
+        var userEntity = await db.Users
+            .Include(u => u.UserType)
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+            
+        if (userEntity == null)
+            throw new InvalidOperationException("User not found");
+        
+        if (!string.Equals(userEntity.UserType.Name, "Creator", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only creators can update page name");
+        
+        if (userEntity.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
 
-        if (author!.CreatorPageData!.PageName == dto.Name)
-            throw new InvalidOperationException("The new name is the same as the current name");
+        if (userEntity.CreatorPageData.PageName == dto.Name)
+            throw new InvalidOperationException("Новое название совпадает с текущим");
 
-        var authors = await authorRepository.GetAllAsync();
-        if (authors.Any(a => a.CreatorPageData != null && a.CreatorPageData.PageName == dto.Name))
-            throw new InvalidOperationException("This author name is already taken");
+        // Проверяем уникальность названия
+        var nameExists = await db.CreatorsPageData
+            .AnyAsync(c => c.PageName == dto.Name && c.UserId != userId);
+        if (nameExists)
+            throw new InvalidOperationException("Это название уже занято");
 
-        author.CreatorPageData.PageName = dto.Name;
-        await userRepository.UpdateAsync(author, userId);
+        userEntity.CreatorPageData.PageName = dto.Name;
+        await db.SaveChangesAsync();
         return true;
     }
 
@@ -120,11 +135,26 @@ public class AuthorService(
     {
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
         var userId = Guid.Parse(userIdClaim.Value);
-        var author = await authorRepository.GetByIdAsync(userId);
-        if (author!.CreatorPageData!.Description == dto.Description)
-            throw new InvalidOperationException("The new description is the same as the current description");
-        author.CreatorPageData.Description = dto.Description;
-        await userRepository.UpdateAsync(author, userId);
+        
+        var userEntity = await db.Users
+            .Include(u => u.UserType)
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+            
+        if (userEntity == null)
+            throw new InvalidOperationException("User not found");
+        
+        if (!string.Equals(userEntity.UserType.Name, "Creator", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only creators can update description");
+        
+        if (userEntity.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
+            
+        if (userEntity.CreatorPageData.Description == dto.Description)
+            throw new InvalidOperationException("Новое описание совпадает с текущим");
+            
+        userEntity.CreatorPageData.Description = dto.Description;
+        await db.SaveChangesAsync();
         return true;
     }
 

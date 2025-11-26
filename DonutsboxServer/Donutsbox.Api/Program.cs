@@ -151,7 +151,8 @@ builder.Services.AddScoped<IEntityRepository<PostReaction, Guid>, PostReactionRe
 builder.Services.AddScoped<IEntityRepository<ReactionType, int>, ReactionTypeRepository>();
 
 
-builder.Services.AddScoped<IEntityService<UserDto, Guid>, UserService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IEntityService<UserDto, Guid>>(sp => sp.GetRequiredService<IUserService>());
 builder.Services.AddScoped<IEntityService<UserAuthDto, Guid>, UserAuthService>();
 builder.Services.AddScoped<IEntityService<UserDataDto, Guid>, UserDataService>();
 builder.Services.AddScoped<IEntityService<UserSubscriptionDto, Guid>, UserSubscriptionService>();

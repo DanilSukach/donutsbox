@@ -2,12 +2,15 @@ import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   AuthorsService,
+  AuthorNameDto,
+  AuthorDescriptionDto,
   CreatorPageDataDto,
   FilesService,
   SubscriptionCreateDto,
   SubscriptionDto,
   UpdateImageKeyDto,
   UserDataService,
+  UserService,
 } from '@app/api/donutsbox';
 import { SessionService } from '@app/core/services/session.service';
 import { Observable, catchError, map, of, tap } from 'rxjs';
@@ -19,6 +22,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 export class ProfileFacade {
   private readonly authorsService = inject(AuthorsService);
   private readonly userDataService = inject(UserDataService);
+  private readonly userService = inject(UserService);
   private readonly filesService = inject(FilesService);
   private readonly sessionService = inject(SessionService);
   private readonly router = inject(Router);
@@ -169,6 +173,58 @@ export class ProfileFacade {
       catchError((error) => {
         console.error('Error updating user avatar:', error);
         return of(false);
+      })
+    );
+  }
+
+  updateAuthorName(name: string): Observable<{ success: boolean; message?: string }> {
+    const dto: AuthorNameDto = { name };
+    return this.authorsService.apiAuthorsAuthorNamePut(dto).pipe(
+      map(() => ({ success: true, message: 'Название страницы обновлено' })),
+      catchError((error) => {
+        let errorMessage = 'Не удалось обновить название';
+        if (error.status === 400) {
+          errorMessage = error.error?.message || 'Ошибка валидации';
+        }
+        return of({ success: false, message: errorMessage });
+      })
+    );
+  }
+
+  updateAuthorDescription(description: string): Observable<{ success: boolean; message?: string }> {
+    const dto: AuthorDescriptionDto = { description };
+    return this.authorsService.apiAuthorsAuthorDescriptionPut(dto).pipe(
+      map(() => ({ success: true, message: 'Описание обновлено' })),
+      catchError((error) => {
+        let errorMessage = 'Не удалось обновить описание';
+        if (error.status === 400) {
+          errorMessage = error.error?.message || 'Ошибка валидации';
+        }
+        return of({ success: false, message: errorMessage });
+      })
+    );
+  }
+
+  updateUserName(name: string): Observable<{ success: boolean; message?: string }> {
+    const dto = { name: name };
+    return this.userService.apiUserUserNamePut(dto).pipe(
+      map((response: any) => ({
+        success: true,
+        message: response?.message || 'Имя успешно обновлено'
+      })),
+      catchError((error) => {
+        let errorMessage = 'Ошибка при обновлении имени';
+        if (error.status === 400) {
+          errorMessage = error.error?.message || 'Ошибка валидации';
+        } else if (error.status === 0) {
+          errorMessage = 'Нет соединения с сервером';
+        } else if (error.error?.message) {
+          errorMessage = error.error.message;
+        }
+        return of({
+          success: false,
+          message: errorMessage
+        });
       })
     );
   }
