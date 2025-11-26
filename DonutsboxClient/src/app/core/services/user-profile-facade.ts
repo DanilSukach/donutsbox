@@ -27,9 +27,7 @@ export class UserProfileFacade {
       catchError((error) => {
         let errorMessage = 'Ошибка при смене пароля';
         
-        if (error.status === 401) {
-          errorMessage = error.error?.message || 'Неверный старый пароль';
-        } else if (error.status === 400) {
+        if (error.status === 400) {
           errorMessage = error.error?.message || 'Ошибка валидации';
         } else if (error.status === 0) {
           errorMessage = 'Нет соединения с сервером';

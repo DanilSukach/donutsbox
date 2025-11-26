@@ -18,11 +18,7 @@ public class UserProfileController(IUserProfileService service) : ControllerBase
             await service.ChangePassword(dto, User);
             return Ok(new { success = true, message = "Password changed successfully" });
         }
-        catch(UnauthorizedAccessException e)
-        {
-            return Unauthorized(new { success = false, message = e.Message });
-        }
-        catch(InvalidOperationException e)
+        catch (InvalidOperationException e)
         {
             return BadRequest(new { success = false, message = e.Message });
         }
@@ -34,11 +30,11 @@ public class UserProfileController(IUserProfileService service) : ControllerBase
         try
         {
             await service.ChangeEmail(dto, User);
-            return Ok();
+            return Ok(new { success = true, message = "Email changed successfully" });
         }
         catch (InvalidOperationException e)
         {
-            return BadRequest(e.Message);
+            return BadRequest(new { success = false, message = e.Message });
         }
     }
 }

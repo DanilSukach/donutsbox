@@ -1,8 +1,5 @@
 ﻿using Auth.Api.Dto;
-using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.AuthRepository;
-using Donutsbox.Domain.Repositories.EntityRepository;
-using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
 namespace Auth.Api.Services;
@@ -25,22 +22,21 @@ public class UserProfileService(IAuthRepository repository, ILogger<UserProfileS
         if (!BCrypt.Net.BCrypt.Verify(dto.OldPassword, userEntity.Password))
         {
             logger.LogWarning("Invalid old password for user {UserId}", userId);
-            throw new UnauthorizedAccessException("Invalid old password");
+            throw new InvalidOperationException("Неверный текущий пароль");
         }
         
         if (dto.NewPassword != dto.RepeatNewPassword)
         {
             logger.LogWarning("New passwords do not match for user {UserId}", userId);
-            throw new InvalidOperationException("New passwords do not match");
+            throw new InvalidOperationException("Новые пароли не совпадают");
         }
         
         if (dto.OldPassword == dto.NewPassword)
         {
             logger.LogWarning("New password is the same as old password for user {UserId}", userId);
-            throw new InvalidOperationException("New password must be different from the old password");
+            throw new InvalidOperationException("Новый пароль должен отличаться от старого");
         }
 
-        // Обновляем только пароль существующей сущности
         userEntity.Password = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
         
         logger.LogInformation("Updating password for user {UserId}", userId);
@@ -57,9 +53,8 @@ public class UserProfileService(IAuthRepository repository, ILogger<UserProfileS
         var userEntity = await repository.GetByUserIdAsync(userId) ?? throw new InvalidOperationException("User not found");
         if (await repository.EmailExistsAsync(dto.Email))
         {
-            throw new InvalidOperationException("Email exists");
+            throw new InvalidOperationException("Этот email уже используется");
         }
-        // Обновляем только email существующей сущности
         userEntity.AuthEmail = dto.Email;
         await repository.UpdateAsync(userEntity);
         return true;
