@@ -50,6 +50,21 @@ public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User
         oldValue.Name = entity.Name;
         oldValue.UserTypeId = entity.UserTypeId;
         oldValue.UserAuthId = entity.UserAuthId;
+        if (entity.CreatorPageData != null)
+        {
+            if (oldValue.CreatorPageData != null)
+            {
+                oldValue.CreatorPageData.PageName = entity.CreatorPageData.PageName;
+                oldValue.CreatorPageData.BannerURL = entity.CreatorPageData.BannerURL;
+                oldValue.CreatorPageData.AvatarURL = entity.CreatorPageData.AvatarURL;
+                oldValue.CreatorPageData.Description = entity.CreatorPageData.Description;
+                oldValue.CreatorPageData.SubscribersCount = entity.CreatorPageData.SubscribersCount;
+            }
+            else
+            {
+                oldValue.CreatorPageData = entity.CreatorPageData;
+            }
+        }
         await context.SaveChangesAsync();
         return true;
     }
