@@ -5,6 +5,7 @@ api.module.ts
 api/admin.service.ts
 api/api.ts
 api/auth.service.ts
+api/userProfile.service.ts
 configuration.ts
 encoder.ts
 git_push.sh
@@ -12,6 +13,8 @@ index.ts
 model/authResponseDto.ts
 model/loginRequestDto.ts
 model/models.ts
+model/newEmailDto.ts
+model/newPasswordDto.ts
 model/refreshRequestDto.ts
 model/registerRequestDto.ts
 param.ts

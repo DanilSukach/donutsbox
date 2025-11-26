@@ -34,7 +34,7 @@ public class UserSubscriptionsService(
 
         foreach (var page in authorPages)
         {
-            var avatarUrl = page.AvatarURL;
+            var avatarUrl = page.User?.UserData?.AvatarUrl;
 
             if (!string.IsNullOrWhiteSpace(avatarUrl))
             {

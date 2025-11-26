@@ -22,7 +22,15 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.CreatorPageData, opt => opt.Ignore())
             .ForMember(dest => dest.UserSubscriptions, opt => opt.Ignore())
             .ForMember(dest => dest.ContentPosts, opt => opt.Ignore());
-        CreateMap<CreatorPageData, CreatorPageDataDto>().ReverseMap();
+        CreateMap<CreatorPageData, CreatorPageDataDto>()
+            .ForMember(dest => dest.AvatarUrl, opt => opt.MapFrom(src => src.AvatarURL))
+            .ForMember(dest => dest.BannerUrl, opt => opt.MapFrom(src => src.BannerURL))
+            .ReverseMap()
+            .ForMember(dest => dest.AvatarURL, opt => opt.MapFrom(src => src.AvatarUrl))
+            .ForMember(dest => dest.BannerURL, opt => opt.MapFrom(src => src.BannerUrl))
+            .ForMember(dest => dest.User, opt => opt.Ignore())
+            .ForMember(dest => dest.ContentPosts, opt => opt.Ignore())
+            .ForMember(dest => dest.Subscriptions, opt => opt.Ignore());
         CreateMap<ContentPost, ContentPostDto>().ReverseMap();
         CreateMap<UserSubscription, UserSubscriptionDto>().ReverseMap();
     }

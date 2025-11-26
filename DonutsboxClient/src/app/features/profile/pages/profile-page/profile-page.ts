@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, OnDestroy, ViewChild } from '@angular/core';
+import { Component, inject, OnInit, signal, OnDestroy, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthFacade } from '../../../auth/services/auth-facade';
@@ -19,11 +19,13 @@ import { AuthorRequestDto, UserDataService } from '@app/api/donutsbox';
 import { of, Subscription } from 'rxjs';
 import { SessionService } from '@app/core/services/session.service';
 import { catchError } from 'rxjs/operators';
+import { ChangePasswordModal } from '@app/shared/components/change-password-modal/change-password-modal';
+import { ChangeEmailModal } from '@app/shared/components/change-email-modal/change-email-modal';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, AuthorSupporters, CreatePostModal, AvatarUploadModal, BannerUploadModal, PostsFeed, UserSubscriptions, VideoProcessingIndicator],
+  imports: [CommonModule, AuthorSupporters, CreatePostModal, AvatarUploadModal, BannerUploadModal, PostsFeed, UserSubscriptions, VideoProcessingIndicator, ChangePasswordModal, ChangeEmailModal],
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.css'
 })
@@ -59,11 +61,30 @@ export class ProfilePage implements OnInit, OnDestroy {
   readonly drafts = signal<any[]>([]);
   readonly draftsLoading = signal(false);
   
+  // Настройки
+  readonly showSettingsDropdown = signal(false);
+  readonly showChangePasswordModal = signal(false);
+  readonly showChangeEmailModal = signal(false);
+  
   @ViewChild(AvatarUploadModal) avatarModal?: AvatarUploadModal;
   @ViewChild(BannerUploadModal) bannerModal?: BannerUploadModal;
   
   private subscriptionSuccessSub?: Subscription;
   private subscriptionCreatedSub?: Subscription;
+
+  // Закрываем dropdown при клике вне (но не закрываем если открыта модалка!)
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    // Не закрываем dropdown если модалка открыта
+    if (this.showChangePasswordModal() || this.showChangeEmailModal()) {
+      return;
+    }
+    
+    if (this.showSettingsDropdown()) {
+      console.log('📍 Закрываем dropdown при клике вне');
+      this.showSettingsDropdown.set(false);
+    }
+  }
 
 
   // Функция для загрузки постов creator'а
@@ -248,6 +269,58 @@ export class ProfilePage implements OnInit, OnDestroy {
     );
   }
 
+  toggleSettingsDropdown(event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    console.log('🔧 Переключение dropdown, текущее состояние:', this.showSettingsDropdown());
+    this.showSettingsDropdown.update(v => !v);
+    console.log('🔧 Новое состояние dropdown:', this.showSettingsDropdown());
+  }
+
+  openChangePasswordModal(event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    this.showSettingsDropdown.set(false);
+    
+    // Небольшая задержка для плавности закрытия dropdown
+    setTimeout(() => {
+      this.showChangePasswordModal.set(true);
+    }, 100);
+  }
+
+  closeChangePasswordModal(): void {
+    this.showChangePasswordModal.set(false);
+  }
+
+  onPasswordChanged(): void {
+    // Callback после успешной смены пароля
+    // Пользователь остаётся на странице профиля
+  }
+
+  openChangeEmailModal(event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    this.showSettingsDropdown.set(false);
+    
+    // Небольшая задержка для плавности закрытия dropdown
+    setTimeout(() => {
+      this.showChangeEmailModal.set(true);
+    }, 100);
+  }
+
+  closeChangeEmailModal(): void {
+    this.showChangeEmailModal.set(false);
+  }
+
+  onEmailChanged(): void {
+    // Callback после успешной смены email
+    // Пользователь остаётся на странице профиля
+  }
+
   onBannerError(e: Event): void {
     const img = e.target as HTMLImageElement;
     img.src = '/images/banner-placeholder.jpg';
@@ -330,16 +403,36 @@ export class ProfilePage implements OnInit, OnDestroy {
   onAvatarUpload(file: File): void {
     this.avatarModal?.setUploading(true);
 
+    // 1. Загружаем файл в MinIO
     this.profileFacade.uploadAvatar(file).subscribe({
       next: (key) => {
         if (key) {
-          this.profileFacade.getImageUrl(key, 300).subscribe({
-            next: (url) => {
-              this.avatarSrc.set(url);
-              this.showAvatarModal.set(false);
+          // 2. Сохраняем key в UserData.AvatarUrl (backend получает userId из JWT)
+          this.profileFacade.updateUserAvatar(key).subscribe({
+            next: (success) => {
+              if (success) {
+                // 3. Получаем URL для отображения
+                this.profileFacade.getImageUrl(key, 300).subscribe({
+                  next: (url) => {
+                    this.avatarSrc.set(url);
+                    this.showAvatarModal.set(false);
+                    this.avatarModal?.setUploading(false);
+                    // Обновляем данные автора если они есть
+                    const authorData = this.author();
+                    if (authorData) {
+                      this.author.set({ ...authorData, avatarUrl: key });
+                    }
+                  },
+                  error: () => {
+                    this.avatarModal?.setError('Не удалось загрузить URL аватарки');
+                  }
+                });
+              } else {
+                this.avatarModal?.setError('Не удалось сохранить аватарку в БД');
+              }
             },
             error: () => {
-              this.avatarModal?.setError('Не удалось загрузить аватарку');
+              this.avatarModal?.setError('Ошибка сохранения аватарки');
             }
           });
         } else {
@@ -363,16 +456,36 @@ export class ProfilePage implements OnInit, OnDestroy {
   onBannerUpload(file: File): void {
     this.bannerModal?.setUploading(true);
 
+    // 1. Загружаем файл в MinIO
     this.profileFacade.uploadBanner(file).subscribe({
       next: (key) => {
         if (key) {
-          this.profileFacade.getImageUrl(key, 300).subscribe({
-            next: (url) => {
-              this.bannerSrc.set(url);
-              this.showBannerModal.set(false);
+          // 2. Сохраняем key в БД (backend получает userId из JWT)
+          this.profileFacade.updateCreatorPageBanner(key).subscribe({
+            next: (success) => {
+              if (success) {
+                // 3. Получаем URL для отображения
+                this.profileFacade.getImageUrl(key, 300).subscribe({
+                  next: (url) => {
+                    this.bannerSrc.set(url);
+                    this.showBannerModal.set(false);
+                    this.bannerModal?.setUploading(false);
+                    // Обновляем данные автора если они есть
+                    const authorData = this.author();
+                    if (authorData) {
+                      this.author.set({ ...authorData, bannerUrl: key });
+                    }
+                  },
+                  error: () => {
+                    this.bannerModal?.setError('Не удалось загрузить URL баннера');
+                  }
+                });
+              } else {
+                this.bannerModal?.setError('Не удалось сохранить баннер в БД');
+              }
             },
             error: () => {
-              this.bannerModal?.setError('Не удалось загрузить баннер');
+              this.bannerModal?.setError('Ошибка сохранения баннера');
             }
           });
         } else {

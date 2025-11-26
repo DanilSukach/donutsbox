@@ -9,6 +9,7 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
     public async Task<IEnumerable<User>> GetAllAsync(int page, int pageSize, string? sortBy = null, bool descending = false)
     {
         IQueryable<User> query = context.Users
+            .Include(u => u.UserData)
             .Include(u => u.CreatorPageData)
             .ThenInclude(c => c!.Subscriptions)
             .ThenInclude(s => s.SubscriptionPeriod)
@@ -37,6 +38,7 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
     public async Task<IEnumerable<User>> GetAllAsync()
     {
         IQueryable<User> query = context.Users
+            .Include(u => u.UserData)
             .Include(u => u.CreatorPageData)
             .ThenInclude(c => c!.Subscriptions)
             .ThenInclude(sp => sp.SubscriptionPeriod)
@@ -48,6 +50,7 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
     public async Task<User?> GetByIdAsync(Guid id)
     {
         return await context.Users
+            .Include(u => u.UserData)
             .Include(u => u.CreatorPageData)
             .ThenInclude(s => s!.Subscriptions)
             .ThenInclude(sp => sp.SubscriptionPeriod)
@@ -57,6 +60,7 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
     public async Task<IEnumerable<User>> GetTopBySubscribersAsync(int count)
     {
         return await context.Users
+            .Include(u => u.UserData)
             .Include(u => u.CreatorPageData)
             .ThenInclude(c => c!.Subscriptions)
             .ThenInclude(s => s.SubscriptionPeriod)
@@ -79,6 +83,7 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
         return await context.UsersSubscriptions
             .Where(us => us.Subscription.CreatorPageDataId == creatorPageData.Id)
             .Include(us => us.User)
+            .ThenInclude(u => u.UserData)
             .Include(us => us.Subscription)
             .ThenInclude(s => s.SubscriptionPeriod)
             .OrderByDescending(us => us.Subscription.SubscriptionPeriod.Months)

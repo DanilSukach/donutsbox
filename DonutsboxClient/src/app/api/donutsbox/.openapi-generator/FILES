@@ -56,6 +56,7 @@ model/subscriptionPaymentRequestDto.ts
 model/subscriptionPaymentResponseDto.ts
 model/subscriptionPaymentStatusDto.ts
 model/updateCommentRequestDto.ts
+model/updateImageKeyDto.ts
 model/uploadImagesResponseDto.ts
 model/userAuthDto.ts
 model/userDataDto.ts

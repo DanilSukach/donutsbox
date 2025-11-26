@@ -8,7 +8,7 @@ namespace Donutsbox.Api.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public class AuthorsController(IAuthorService authorService) : ControllerBase
+public class AuthorsController(IAuthorService authorService, ILogger<AuthorsController> logger) : ControllerBase
 {
     /// <summary>
     /// Получает информацию об авторах
@@ -137,4 +137,40 @@ public class AuthorsController(IAuthorService authorService) : ControllerBase
 
         return Ok(matched);
     }
+
+    /// <summary>
+    /// Обновление баннера страницы автора
+    /// </summary>
+    /// <param name="dto">DTO с ключом баннера в MinIO</param>
+    [HttpPut("banner")]
+    public async Task<IActionResult> UpdateBanner([FromBody] UpdateImageKeyDto dto)
+    {
+        try
+        {
+            logger.LogInformation("Received UpdateBanner request with Key: {Key}", dto?.Key);
+            
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Key))
+            {
+                logger.LogWarning("UpdateBanner called with null or empty DTO");
+                return BadRequest(new { message = "Banner key is required" });
+            }
+            
+            var result = await authorService.UpdateBannerAsync(dto.Key, User);
+            if (!result)
+                return NotFound(new { message = "Creator page not found" });
+            
+            return Ok(new { message = "Banner updated successfully" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            logger.LogError(ex, "InvalidOperationException in UpdateBanner: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected error in UpdateBanner");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
 }

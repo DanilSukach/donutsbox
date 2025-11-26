@@ -370,6 +370,7 @@ public class CreatorPostService(
         var userEntity = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
 
         var creator = await db.Users
+            .Include(u => u.UserData)
             .Include(u => u.CreatorPageData)
             .FirstOrDefaultAsync(u => u.Id == creatorId);
 
@@ -438,16 +439,37 @@ public class CreatorPostService(
                 IsLocked = !(isOwner ||
                              (p.AudienceType ?? AudiencePublic) == AudiencePublic ||
                              p.Subscriptions.Any(s => viewerSubscriptionNames.Contains(s.Name))),
-                LockedMessage = !(isOwner ||
-                                  (p.AudienceType ?? AudiencePublic) == AudiencePublic ||
-                                  p.Subscriptions.Any(s => viewerSubscriptionNames.Contains(s.Name)))
-                    ? "Оформите подписку, чтобы посмотреть этот контент"
-                    : null
+                LockedMessage = null // Заполним после с названиями подписок
             })
             .ToListAsync();
 
-        // Получаем изображения из таблицы Images для каждого поста и генерируем presigned URLs
+        // Формируем LockedMessage с конкретными названиями подписок для заблокированных постов
         var postIds = posts.Select(p => p.Id).ToList();
+        var postSubscriptionsMap = await db.ContentPosts
+            .Where(p => postIds.Contains(p.Id))
+            .Include(p => p.Subscriptions)
+            .ToDictionaryAsync(
+                p => p.Id,
+                p => p.Subscriptions.Select(s => s.Name).Distinct().ToList()
+            );
+
+        foreach (var post in posts)
+        {
+            if (post.IsLocked && postSubscriptionsMap.TryGetValue(post.Id, out var subscriptionNames))
+            {
+                if (subscriptionNames.Count > 0)
+                {
+                    var names = string.Join(", ", subscriptionNames);
+                    post.LockedMessage = $"🔒 Контент доступен для подписчиков: {names}";
+                }
+                else
+                {
+                    post.LockedMessage = "🔒 Контент доступен только для подписчиков";
+                }
+            }
+        }
+
+        // Получаем изображения из таблицы Images для каждого поста и генерируем presigned URLs
         var images = await db.Set<Image>()
             .Where(img => postIds.Contains(img.ContentPostId) && !string.IsNullOrWhiteSpace(img.ObjectKey))
             .ToListAsync();
@@ -506,7 +528,7 @@ public class CreatorPostService(
                 Id = creator.Id,
                 Name = creator.Name,
                 PageName = creator.CreatorPageData.PageName,
-                AvatarUrl = creator.CreatorPageData.AvatarURL,
+                AvatarUrl = creator.UserData?.AvatarUrl,
                 Description = creator.CreatorPageData.Description,
                 SubscribersCount = creator.CreatorPageData.SubscribersCount
             },
@@ -672,6 +694,7 @@ public class CreatorPostService(
             .Include(p => p.Videos.Where(v => v.Status == "READY"))
             .Include(p => p.CreatorPageData)
                 .ThenInclude(cpd => cpd.User)
+                .ThenInclude(u => u.UserData)
             .Include(p => p.Subscriptions);
 
         query = query.Where(p =>
@@ -705,7 +728,7 @@ public class CreatorPostService(
                 PictureUrls = new List<string>(), 
                 CreatorPageName = p.CreatorPageData.PageName,
                 CreatorId = p.CreatorPageData.UserId,
-                CreatorAvatarUrl = p.CreatorPageData.AvatarURL,
+                CreatorAvatarUrl = p.CreatorPageData.User.UserData != null ? p.CreatorPageData.User.UserData.AvatarUrl : null,
                 ReactionTypeId = p.PostReactions
                                     .Where(pr => pr.UserId == userId)
                                     .Select(pr => (int?)pr.ReactionTypeId)

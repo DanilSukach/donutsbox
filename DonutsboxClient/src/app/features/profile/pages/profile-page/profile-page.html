@@ -45,6 +45,41 @@
         </div>
       </div>
       <div class="flex items-center gap-4">
+        <!-- Settings Dropdown -->
+        <div class="relative">
+          <button
+            (click)="toggleSettingsDropdown($event)"
+            class="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors"
+            title="Настройки"
+          >
+            <span class="text-xl">⚙️</span>
+          </button>
+
+          <!-- Dropdown Menu -->
+          @if (showSettingsDropdown()) {
+            <div class="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50">
+              <div class="py-1">
+                <button
+                  type="button"
+                  (click)="openChangePasswordModal($event)"
+                  class="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                >
+                  <span class="text-xl">🔐</span>
+                  <span class="text-sm font-medium text-gray-700">Сменить пароль</span>
+                </button>
+                <button
+                  type="button"
+                  (click)="openChangeEmailModal($event)"
+                  class="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                >
+                  <span class="text-xl">📧</span>
+                  <span class="text-sm font-medium text-gray-700">Сменить Email</span>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
         <button
           type="button"
           (click)="navigateToFeed()"
@@ -341,6 +376,20 @@
   (closed)="closeBannerModal()"
   (uploaded)="onBannerUpload($event)"
 ></app-banner-upload-modal>
+}
+
+@if (showChangePasswordModal()) {
+<app-change-password-modal
+  (closed)="closeChangePasswordModal()"
+  (passwordChanged)="onPasswordChanged()"
+></app-change-password-modal>
+}
+
+@if (showChangeEmailModal()) {
+<app-change-email-modal
+  (closed)="closeChangeEmailModal()"
+  (emailChanged)="onEmailChanged()"
+></app-change-email-modal>
 }
 
 <!-- Индикатор обработки видео -->

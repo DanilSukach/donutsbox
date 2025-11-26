@@ -26,7 +26,13 @@ public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User
         return true;
     }
 
-    public async Task<User?> GetByIdUserWithSubscriptionsAsync(Guid id) => await context.Users.Include(u => u.UserSubscriptions).ThenInclude(us => us.Subscription).ThenInclude(s => s.CreatorPageData).FirstOrDefaultAsync(u => u.Id == id);
+    public async Task<User?> GetByIdUserWithSubscriptionsAsync(Guid id) => await context.Users
+        .Include(u => u.UserSubscriptions)
+            .ThenInclude(us => us.Subscription)
+                .ThenInclude(s => s.CreatorPageData)
+                    .ThenInclude(cpd => cpd.User)
+                        .ThenInclude(u => u.UserData)
+        .FirstOrDefaultAsync(u => u.Id == id);
 
     public async Task<IEnumerable<User>> GetAllAsync() => await context.Users.ToListAsync();
 

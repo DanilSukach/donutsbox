@@ -2,38 +2,51 @@
 using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.AuthorRepository;
 using Donutsbox.Domain.Repositories.EntityRepository;
+using Donutsbox.Domain.Context;
 using System.Security.Claims;
 using System.Globalization;
+using Microsoft.EntityFrameworkCore;
 
 namespace Donutsbox.Api.Services.AuthorService;
 
-public class AuthorService(IAuthorRepository authorRepository, IEntityRepository<User, Guid> userRepository, IEntityRepository<CreatorPageData, Guid> creatorRepository, IEntityRepository<Subscription, Guid> subcriptionRepository, IEntityRepository<SubscriptionPeriod, int> subscriptionPeriodRepository) : IAuthorService
+public class AuthorService(
+    IAuthorRepository authorRepository, 
+    IEntityRepository<User, Guid> userRepository, 
+    IEntityRepository<UserData, Guid> userDataRepository,
+    IEntityRepository<CreatorPageData, Guid> creatorRepository, 
+    IEntityRepository<Subscription, Guid> subcriptionRepository, 
+    IEntityRepository<SubscriptionPeriod, int> subscriptionPeriodRepository,
+    DonutsboxDbContext db) : IAuthorService
 {
     public async Task<CreatorPageDataDto> AddCreatorPageAsync(CreatorPageDataDto dto, ClaimsPrincipal user)
     {
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
         var userId = Guid.Parse(userIdClaim.Value);
-        var author = await userRepository.GetByIdAsync(userId);
+        var author = await userRepository.GetByIdAsync(userId) ?? throw new InvalidOperationException("User not found");
+
+        if (!string.IsNullOrWhiteSpace(dto.AvatarUrl) && author.UserData != null)
+        {
+            author.UserData.AvatarUrl = dto.AvatarUrl;
+            await userDataRepository.UpdateAsync(author.UserData, author.UserData.Id);
+        }
 
         var entity = new CreatorPageData
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             PageName = dto.PageName,
-            AvatarURL = dto.AvatarUrl,
             BannerURL = dto.BannerUrl,
             Description = dto.Description,
             SubscribersCount = dto.SubscribersCount,
-            User = author!
+            User = author
         };
 
         var creator = await creatorRepository.AddAsync(entity);
 
         return new CreatorPageDataDto
         {
-
             PageName = creator.PageName,
-            AvatarUrl = creator.AvatarURL,
+            AvatarUrl = author.UserData?.AvatarUrl,
             BannerUrl = creator.BannerURL,
             Description = creator.Description,
             SubscribersCount = creator.SubscribersCount
@@ -110,7 +123,7 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
                 {
                     Id = user.Id,
                     PageName = user.CreatorPageData.PageName,
-                    AvatarUrl = user.CreatorPageData.AvatarURL,
+                    AvatarUrl = user.UserData?.AvatarUrl,
                     BannerUrl = user.CreatorPageData.BannerURL,
                     Description = user.CreatorPageData.Description,
                     SubscribersCount = user.CreatorPageData.SubscribersCount,
@@ -136,7 +149,7 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
                 {
                     Id = user.Id,
                     PageName = user.CreatorPageData.PageName,
-                    AvatarUrl = user.CreatorPageData.AvatarURL,
+                    AvatarUrl = user.UserData?.AvatarUrl,
                     BannerUrl = user.CreatorPageData.BannerURL,
                     Description = user.CreatorPageData.Description,
                     SubscribersCount = user.CreatorPageData.SubscribersCount,
@@ -159,7 +172,7 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
         {
             Id = user.Id,
             PageName = user.CreatorPageData.PageName,
-            AvatarUrl = user.CreatorPageData.AvatarURL,
+            AvatarUrl = user.UserData?.AvatarUrl,
             BannerUrl = user.CreatorPageData.BannerURL,
             Description = user.CreatorPageData.Description,
             SubscribersCount = user.CreatorPageData.SubscribersCount,
@@ -181,7 +194,7 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
                 {
                     Id = user.Id,
                     PageName = user.CreatorPageData.PageName,
-                    AvatarUrl = user.CreatorPageData.AvatarURL,
+                    AvatarUrl = user.UserData?.AvatarUrl,
                     BannerUrl = user.CreatorPageData.BannerURL,
                     Description = user.CreatorPageData.Description,
                     SubscribersCount = user.CreatorPageData.SubscribersCount,
@@ -206,9 +219,9 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
             dtos.Add(new UserRequestDto
             {
                 Id = user.Id,
-                UserName = user.Name
+                UserName = user.Name,
+                AvatarUrl = user.UserData?.AvatarUrl
             });
-
         }
 
         return dtos;
@@ -245,5 +258,26 @@ public class AuthorService(IAuthorRepository authorRepository, IEntityRepository
         }
 
         return price;
+    }
+
+    public async Task<bool> UpdateBannerAsync(string bannerKey, ClaimsPrincipal user)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
+        var userId = Guid.Parse(userIdClaim.Value);
+        
+        var userEntity = await db.Users
+            .Include(u => u.UserType)
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId) ?? throw new InvalidOperationException("User not found");
+        if (!string.Equals(userEntity.UserType.Name, "Creator", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only creators can update banners");
+        
+        if (userEntity.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found. You must create a creator page first.");
+        
+        userEntity.CreatorPageData.BannerURL = bannerKey;
+        await db.SaveChangesAsync();
+        
+        return true;
     }
 }
