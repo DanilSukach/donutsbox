@@ -25,11 +25,18 @@ export const routes: Routes = [
   {
     path: 'profile/:id',
     loadComponent: () => import('./features/profile/pages/profile-page/profile-page').then((c) => c.ProfilePage),
+    canActivate: [authGuard],
   },
   {
     path: 'feed',
     loadComponent: () => import('./features/feed/pages/feed-page/feed-page').then((c) => c.FeedPage),
     canActivate: [authGuard],
+  },
+  {
+    path: 'payments/result',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/payments/pages/payment-result/payment-result').then((c) => c.PaymentResult),
   },
   {
     path: '',

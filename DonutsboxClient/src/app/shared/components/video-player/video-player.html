@@ -1,10 +1,12 @@
 <media-player
-  [title]="title()"
-  [src]="hlsUrl()"
-  [poster]="poster() || ''"
+  #mediaPlayer
+  [attr.title]="title()"
+  [attr.src]="hlsUrl()"
+  [attr.poster]="poster() || null"
   aspect-ratio="16/9"
-  crossorigin
+  crossorigin="anonymous"
   playsinline
+  preload="auto"
 >
   <media-provider></media-provider>
   <media-video-layout></media-video-layout>

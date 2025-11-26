@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Services\FileService\" />
+    <Folder Include="Services\FilesService\" />
   </ItemGroup>
 
 </Project>

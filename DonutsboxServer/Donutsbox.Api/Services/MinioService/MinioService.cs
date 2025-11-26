@@ -83,7 +83,29 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
             .WithBucket(bucket)
             .WithObject(objectKey)
             .WithExpiry(expiresInSeconds);
-        return await _client.PresignedGetObjectAsync(args);
+        var url = await _client.PresignedGetObjectAsync(args);
+        
+        // Заменяем внутренний адрес MinIO на публичный через nginx
+        var publicEndpoint = configuration["Minio:PublicEndpoint"];
+        if (!string.IsNullOrEmpty(publicEndpoint))
+        {
+            // Парсим URL и заменяем хост на публичный endpoint
+            var uri = new Uri(url);
+            var queryString = uri.Query;
+            // Путь от MinIO уже содержит bucket: /images/banners/...
+            var path = uri.AbsolutePath;
+            
+            // Формируем новый URL через nginx
+            // publicEndpoint = https://localhost/minio
+            // path = /images/banners/... (уже содержит bucket)
+            // queryString = ?X-Amz-...
+            // Итого: https://localhost/minio/images/banners/...?X-Amz-...
+            var newUrl = $"{publicEndpoint}{path}{queryString}";
+            logger.LogDebug("Presigned URL преобразован: {OriginalUrl} -> {NewUrl}", url, newUrl);
+            return newUrl;
+        }
+        
+        return url;
     }
 
     public async Task DeleteObjectAsync(string objectKey, string bucket)
@@ -148,5 +170,23 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
         {
             logger.LogError(ex, "Failed to delete directory with prefix {Prefix} from bucket {Bucket}", prefix, bucket);
         }
+    }
+
+    public async Task CopyObjectAsync(string sourceObjectKey, string sourceBucket, string destObjectKey, string destBucket)
+    {
+        await EnsureBucketAsync();
+
+        var copySource = new CopySourceObjectArgs()
+            .WithBucket(sourceBucket)
+            .WithObject(sourceObjectKey);
+
+        var copyArgs = new CopyObjectArgs()
+            .WithBucket(destBucket)
+            .WithObject(destObjectKey)
+            .WithCopyObjectSource(copySource);
+
+        await _client.CopyObjectAsync(copyArgs);
+        logger.LogInformation("Object {SourceObjectKey} copied from {SourceBucket} to {DestObjectKey} in {DestBucket}",
+            sourceObjectKey, sourceBucket, destObjectKey, destBucket);
     }
 }

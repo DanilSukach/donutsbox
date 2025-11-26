@@ -1,0 +1,51 @@
+<section class="payment-result">
+  <div class="payment-result__card">
+    @if (state() === 'loading') {
+      <div class="payment-result__state">
+        <h1>Проверяем оплату…</h1>
+        <p>Пожалуйста, подождите. Мы получаем статус платежа.</p>
+      </div>
+    } @else if (state() === 'processing') {
+      <div class="payment-result__state">
+        <h1>Платеж обрабатывается</h1>
+        <p>
+          YooKassa ещё не подтвердила платеж. Обычно это занимает не более пары минут.
+          Обновите страницу чуть позже, чтобы узнать результат.
+        </p>
+        <button class="payment-result__button" type="button" (click)="retry()">
+          Обновить
+        </button>
+      </div>
+    } @else if (state() === 'success') {
+      <div class="payment-result__state payment-result__state--success">
+        <h1>Подписка активирована!</h1>
+        <p>Спасибо! Мы успешно подтвердили оплату.</p>
+        @if (statusDetails()?.subscriptionEndDate) {
+          <p>Подписка действует до {{ formatDate(statusDetails()?.subscriptionEndDate) }}.</p>
+        }
+        <div class="payment-result__actions">
+          <a class="payment-result__button payment-result__button--primary" routerLink="/feed">
+            Перейти в ленту
+          </a>
+          <a class="payment-result__button" routerLink="/">
+            На главную
+          </a>
+        </div>
+      </div>
+    } @else {
+      <div class="payment-result__state payment-result__state--error">
+        <h1>Не удалось завершить оплату</h1>
+        <p>{{ errorMessage() ?? 'Платёж отклонён или отменён. Попробуйте ещё раз позже.' }}</p>
+        <div class="payment-result__actions">
+          <a class="payment-result__button payment-result__button--primary" routerLink="/feed">
+          Вернуться в ленту
+          </a>
+          <button class="payment-result__button" type="button" (click)="retry()">
+            Попробовать снова
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</section>
+

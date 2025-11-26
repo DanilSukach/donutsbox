@@ -1,59 +1,120 @@
-# DonutsboxClient
+# Donutsbox Client
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.3.
+Angular приложение с Server-Side Rendering (SSR) для Donutsbox.
 
-## Development server
+## 🚀 Запуск в Docker
 
-To start a local development server, run:
+Frontend автоматически собирается и запускается через `docker-compose.yml` в `DonutsboxServer/`.
+
+### Из корня проекта:
 
 ```bash
+cd DonutsboxServer
+sudo docker compose up -d --build frontend
+```
+
+### Проверка:
+
+```bash
+# Прямой доступ к frontend
+curl http://localhost:4000
+
+# Через nginx (HTTPS)
+curl -k https://localhost
+```
+
+## 🛠️ Локальная разработка
+
+### Установка зависимостей
+
+```bash
+npm install
+```
+
+### Запуск dev сервера
+
+```bash
+npm start
+# или
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Приложение будет доступно на `http://localhost:4200`
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+### Сборка для production
 
 ```bash
-ng generate component component-name
+npm run build
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Собранные файлы будут в `dist/DonutsboxClient/`
+
+### Запуск SSR сервера локально
 
 ```bash
-ng generate --help
+npm run serve:ssr:DonutsboxClient
 ```
 
-## Building
+## 📝 Конфигурация
 
-To build the project run:
+### Environment файлы
+
+- `src/environments/environment.ts` - для разработки
+- `src/environments/environment.prod.ts` - для production
+
+В production используются относительные пути для API:
+- `donutsboxApiBaseUrl: '/api'`
+- `authApiBaseUrl: '/api/auth'`
+
+Это позволяет nginx проксировать запросы к соответствующим backend сервисам.
+
+## 🐛 Решение проблем
+
+### Frontend не собирается
+
+1. Проверьте версию Node.js (требуется Node 20+)
+2. Очистите кэш: `rm -rf node_modules package-lock.json && npm install`
+3. Проверьте логи: `sudo docker compose logs frontend`
+
+### Frontend не отвечает
+
+1. Проверьте статус: `sudo docker compose ps frontend`
+2. Проверьте логи: `sudo docker compose logs frontend`
+3. Убедитесь, что порт 4000 свободен
+
+### Проблемы с API запросами
+
+Убедитесь, что:
+- Backend сервисы запущены
+- Nginx правильно проксирует запросы
+- Environment файлы используют правильные URL
+
+## 📦 Структура
+
+```
+DonutsboxClient/
+├── src/
+│   ├── app/              # Основное приложение
+│   │   ├── api/          # API клиенты (сгенерированные)
+│   │   ├── core/          # Core модули (guards, services)
+│   │   ├── features/      # Feature модули
+│   │   └── shared/        # Shared компоненты
+│   ├── environments/     # Environment конфигурация
+│   ├── main.ts           # Точка входа (browser)
+│   ├── main.server.ts    # Точка входа (server)
+│   └── server.ts         # Express SSR сервер
+├── public/               # Статические файлы
+├── Dockerfile            # Docker конфигурация
+└── package.json         # Зависимости
+```
+
+## 🔄 Обновление
+
+После изменений в коде:
 
 ```bash
-ng build
+# Пересобрать и перезапустить
+cd DonutsboxServer
+sudo docker compose build --no-cache frontend
+sudo docker compose up -d frontend
 ```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

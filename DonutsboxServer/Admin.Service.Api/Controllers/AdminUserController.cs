@@ -42,7 +42,7 @@ public class AdminUserController(IAdminUserService adminUserService, ILogger<Adm
     /// <response code="200">Список авторов получен</response>
     /// <response code="401">Не авторизован</response>
     /// <response code="403">Недостаточно прав (требуется роль Administrator)</response>
-    [HttpGet]
+    [HttpGet("authors")]
     [ProducesResponseType(typeof(IEnumerable<AdminAuthorListDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<AdminAuthorListDto>>> GetAllAuthors()
     {

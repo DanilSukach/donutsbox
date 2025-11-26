@@ -40,6 +40,9 @@ public class UserSubscriptionRepository(DonutsboxDbContext context) : IEntityRep
         oldValue.SubscriptionId = entity.SubscriptionId;
         oldValue.BeginDate = entity.BeginDate;
         oldValue.EndDate = entity.EndDate;
+        oldValue.Status = entity.Status;
+        oldValue.PaymentId = entity.PaymentId;
+        oldValue.UpdatedAt = DateTimeOffset.UtcNow;
         await context.SaveChangesAsync();
         return true;
     }

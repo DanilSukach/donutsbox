@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { AddTextRequestDto, AddTextResponseDto, AddVideosRequestDto, AddVideosResponseDto, ContentPostReactionDto, CreateDraftRequestDto, CreatorPostService, CreatorPostsResponseDto, FilesService, MessageResponseDto, MyPostsResponseDto, MyVideoResponseDto, PostDraftResponseDto, PublishPostResponseDto, UploadImagesResponseDto, UserInteractionService, VideoUploadResponseDto } from '@app/api/donutsbox';
+import { AddTextRequestDto, AddTextResponseDto, AddVideosRequestDto, AddVideosResponseDto, ContentPostReactionDto, CreateDraftRequestDto, CreatorPostService, CreatorPostsResponseDto, FilesService, MessageResponseDto, MyPostsResponseDto, MyVideoResponseDto, PostDraftResponseDto, PublishPostResponseDto, SubscriptionDto, UploadImagesResponseDto, UserInteractionService, VideoUploadResponseDto } from '@app/api/donutsbox';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 import { HttpClient } from '@angular/common/http';
@@ -43,7 +43,12 @@ export class PostsFacade {
   }
 
   unpublishPost(postId: string): Observable<MessageResponseDto> {
-    return this.creatorPostService.apiCreatorPostPostIdUnpublishPost(postId);
+    return this.creatorPostService.apiCreatorPostPostIdUnpublishPost(postId).pipe(
+      catchError((error) => {
+        console.error('Ошибка снятия публикации поста:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getMyPosts(
@@ -89,6 +94,10 @@ export class PostsFacade {
     }
     // Иначе добавляем префикс для старых относительных путей
     return `/api/creator/posts/images/${imagePath}`;
+  }
+
+  getCreatorSubscriptions(): Observable<SubscriptionDto[]> {
+    return this.http.get<SubscriptionDto[]>('/api/creator-subscriptions/my');
   }
 
   deletePost(postId: string): Observable<any> {

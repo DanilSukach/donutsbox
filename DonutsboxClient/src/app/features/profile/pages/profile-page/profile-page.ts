@@ -1,40 +1,44 @@
-import { Component, inject, OnInit, signal, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, signal, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthFacade } from '../../../auth/services/auth-facade';
-import { TokenService } from '@app/core/services/token.service';
-import { JwtDecodeService } from '@app/core/services/jwt-decode.service';
 import { AuthorSupporters } from '../../components/author-supporters/author-supporters';
 import { CreatePostModal } from '../../components/create-post-modal/create-post-modal';
+import { AvatarUploadModal } from '../../components/avatar-upload-modal/avatar-upload-modal';
+import { BannerUploadModal } from '../../components/banner-upload-modal/banner-upload-modal';
 import { PostsFeed } from '@app/shared/components/posts-feed/posts-feed';
 import { UserSubscriptions } from '../../components/user-subscriptions/user-subscriptions';
 import { VideoProcessingIndicator } from '../../components/video-processing-indicator/video-processing-indicator';
 import { ProfileFacade } from '../../services/profile-facade';
 import { PostsFacade } from '../../services/posts-facade';
+import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 import { UserSubscriptionsFacade } from '../../services/user-subscriptions-facade';
 import { SubscriptionModalService } from '@app/shared/services/subscription-modal.service';
 import { CreateSubscriptionModalService } from '@app/shared/services/create-subscription-modal.service';
-import { AuthorRequestDto } from '@app/api/donutsbox';
+import { AuthorRequestDto, UserDataService } from '@app/api/donutsbox';
 import { of, Subscription } from 'rxjs';
+import { SessionService } from '@app/core/services/session.service';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, AuthorSupporters, CreatePostModal, PostsFeed, UserSubscriptions, VideoProcessingIndicator],
+  imports: [CommonModule, AuthorSupporters, CreatePostModal, AvatarUploadModal, BannerUploadModal, PostsFeed, UserSubscriptions, VideoProcessingIndicator],
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.css'
 })
 export class ProfilePage implements OnInit, OnDestroy {
-   private authFacade = inject(AuthFacade);
+  private authFacade = inject(AuthFacade);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private tokenService = inject(TokenService);
-  private jwtService = inject(JwtDecodeService);
+  private sessionService = inject(SessionService);
   private profileFacade = inject(ProfileFacade);
   private postsFacade = inject(PostsFacade);
   private userSubscriptionsFacade = inject(UserSubscriptionsFacade);
   private subscriptionModalService = inject(SubscriptionModalService);
   private createSubscriptionModalService = inject(CreateSubscriptionModalService);
+  private userDataService = inject(UserDataService);
+  private postsRefresh = inject(PostsRefresh);
 
   readonly isOwnProfile = signal(false);
   readonly profileId = signal<string | null>(null);  
@@ -42,11 +46,25 @@ export class ProfilePage implements OnInit, OnDestroy {
   readonly showCreatePostModal = signal(false);
   readonly author = signal<AuthorRequestDto | null>(null);
   readonly bannerSrc = signal<string | null>(null);
+  readonly avatarSrc = signal<string | null>(null);
   readonly isSubscribed = signal(false);
   readonly showUnsubscribeModal = signal(false);
+  readonly isUploadingAvatar = signal(false);
+  readonly avatarUploadError = signal<string | null>(null);
+  readonly showAvatarModal = signal(false);
+  readonly showBannerModal = signal(false);
+  
+  // Черновики
+  readonly showDrafts = signal(false);
+  readonly drafts = signal<any[]>([]);
+  readonly draftsLoading = signal(false);
+  
+  @ViewChild(AvatarUploadModal) avatarModal?: AvatarUploadModal;
+  @ViewChild(BannerUploadModal) bannerModal?: BannerUploadModal;
   
   private subscriptionSuccessSub?: Subscription;
   private subscriptionCreatedSub?: Subscription;
+
 
   // Функция для загрузки постов creator'а
   readonly loadCreatorPosts = (page: number, pageSize: number) => {
@@ -74,9 +92,21 @@ export class ProfilePage implements OnInit, OnDestroy {
       if (!this.isOwnProfile()) {
         this.loadSubscriptions();
       }
+      // Загружаем аватарку пользователя для своего профиля
+      if (this.isOwnProfile()) {
+        this.loadUserAvatar();
+      }
     });
     
-    this.checkUserRole();
+    this.sessionService.ensureSession().subscribe(() => {
+      this.checkProfileOwnership();
+      this.checkUserRole();
+      // Загружаем аватарку и черновики после проверки сессии
+      if (this.isOwnProfile()) {
+        this.loadUserAvatar();
+        this.loadDraftsIfCreator();
+      }
+    });
     
     // Подписываемся на успешную подписку
     this.subscriptionSuccessSub = this.subscriptionModalService.subscriptionSuccess.subscribe(() => {
@@ -114,18 +144,44 @@ export class ProfilePage implements OnInit, OnDestroy {
     if (!profileId) {
       this.author.set(null);
       this.bannerSrc.set(null);
+      this.avatarSrc.set(null);
+      return;
+    }
+
+    const session = this.sessionService.session();
+    const isOwnNonCreatorProfile =
+      !!session && profileId === session.userId && !session.hasCreatorPage;
+
+    if (isOwnNonCreatorProfile) {
+      // Logged-in user is not a creator, no author data exists in backend.
+      this.author.set(null);
+      this.bannerSrc.set(null);
+      this.avatarSrc.set(null);
       return;
     }
 
     this.profileFacade.getAuthorById(profileId).subscribe(author => {
       this.author.set(author);
-      const key = author?.bannerUrl ?? null;
-      if (!key) {
+      
+      // Загрузка баннера
+      const bannerKey = author?.bannerUrl ?? null;
+      if (!bannerKey) {
         this.bannerSrc.set(null);
       } else {
-        this.profileFacade.getImageUrl(key, 300).subscribe({
+        this.profileFacade.getImageUrl(bannerKey, 300).subscribe({
           next: (url) => this.bannerSrc.set(url),
           error: () => this.bannerSrc.set(null)
+        });
+      }
+      
+      // Загрузка аватарки
+      const avatarKey = author?.avatarUrl ?? null;
+      if (!avatarKey) {
+        this.avatarSrc.set(null);
+      } else {
+        this.profileFacade.getImageUrl(avatarKey, 300).subscribe({
+          next: (url) => this.avatarSrc.set(url),
+          error: () => this.avatarSrc.set(null)
         });
       }
       
@@ -142,8 +198,7 @@ export class ProfilePage implements OnInit, OnDestroy {
 
   private checkProfileOwnership(): void {
     const profileId = this.profileId();
-    const token = this.tokenService.getAccessToken();
-    const currentUserGuid = this.jwtService.getGuid(token);
+    const currentUserGuid = this.sessionService.userId();
 
     if (profileId && currentUserGuid && profileId === currentUserGuid) {
       this.isOwnProfile.set(true);
@@ -153,9 +208,20 @@ export class ProfilePage implements OnInit, OnDestroy {
   }
 
   private checkUserRole(): void {
-    const token = this.tokenService.getAccessToken();
-    const isCreator = this.jwtService.isCreator(token);
-    this.isCurrentUserCreator.set(isCreator);
+    this.isCurrentUserCreator.set(this.sessionService.isCreator());
+  }
+
+  private loadUserAvatar(): void {
+    this.userDataService.apiUserDataMeGet().pipe(
+      catchError(() => of(null))
+    ).subscribe(userData => {
+      if (userData?.avatarUrl) {
+        this.profileFacade.getImageUrl(userData.avatarUrl, 300).subscribe({
+          next: (url) => this.avatarSrc.set(url),
+          error: () => {}
+        });
+      }
+    });
   }
 
   onAddContent(): void {
@@ -231,6 +297,13 @@ export class ProfilePage implements OnInit, OnDestroy {
         next: () => {
           this.closeUnsubscribeModal();
           this.isSubscribed.set(false);
+          this.author.update(author => {
+            if (!author) {
+              return author;
+            }
+            const updatedCount = Math.max(0, (author.subscribersCount ?? 0) - 1);
+            return { ...author, subscribersCount: updatedCount };
+          });
         },
         error: (error) => {
           console.error('Ошибка отписки от создателя:', error);
@@ -244,6 +317,138 @@ export class ProfilePage implements OnInit, OnDestroy {
     if (count >= 1000000) return (count / 1000000).toFixed(1) + 'M';
     if (count >= 1000) return (count / 1000).toFixed(1) + 'K';
     return count.toString();
+  }
+
+  openAvatarModal(): void {
+    this.showAvatarModal.set(true);
+  }
+
+  closeAvatarModal(): void {
+    this.showAvatarModal.set(false);
+  }
+
+  onAvatarUpload(file: File): void {
+    this.avatarModal?.setUploading(true);
+
+    this.profileFacade.uploadAvatar(file).subscribe({
+      next: (key) => {
+        if (key) {
+          this.profileFacade.getImageUrl(key, 300).subscribe({
+            next: (url) => {
+              this.avatarSrc.set(url);
+              this.showAvatarModal.set(false);
+            },
+            error: () => {
+              this.avatarModal?.setError('Не удалось загрузить аватарку');
+            }
+          });
+        } else {
+          this.avatarModal?.setError('Ошибка загрузки');
+        }
+      },
+      error: () => {
+        this.avatarModal?.setError('Ошибка загрузки аватарки');
+      }
+    });
+  }
+
+  openBannerModal(): void {
+    this.showBannerModal.set(true);
+  }
+
+  closeBannerModal(): void {
+    this.showBannerModal.set(false);
+  }
+
+  onBannerUpload(file: File): void {
+    this.bannerModal?.setUploading(true);
+
+    this.profileFacade.uploadBanner(file).subscribe({
+      next: (key) => {
+        if (key) {
+          this.profileFacade.getImageUrl(key, 300).subscribe({
+            next: (url) => {
+              this.bannerSrc.set(url);
+              this.showBannerModal.set(false);
+            },
+            error: () => {
+              this.bannerModal?.setError('Не удалось загрузить баннер');
+            }
+          });
+        } else {
+          this.bannerModal?.setError('Ошибка загрузки');
+        }
+      },
+      error: () => {
+        this.bannerModal?.setError('Ошибка загрузки баннера');
+      }
+    });
+  }
+
+  // Черновики
+  loadDraftsIfCreator(): void {
+    if (this.isCurrentUserCreator()) {
+      this.loadDrafts();
+    }
+  }
+
+  toggleDrafts(): void {
+    if (!this.showDrafts()) {
+      this.loadDrafts();
+    }
+    this.showDrafts.update(v => !v);
+  }
+
+  loadDrafts(): void {
+    this.draftsLoading.set(true);
+    this.postsFacade.getMyPosts(1, 50, false).subscribe({
+      next: (response) => {
+        this.drafts.set(response.posts || []);
+        this.draftsLoading.set(false);
+      },
+      error: () => {
+        this.drafts.set([]);
+        this.draftsLoading.set(false);
+      }
+    });
+  }
+
+  publishDraft(postId: string): void {
+    this.postsFacade.publishPost(postId).subscribe({
+      next: () => {
+        // Убираем из черновиков
+        this.drafts.update(d => d.filter(p => p.id !== postId));
+        // Обновляем ленту
+        this.postsRefresh.triggerRefresh();
+      },
+      error: (err) => {
+        console.error('Ошибка публикации:', err);
+      }
+    });
+  }
+
+  onPostHidden(post: any): void {
+    // Обновляем статус поста на неопубликованный
+    const draftPost = { ...post, isPublished: false };
+    // Добавляем пост в начало массива черновиков локально
+    this.drafts.update(drafts => [draftPost, ...drafts]);
+    // Если черновики не были открыты, открываем их
+    if (!this.showDrafts()) {
+      this.showDrafts.set(true);
+    }
+  }
+
+  deleteDraft(postId: string): void {
+    if (!confirm('Удалить черновик?')) return;
+    
+    this.postsFacade.deletePost(postId).subscribe({
+      next: () => {
+        this.drafts.update(d => d.filter(p => p.id !== postId));
+      },
+      error: (err) => {
+        console.error('Ошибка удаления:', err);
+      }
+    });
   }
 }
 

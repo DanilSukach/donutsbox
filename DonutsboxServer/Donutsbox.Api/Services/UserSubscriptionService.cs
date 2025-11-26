@@ -10,6 +10,9 @@ public class UserSubscriptionService(IEntityRepository<UserSubscription, Guid> r
     public async Task<UserSubscriptionDto?> AddAsync(UserSubscriptionDto entity)
     {
         var userSubscription = mapper.Map<UserSubscription>(entity);
+        userSubscription.Status = string.IsNullOrWhiteSpace(userSubscription.Status) ? "active" : userSubscription.Status;
+        userSubscription.CreatedAt = DateTimeOffset.UtcNow;
+        userSubscription.UpdatedAt = DateTimeOffset.UtcNow;
         var addedSubscription = await repository.AddAsync(userSubscription);
         return mapper.Map<UserSubscriptionDto>(addedSubscription);
     }
@@ -34,6 +37,7 @@ public class UserSubscriptionService(IEntityRepository<UserSubscription, Guid> r
     public async Task<bool> UpdateAsync(UserSubscriptionDto entity, Guid id)
     {
         var updatedUserSubscription = mapper.Map<UserSubscription>(entity);
+        updatedUserSubscription.UpdatedAt = DateTimeOffset.UtcNow;
         return await repository.UpdateAsync(updatedUserSubscription, id);
     }
 }

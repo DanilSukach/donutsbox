@@ -18,4 +18,7 @@ public interface ICreatorPostService
     Task<byte[]> GetImageAsync(string imagePath);
     Task<MessageResponseDto> DeletePostAsync(Guid postId, ClaimsPrincipal user);
     Task<MyPostsResponseDto> GetSubscriptionFeedAsync(int page, int pageSize, ClaimsPrincipal user);
+    Task<MessageResponseDto> CancelVideoProcessingAsync(Guid videoId, ClaimsPrincipal user);
+    Task<MessageResponseDto> DeleteVideoAsync(Guid videoId, ClaimsPrincipal user);
+    Task<MessageResponseDto> DeleteImageAsync(string imageKey, ClaimsPrincipal user);
 }

@@ -1,4 +1,5 @@
-import { Component, inject, ChangeDetectionStrategy, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, OnInit, OnDestroy, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { AuthorRequestDto } from '@app/api/donutsbox/model/authorRequestDto';
 import { FeedFacade } from '../../services/feed-facade';
 import { SubscriptionModalService } from '@app/shared/services/subscription-modal.service';
@@ -15,10 +16,13 @@ export class TopAuthors implements OnInit, OnDestroy {
   private readonly feedFacade = inject(FeedFacade);
   private readonly subscriptionModalService = inject(SubscriptionModalService);
   private subscriptionSuccessSub?: Subscription;
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
 
   readonly topAuthors = this.feedFacade.topAuthors;
   readonly loading = this.feedFacade.isLoadingTopAuthors;
   readonly error = this.feedFacade.topAuthorsError;
+  readonly topAuthorsLoaded = this.feedFacade.topAuthorsLoaded;
 
   // подписанные URL через фасад
   readonly authorAvatarUrlMap = this.feedFacade.authorAvatarUrlMap;
@@ -27,6 +31,9 @@ export class TopAuthors implements OnInit, OnDestroy {
   readonly subscribedAuthorIds = this.feedFacade.userSubscribedAuthorIds;
 
   ngOnInit(): void {
+    if (!this.isBrowser) {
+      return;
+    }
     this.loadTopAuthors();
     // Подписываемся на успешную подписку
     this.subscriptionSuccessSub = this.subscriptionModalService.subscriptionSuccess.subscribe(() => {
@@ -73,6 +80,9 @@ export class TopAuthors implements OnInit, OnDestroy {
   }
 
   loadTopAuthors(): void {
+    if (!this.isBrowser) {
+      return;
+    }
     this.feedFacade.loadTopAuthors(10).subscribe();
   }
 }

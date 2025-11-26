@@ -1,15 +1,4 @@
 services:
-  auth.api:
-    image: ${DOCKER_REGISTRY-}authapi
-    build:
-      context: .
-      dockerfile: Auth.Api/Dockerfile
-
-  donutsbox.api:
-    image: ${DOCKER_REGISTRY-}donutsboxapi
-    build:
-      context: .
-      dockerfile: Donutsbox.Api/Dockerfile
   postgres:
     image: postgres:latest
     container_name: postgres
@@ -21,16 +10,35 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U donuts -d donutsboxdb"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 60s
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    restart: always
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://donuts:donutspw@postgres:5432/donutsboxdb?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:9187/metrics || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   kafka:
     image: apache/kafka:4.1.0
     container_name: kafka
+    restart: always
     environment:
       KAFKA_KRAFT_MODE: "true"
       KAFKA_CLUSTER_ID: "my-cluster-1"
@@ -38,17 +46,46 @@ services:
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      # Настройки для быстрого старта
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     ports:
       - "9092:9092"
     volumes:
       - kafka_data:/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
 
-  # MinIO
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: kafka-exporter
+    restart: always
+    ports:
+      - "9308:9308"
+    command:
+      - '--kafka.server=kafka:9092'
+    depends_on:
+      kafka:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:9308/metrics || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   minio:
     image: minio/minio:latest
     container_name: minio
+    restart: always
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000" 
@@ -56,10 +93,295 @@ services:
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
+      # Настройка для работы через прокси
+      MINIO_BROWSER_REDIRECT_URL: https://192.168.0.13/minio-console
     volumes:
       - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  auth.api:
+    image: ${DOCKER_REGISTRY-}authapi
+    build:
+      context: .
+      dockerfile: Auth.Api/Dockerfile
+    container_name: auth-api
+    restart: always
+    ports:
+      - "7016:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=donutsboxdb;Username=donuts;Password=donutspw
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__Topics__VideoUploaded=video.uploaded
+      - Kafka__Topics__VideoProcessed=video.processed
+      - Cors__AllowedOrigins__0=https://localhost
+      - Cors__AllowedOrigins__1=http://localhost
+      - Cors__AllowedOrigins__2=https://192.168.0.13
+      - Cors__AllowedOrigins__3=http://192.168.0.13
+    depends_on:
+      postgres:
+        condition: service_healthy
+      donutsbox.api:
+        condition: service_started
+      kafka:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  donutsbox.api:
+    image: ${DOCKER_REGISTRY-}donutsboxapi
+    build:
+      context: .
+      dockerfile: Donutsbox.Api/Dockerfile
+    container_name: donutsbox-api
+    restart: always
+    ports:
+      - "7133:8082"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8082
+      - ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=donutsboxdb;Username=donuts;Password=donutspw
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__Topics__VideoUploaded=video.uploaded
+      - Kafka__Topics__VideoProcessed=video.processed
+      - Minio__Endpoint=minio:9000
+      - Minio__AccessKey=minio
+      - Minio__SecretKey=minio123
+      - Minio__UseSSL=false
+      - Minio__BucketName=my-bucket
+      - Minio__PublicEndpoint=https://192.168.0.13/minio
+      - Cors__AllowedOrigins__0=https://localhost
+      - Cors__AllowedOrigins__1=http://localhost
+      - Cors__AllowedOrigins__2=https://192.168.0.13
+      - Cors__AllowedOrigins__3=http://192.168.0.13
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8082/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  admin.service.api:
+    image: ${DOCKER_REGISTRY-}adminserviceapi
+    build:
+      context: .
+      dockerfile: Admin.Service.Api/Dockerfile
+    container_name: admin-service-api
+    restart: always
+    ports:
+      - "7207:8084"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8084
+      - ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=donutsboxdb;Username=donuts;Password=donutspw
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__Topics__VideoUploaded=video.uploaded
+      - Kafka__Topics__VideoProcessed=video.processed
+      - Kafka__GroupIdApi=video-processed-updater
+      - Minio__Endpoint=minio:9000
+      - Minio__AccessKey=minio
+      - Minio__SecretKey=minio123
+      - Minio__UseSSL=false
+      - Minio__BucketName=donutsbox
+      - Minio__BucketTemp=video-temp
+      - Minio__BucketProcessed=video-processed
+      - Minio__PublicEndpoint=https://192.168.0.13/minio
+      - Cors__AllowedOrigins__0=https://localhost
+      - Cors__AllowedOrigins__1=http://localhost
+      - Cors__AllowedOrigins__2=https://192.168.0.13
+      - Cors__AllowedOrigins__3=http://192.168.0.13
+    depends_on:
+      postgres:
+        condition: service_healthy
+      donutsbox.api:
+        condition: service_started
+      kafka:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8084/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  file.service.api:
+    image: ${DOCKER_REGISTRY-}fileserviceapi
+    build:
+      context: .
+      dockerfile: File.Service.Api/Dockerfile
+    container_name: file-service-api
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8086
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__Topics__VideoUploaded=video.uploaded
+      - Kafka__Topics__VideoProcessed=video.processed
+      - Kafka__GroupId=video-processor
+      - Minio__Endpoint=minio:9000
+      - Minio__AccessKey=minio
+      - Minio__SecretKey=minio123
+      - Minio__UseSSL=false
+      - Minio__BucketTemp=video-temp
+      - Minio__BucketProcessed=video-processed
+      - Minio__PublicEndpoint=https://192.168.0.13/minio
+      - FFmpeg__Path=/usr/bin/ffmpeg
+    depends_on:
+      kafka:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    volumes:
+      - file_service_temp:/tmp/video-processing
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - postgres-exporter
+      - kafka-exporter
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    restart: always
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: always
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    image: ${DOCKER_REGISTRY-}donutsboxclient
+    build:
+      context: ../DonutsboxClient
+      dockerfile: Dockerfile
+    container_name: donutsbox-client
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+    depends_on:
+      - auth.api
+      - donutsbox.api
+      - admin.service.api
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:4000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - frontend
+      - auth.api
+      - donutsbox.api
+      - admin.service.api
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
 volumes:
   postgres_data:
   kafka_data:
   minio_data:
+  prometheus_data:
+  loki_data:
+  grafana_data:
+  file_service_temp:
+  nginx_logs:

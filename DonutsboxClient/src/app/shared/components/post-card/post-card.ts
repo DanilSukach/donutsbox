@@ -1,4 +1,6 @@
-import { Component, inject, input, signal, CUSTOM_ELEMENTS_SCHEMA, effect, OnDestroy } from '@angular/core';
+import { Component, inject, input, signal, output, CUSTOM_ELEMENTS_SCHEMA, effect, OnDestroy, TemplateRef, ViewChild, ViewContainerRef } from '@angular/core';
+import { Overlay, OverlayRef, OverlayModule } from '@angular/cdk/overlay';
+import { TemplatePortal, PortalModule } from '@angular/cdk/portal';
 import { PostsFacade } from '@app/features/profile/services/posts-facade';
 import { VideoPlayer } from '@app/shared/components/video-player/video-player';
 import { PostComments } from "@app/shared/components/post-comments/post-comments";
@@ -27,11 +29,13 @@ interface Post {
   videos?: PostVideo[];
   pictureUrls?: string[];
   reactionTypeId?: number; // 0 = нет реакции, 1 = лайк, 2 = дизлайк
+  isLocked?: boolean;
+  lockedMessage?: string | null;
 }
 
 @Component({
   selector: 'app-post-card',
-  imports: [VideoPlayer, PostComments],
+  imports: [VideoPlayer, PostComments, OverlayModule, PortalModule],
   templateUrl: './post-card.html',
   styleUrls: ['./post-card.css'],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -42,10 +46,19 @@ export class PostCard implements OnDestroy {
   readonly showComments = signal(false);
   readonly isOwner = input<boolean>(false); 
   readonly showDeleteModal = signal(false);
+  readonly showHideModal = signal(false);
+  readonly deleted = output<string>();
+  readonly hidden = output<string>(); // Когда пост скрыт (moved to drafts)
   readonly showEditModal = signal(false);
   readonly editTitle = signal<string>('');
   readonly editText = signal<string>('');
   readonly isUpdating = signal(false);
+  
+  // CDK Overlay для модалки редактирования
+  @ViewChild('editModalTemplate') editModalTemplate!: TemplateRef<unknown>;
+  private overlay = inject(Overlay);
+  private viewContainerRef = inject(ViewContainerRef);
+  private editOverlayRef: OverlayRef | null = null;
   
   // Локальное состояние для оптимистичного обновления UI
   readonly currentTitle = signal<string | null>(null);
@@ -83,6 +96,9 @@ export class PostCard implements OnDestroy {
 
   ngOnDestroy(): void {
     document.removeEventListener('click', this.handleDocumentClick);
+    if (this.editOverlayRef) {
+      this.editOverlayRef.dispose();
+    }
   }
 
   private handleDocumentClick = (event: MouseEvent): void => {
@@ -92,6 +108,9 @@ export class PostCard implements OnDestroy {
     }
     if (this.showDeleteModal() && !target.closest('.delete-modal') && !target.closest('button[title="Удалить пост"]')) {
       this.closeDeleteModal();
+    }
+    if (this.showHideModal() && !target.closest('.hide-modal') && !target.closest('button[title="Скрыть пост"]')) {
+      this.closeHideModal();
     }
   };
 
@@ -130,14 +149,40 @@ export class PostCard implements OnDestroy {
   }
 
   confirmDelete(): void {
-    this.postsFacade.deletePost(this.post().id).subscribe({
+    const postId = this.post().id;
+    this.postsFacade.deletePost(postId).subscribe({
       next: () => {
-        console.log('Пост удален успешно:', this.post().id);
+        console.log('Пост удален успешно:', postId);
         this.closeDeleteModal();
+        this.deleted.emit(postId);
       },
       error: (error) => {
         console.error('Ошибка удаления поста:', error);
         this.closeDeleteModal();
+      }
+    });
+  }
+
+  openHideModal(event: Event): void {
+    event.stopPropagation();
+    this.showHideModal.set(true);
+  }
+
+  closeHideModal(): void {
+    this.showHideModal.set(false);
+  }
+
+  confirmHide(): void {
+    const postId = this.post().id;
+    
+    this.postsFacade.unpublishPost(postId).subscribe({
+      next: () => {
+        this.closeHideModal();
+        this.hidden.emit(postId);
+      },
+      error: (error) => {
+        console.error('Ошибка скрытия поста:', error);
+        this.closeHideModal();
       }
     });
   }
@@ -147,10 +192,33 @@ export class PostCard implements OnDestroy {
     const post = this.post();
     this.editTitle.set(post.title || '');
     this.editText.set(post.text || '');
+    
+    // Создаём overlay
+    this.editOverlayRef = this.overlay.create({
+      hasBackdrop: true,
+      backdropClass: 'edit-modal-backdrop',
+      panelClass: 'edit-modal-panel',
+      positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
+      scrollStrategy: this.overlay.scrollStrategies.block(),
+      width: '95vw',
+      maxWidth: '800px'
+    });
+    
+    // Подключаем template
+    const portal = new TemplatePortal(this.editModalTemplate, this.viewContainerRef);
+    this.editOverlayRef.attach(portal);
+    
+    // Закрытие по клику на backdrop
+    this.editOverlayRef.backdropClick().subscribe(() => this.closeEditModal());
+    
     this.showEditModal.set(true);
   }
 
   closeEditModal(): void {
+    if (this.editOverlayRef) {
+      this.editOverlayRef.dispose();
+      this.editOverlayRef = null;
+    }
     this.showEditModal.set(false);
   }
 
@@ -195,6 +263,9 @@ export class PostCard implements OnDestroy {
   }
 
   get displayText(): string | null {
+    if (this.post().isLocked) {
+      return null;
+    }
     return this.currentText() ?? this.post().text ?? null;
   }
 
@@ -286,6 +357,9 @@ export class PostCard implements OnDestroy {
 
   // Получаем все медиа элементы (видео и изображения) для карусели
   getMediaItems(): Array<{ type: 'video' | 'image'; url: string; videoId?: string; title?: string; thumbnailUrl?: string | null }> {
+    if (this.post().isLocked) {
+      return [];
+    }
     const items: Array<{ type: 'video' | 'image'; url: string; videoId?: string; title?: string; thumbnailUrl?: string | null }> = [];
     const videos = this.post().videos;
     const pictureUrls = this.post().pictureUrls;

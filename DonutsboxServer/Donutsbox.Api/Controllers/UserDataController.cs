@@ -1,8 +1,10 @@
 ﻿using Donutsbox.Api.Dto;
 using Donutsbox.Api.Services;
 using Donutsbox.Api.Services.UserSubscriptionsService;
+using Donutsbox.Domain.Context;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Donutsbox.Api.Controllers;
@@ -10,7 +12,10 @@ namespace Donutsbox.Api.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public class UserDataController(IEntityService<UserDataDto, Guid> service, IUserSubscriptionsService userSubsService) : ControllerBase
+public class UserDataController(
+    IEntityService<UserDataDto, Guid> service, 
+    IUserSubscriptionsService userSubsService,
+    DonutsboxDbContext db) : ControllerBase
 {   /// <summary>
     /// Возвращает данные всех пользователей
     /// </summary>
@@ -86,15 +91,34 @@ public class UserDataController(IEntityService<UserDataDto, Guid> service, IUser
     /// Возвращает данные о себе.
     /// </summary>
     /// <returns>Объект <see cref="UserDataDto"/>.</returns>
-    /// <response code="200">Даныне найдены.</response>
-    /// <response code="404">Данные о пользователе с указанным ID не найден.</response>
+    /// <response code="200">Данные найдены.</response>
+    /// <response code="404">Данные о пользователе не найдены.</response>
     [HttpGet("me")]
     public async Task<ActionResult<UserDataDto>> GetInfoAboutMe()
     {
         var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-        var user = await service.GetByIdAsync(userId);
-        if (user == null) return NotFound();
-        return Ok(user);
+        var userData = await db.UsersData.FirstOrDefaultAsync(ud => ud.UserId == userId);
+        
+        if (userData == null)
+        {
+            return Ok(new UserDataDto 
+            { 
+                Id = Guid.Empty,
+                UserId = userId,
+                AvatarUrl = null
+            });
+        }
+        
+        return Ok(new UserDataDto
+        {
+            Id = userData.Id,
+            UserId = userData.UserId,
+            AvatarUrl = userData.AvatarUrl,
+            Description = userData.Description,
+            NotificationEmail = userData.NotificationEmail,
+            PhoneNumber = userData.PhoneNumber,
+            PaymentInfo = userData.PaymentInfo
+        });
     }
 
     /// <summary>

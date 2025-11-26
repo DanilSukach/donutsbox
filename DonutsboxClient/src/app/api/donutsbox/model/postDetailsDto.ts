@@ -25,5 +25,9 @@ export interface PostDetailsDto {
     creatorId?: string | null;
     creatorAvatarUrl?: string | null;
     reactionTypeId?: number;
+    audienceType?: string | null;
+    subscriptionIds?: Array<string> | null;
+    isLocked?: boolean;
+    lockedMessage?: string | null;
 }
 

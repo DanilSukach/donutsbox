@@ -1,0 +1,41 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'donutsbox-monitor'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'auth-api'
+    static_configs:
+      - targets: ['auth-api:8080']
+        labels:
+          service: 'auth-api'
+
+  - job_name: 'donutsbox-api'
+    static_configs:
+      - targets: ['donutsbox-api:8082']
+        labels:
+          service: 'donutsbox-api'
+
+  - job_name: 'admin-service-api'
+    static_configs:
+      - targets: ['admin-service-api:8084']
+        labels:
+          service: 'admin-service-api'
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgres'
+
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+        labels:
+          service: 'kafka'
+

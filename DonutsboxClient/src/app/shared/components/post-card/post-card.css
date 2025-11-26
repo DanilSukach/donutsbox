@@ -37,7 +37,8 @@
 
 /* Стили для навигации и пагинации Swiper */
 .media-swiper::part(pagination) {
-  bottom: 10px;
+  bottom: -35px !important;
+  z-index: 10 !important;
 }
 
 .media-swiper::part(button-prev),

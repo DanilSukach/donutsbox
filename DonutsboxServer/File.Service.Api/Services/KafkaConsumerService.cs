@@ -4,7 +4,11 @@ using System.Text.Json;
 
 namespace File.Service.Api.Services;
 
-public class KafkaConsumerService(ILogger<KafkaConsumerService> logger, IServiceProvider provider, IConfiguration config) : BackgroundService
+public class KafkaConsumerService(
+    ILogger<KafkaConsumerService> logger, 
+    IServiceProvider provider, 
+    IConfiguration config,
+    VideoCancellationService cancellationService) : BackgroundService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -64,15 +68,41 @@ public class KafkaConsumerService(ILogger<KafkaConsumerService> logger, IService
                 logger.LogInformation("Processing video.uploaded event for VideoId={VideoId}, ObjectKey={ObjectKey}",
                     evt.VideoId, evt.ObjectKey);
 
+                // Check if video processing was already cancelled
+                if (cancellationService.IsCancelled(evt.VideoId))
+                {
+                    logger.LogInformation("Video {VideoId} was cancelled before processing started, skipping", evt.VideoId);
+                    consumer.Commit(cr);
+                    continue;
+                }
+
                 using var scope = provider.CreateScope();
                 var ffmpeg = scope.ServiceProvider.GetRequiredService<FfmpegService>();
                 var producer = scope.ServiceProvider.GetRequiredService<KafkaProducerService>();
 
-                logger.LogInformation("Starting video processing for {VideoId}", evt.VideoId);
-                var outputPath = await ffmpeg.ProcessVideoAsync(evt.VideoId, evt.ObjectKey);
+                // Register video for cancellation tracking
+                var cancellationToken = cancellationService.RegisterVideo(evt.VideoId);
 
-                logger.LogInformation("Video processed, publishing result for {VideoId}", evt.VideoId);
-                await producer.PublishProcessedAsync(new VideoProcessedEvent(evt.VideoId, outputPath));
+                try
+                {
+                    logger.LogInformation("Starting video processing for {VideoId}", evt.VideoId);
+                    var outputPath = await ffmpeg.ProcessVideoAsync(evt.VideoId, evt.ObjectKey, cancellationToken);
+
+                    // Check cancellation again after processing
+                    if (cancellationService.IsCancelled(evt.VideoId))
+                    {
+                        logger.LogInformation("Video {VideoId} was cancelled during processing", evt.VideoId);
+                        consumer.Commit(cr);
+                        continue;
+                    }
+
+                    logger.LogInformation("Video processed, publishing result for {VideoId}", evt.VideoId);
+                    await producer.PublishProcessedAsync(new VideoProcessedEvent(evt.VideoId, outputPath));
+                }
+                finally
+                {
+                    cancellationService.UnregisterVideo(evt.VideoId);
+                }
 
                 consumer.Commit(cr);
                 logger.LogInformation("Message committed successfully for offset {Offset}", cr.Offset);
@@ -80,6 +110,11 @@ public class KafkaConsumerService(ILogger<KafkaConsumerService> logger, IService
             catch (ConsumeException ex)
             {
                 logger.LogError(ex, "Kafka consume error: {Reason}", ex.Error.Reason);
+            }
+            catch (OperationCanceledException ex) when (!stoppingToken.IsCancellationRequested)
+            {
+                // Video processing was cancelled by user, not by service shutdown
+                logger.LogInformation("Video processing was cancelled: {Message}", ex.Message);
             }
             catch (OperationCanceledException)
             {

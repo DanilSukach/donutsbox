@@ -9,6 +9,7 @@ public class KafkaMessageProducer : IMessageProducer, IDisposable
     private readonly IProducer<string, string> _producer;
     private readonly ILogger<KafkaMessageProducer> _logger;
     private readonly string _topicVideoUploaded;
+    private readonly string _topicVideoProcessingCancelled;
 
     // Кэшированные JsonSerializerOptions
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -20,6 +21,7 @@ public class KafkaMessageProducer : IMessageProducer, IDisposable
     {
         _logger = logger;
         _topicVideoUploaded = configuration["Kafka:Topics:VideoUploaded"] ?? "video.uploaded";
+        _topicVideoProcessingCancelled = configuration["Kafka:Topics:VideoProcessingCancelled"] ?? "video.processing.cancelled";
 
         var config = new ProducerConfig
         {
@@ -136,6 +138,49 @@ public class KafkaMessageProducer : IMessageProducer, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Kafka: Unexpected error while sending event for video {VideoId}", evt.VideoId);
+            throw;
+        }
+    }
+
+    public async Task PublishVideoProcessingCancelledAsync(VideoProcessingCancelledEvent evt)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(evt, JsonOptions);
+
+            var msg = new Message<string, string>
+            {
+                Key = evt.VideoId.ToString(),
+                Value = json
+            };
+
+            _logger.LogInformation(
+                "Publishing video.processing.cancelled event for video {VideoId} to topic {Topic}. Message: {Message}",
+                evt.VideoId, _topicVideoProcessingCancelled, json);
+
+            var result = await _producer.ProduceAsync(_topicVideoProcessingCancelled, msg);
+
+            // Принудительная отправка
+            _producer.Flush(TimeSpan.FromSeconds(10));
+
+            _logger.LogInformation(
+                "Kafka: Successfully sent cancellation event to {Topic} (partition {Partition}, offset {Offset}) for video {VideoId}",
+                _topicVideoProcessingCancelled,
+                result.Partition,
+                result.Offset,
+                evt.VideoId
+            );
+        }
+        catch (ProduceException<string, string> ex)
+        {
+            _logger.LogError(ex,
+                "Kafka: ProduceException while sending cancellation event for video {VideoId}. Error: {Error}, Code: {Code}, IsFatal: {IsFatal}",
+                evt.VideoId, ex.Error.Reason, ex.Error.Code, ex.Error.IsFatal);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Kafka: Unexpected error while sending cancellation event for video {VideoId}", evt.VideoId);
             throw;
         }
     }

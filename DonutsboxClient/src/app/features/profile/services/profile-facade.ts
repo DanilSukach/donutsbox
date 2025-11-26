@@ -7,8 +7,7 @@ import {
   SubscriptionCreateDto,
   SubscriptionDto,
 } from '@app/api/donutsbox';
-import { TokenService } from '@app/core/services/token.service';
-import { JwtDecodeService } from '@app/core/services/jwt-decode.service';
+import { SessionService } from '@app/core/services/session.service';
 import { Observable, catchError, map, of, tap } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -18,8 +17,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 export class ProfileFacade {
   private readonly authorsService = inject(AuthorsService);
   private readonly filesService = inject(FilesService);
-  private readonly tokenService = inject(TokenService);
-  private readonly jwtService = inject(JwtDecodeService);
+  private readonly sessionService = inject(SessionService);
   private readonly router = inject(Router);
 
   readonly isCreatingProfile = signal(false);
@@ -87,7 +85,7 @@ export class ProfileFacade {
 
     return this.authorsService.apiAuthorsCreatorPost(creatorData).pipe(
       tap(() => {
-        this.tokenService.clearNewCreatorStatus();
+        void this.sessionService.refreshSession().subscribe();
         this.isCreatingProfile.set(false);
         this.router.navigate(['/profile/subscription-setup']);
       }),
@@ -131,19 +129,18 @@ export class ProfileFacade {
   }
 
   private navigateToProfile(): void {
-    const token = this.tokenService.getAccessToken();
-    const userId = this.jwtService.getGuid(token);
-
-    if (userId) {
-      this.router.navigate(['/profile', userId]);
-    } else {
-      this.router.navigate(['/']);
-    }
+    this.sessionService.ensureSession().subscribe(() => {
+      const userId = this.sessionService.userId();
+      if (userId) {
+        this.router.navigate(['/profile', userId]);
+      } else {
+        this.router.navigate(['/']);
+      }
+    });
   }
 
   getCurrentUserGuid(): string | null {
-    const token = this.tokenService.getAccessToken();
-    return this.jwtService.getGuid(token);
+    return this.sessionService.userId();
   }
 
   clearErrors(): void {

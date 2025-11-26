@@ -45,15 +45,19 @@ export class VideoStatusPollService {
         }),
         switchMap(() => {
           console.log(`🔍 Polling попытка ${this.pollingAttempts}/${this.maxPollingAttempts}...`);
-          return this.postsFacade.getMyVideos(1, 100, 'UPLOADED'); // Проверяем видео в статусе UPLOADED
+          // Проверяем видео в статусах UPLOADED и PROCESSING
+          return this.postsFacade.getMyVideos(1, 100);
         }),
         tap((response) => {
-          const uploadedVideos = response.videos?.length || 0;
-          console.log(`  - Видео в обработке: ${uploadedVideos}`);
+          const videos = response.videos || [];
+          const processingVideos = videos.filter((v: any) => 
+            v.status === 'UPLOADED' || v.status === 'PROCESSING'
+          ).length;
+          console.log(`  - Контент в обработке: ${processingVideos}`);
 
-          // Если все видео обработаны (нет видео в статусе UPLOADED)
-          if (uploadedVideos === 0) {
-            console.log('✅ Все видео обработаны! Обновляю список постов...');
+          // Если весь контент обработан
+          if (processingVideos === 0) {
+            console.log('✅ Весь контент обработан! Мягкое обновление постов...');
             this.stopPolling();
             this.postsRefreshService.triggerRefresh();
           }
