@@ -6,6 +6,8 @@ import {
   FilesService,
   SubscriptionCreateDto,
   SubscriptionDto,
+  UpdateImageKeyDto,
+  UserDataService,
 } from '@app/api/donutsbox';
 import { SessionService } from '@app/core/services/session.service';
 import { Observable, catchError, map, of, tap } from 'rxjs';
@@ -16,6 +18,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 })
 export class ProfileFacade {
   private readonly authorsService = inject(AuthorsService);
+  private readonly userDataService = inject(UserDataService);
   private readonly filesService = inject(FilesService);
   private readonly sessionService = inject(SessionService);
   private readonly router = inject(Router);
@@ -146,5 +149,27 @@ export class ProfileFacade {
   clearErrors(): void {
     this.profileError.set(null);
     this.subscriptionError.set(null);
+  }
+
+  updateCreatorPageBanner(bannerKey: string): Observable<boolean> {
+    const dto: UpdateImageKeyDto = { key: bannerKey };
+    return this.authorsService.apiAuthorsBannerPut(dto).pipe(
+      map(() => true),
+      catchError((error) => {
+        console.error('Error updating creator page banner:', error);
+        return of(false);
+      })
+    );
+  }
+
+  updateUserAvatar(avatarKey: string): Observable<boolean> {
+    const dto: UpdateImageKeyDto = { key: avatarKey };
+    return this.userDataService.apiUserDataAvatarPut(dto).pipe(
+      map(() => true),
+      catchError((error) => {
+        console.error('Error updating user avatar:', error);
+        return of(false);
+      })
+    );
   }
 }

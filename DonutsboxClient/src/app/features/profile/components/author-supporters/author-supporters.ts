@@ -1,7 +1,13 @@
 import { Component, inject, Input, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AuthorsService } from '@app/api/donutsbox/api/authors.service';
+import { AuthorsService, FilesService } from '@app/api/donutsbox';
 import { UserRequestDto } from '@app/api/donutsbox/model/userRequestDto';
+import { forkJoin, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+
+interface SupporterWithAvatar extends UserRequestDto {
+  avatarPresignedUrl?: string | null;
+}
 
 @Component({
   selector: 'app-author-supporters',
@@ -12,11 +18,12 @@ import { UserRequestDto } from '@app/api/donutsbox/model/userRequestDto';
 })
 export class AuthorSupporters implements OnInit {
   private authorsService = inject(AuthorsService);
+  private filesService = inject(FilesService);
 
   @Input() authorId?: string;
   @Input() count: number = 5;
 
-  readonly supporters = signal<UserRequestDto[]>([]);
+  readonly supporters = signal<SupporterWithAvatar[]>([]);
   readonly isLoading = signal(false);
   readonly error = signal<string | null>(null);
 
@@ -35,9 +42,41 @@ export class AuthorSupporters implements OnInit {
 
     this.authorsService.apiAuthorsTopSupportedGet(this.count).subscribe({
       next: (supporters) => {
-        console.log('Поддерживающие подписчики:', supporters);
-        this.supporters.set(supporters);
-        this.isLoading.set(false);
+        // Загружаем presigned URLs для аватарок
+        const supportersWithUrls$ = supporters.map(supporter => {
+          if (supporter.avatarUrl) {
+            return this.filesService.apiFilesImagesUrlGet(supporter.avatarUrl, 300).pipe(
+              map(response => ({
+                ...supporter,
+                avatarPresignedUrl: response.url
+              } as SupporterWithAvatar)),
+              catchError(() => of({
+                ...supporter,
+                avatarPresignedUrl: null
+              } as SupporterWithAvatar))
+            );
+          }
+          return of({
+            ...supporter,
+            avatarPresignedUrl: null
+          } as SupporterWithAvatar);
+        });
+
+        if (supportersWithUrls$.length > 0) {
+          forkJoin(supportersWithUrls$).subscribe({
+            next: (supportersWithUrls) => {
+              this.supporters.set(supportersWithUrls);
+              this.isLoading.set(false);
+            },
+            error: () => {
+              this.supporters.set(supporters.map(s => ({ ...s, avatarPresignedUrl: null })));
+              this.isLoading.set(false);
+            }
+          });
+        } else {
+          this.supporters.set([]);
+          this.isLoading.set(false);
+        }
       },
       error: (error) => {
         console.error('Ошибка загрузки поддерживающих подписчиков:', error);
@@ -52,7 +91,7 @@ export class AuthorSupporters implements OnInit {
     img.src = this.defaultAvatar;
   }
 
-  trackByUserId(index: number, user: UserRequestDto): string {
+  trackByUserId(index: number, user: SupporterWithAvatar): string {
     return user.id || index.toString();
   }
 }

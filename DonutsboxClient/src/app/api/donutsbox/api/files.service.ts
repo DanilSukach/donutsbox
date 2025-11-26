@@ -206,14 +206,13 @@ export class FilesService extends BaseService {
     /**
      * @param files 
      * @param contentPostId 
-     * @param title 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public apiFilesImagesPostPost(files: Array<Blob>, contentPostId: string, title?: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<ImageUploadResponseDto>>;
-    public apiFilesImagesPostPost(files: Array<Blob>, contentPostId: string, title?: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ImageUploadResponseDto>>>;
-    public apiFilesImagesPostPost(files: Array<Blob>, contentPostId: string, title?: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ImageUploadResponseDto>>>;
-    public apiFilesImagesPostPost(files: Array<Blob>, contentPostId: string, title?: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public apiFilesImagesPostPost(files: Array<Blob>, contentPostId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<ImageUploadResponseDto>>;
+    public apiFilesImagesPostPost(files: Array<Blob>, contentPostId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ImageUploadResponseDto>>>;
+    public apiFilesImagesPostPost(files: Array<Blob>, contentPostId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ImageUploadResponseDto>>>;
+    public apiFilesImagesPostPost(files: Array<Blob>, contentPostId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (files === null || files === undefined) {
             throw new Error('Required parameter files was null or undefined when calling apiFilesImagesPostPost.');
         }
@@ -265,9 +264,6 @@ export class FilesService extends BaseService {
         }
         if (contentPostId !== undefined) {
             localVarFormParams = localVarFormParams.append('ContentPostId', <any>contentPostId) as any || localVarFormParams;
-        }
-        if (title !== undefined) {
-            localVarFormParams = localVarFormParams.append('Title', <any>title) as any || localVarFormParams;
         }
 
         let responseType_: 'text' | 'json' | 'blob' = 'json';

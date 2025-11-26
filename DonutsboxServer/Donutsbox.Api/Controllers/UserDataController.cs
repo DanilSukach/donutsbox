@@ -133,4 +133,30 @@ public class UserDataController(
         var subscriptions = await userSubsService.GetAuthorPagesFromUserSubscribes(User);
         return Ok(subscriptions);
     }
+
+    /// <summary>
+    /// Обновление аватара пользователя
+    /// </summary>
+    /// <param name="dto">DTO с ключом аватара в MinIO</param>
+    [HttpPut("avatar")]
+    public async Task<IActionResult> UpdateAvatar([FromBody] UpdateImageKeyDto dto)
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var userData = await db.UsersData.FirstOrDefaultAsync(ud => ud.UserId == userId);
+            
+            if (userData == null)
+                return NotFound(new { message = "User data not found" });
+            
+            userData.AvatarUrl = dto.Key;
+            await db.SaveChangesAsync();
+            
+            return Ok(new { message = "Avatar updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

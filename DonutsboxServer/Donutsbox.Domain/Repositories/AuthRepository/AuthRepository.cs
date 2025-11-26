@@ -26,6 +26,15 @@ public class AuthRepository(DonutsboxDbContext db) : IAuthRepository
         return userAuth;
     }
 
+    public async Task<UserAuth?> GetByUserIdAsync(Guid userId)
+    {
+        var userAuth = await db.UsersAuths
+            .Include(u => u.User)
+                .ThenInclude(u => u!.UserType)
+            .FirstOrDefaultAsync(ua => ua.User!.Id == userId);
+        return userAuth;
+    }
+
     public async Task<UserAuth?> GetByRefreshTokenAsync(string refreshToken)
     {
         var userAuth = await db.UsersAuths
@@ -81,7 +90,20 @@ public class AuthRepository(DonutsboxDbContext db) : IAuthRepository
 
     public async Task UpdateAsync(UserAuth user)
     {
-        db.UsersAuths.Update(user);
-        await db.SaveChangesAsync();
+        // Проверяем отслеживается ли уже эта сущность
+        var trackedEntity = db.ChangeTracker.Entries<UserAuth>()
+            .FirstOrDefault(e => e.Entity.Id == user.Id);
+
+        if (trackedEntity != null)
+        {
+            // Сущность уже отслеживается - просто сохраняем изменения
+            await db.SaveChangesAsync();
+        }
+        else
+        {
+            // Сущность не отслеживается - обновляем явно
+            db.UsersAuths.Update(user);
+            await db.SaveChangesAsync();
+        }
     }
 }

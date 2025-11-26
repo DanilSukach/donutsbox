@@ -33,7 +33,15 @@ public class CreatorPageDataService(IEntityRepository<CreatorPageData, Guid> rep
 
     public async Task<bool> UpdateAsync(CreatorPageDataDto entity, Guid id)
     {
+        // Получаем существующую страницу чтобы сохранить UserId
+        var existingPage = await repository.GetByIdAsync(id);
+        if (existingPage == null) return false;
+        
+        // Мапим только обновляемые поля
         var updatedPage = mapper.Map<CreatorPageData>(entity);
+        updatedPage.UserId = existingPage.UserId; // Сохраняем UserId
+        updatedPage.Id = id;
+        
         return await repository.UpdateAsync(updatedPage, id);
     }
 }

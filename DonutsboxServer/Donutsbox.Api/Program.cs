@@ -199,7 +199,11 @@ builder.Services.AddCors(options =>
 builder.Services.Configure<YooKassaOptions>(builder.Configuration.GetSection("YooKassa"));
 builder.Services.AddHttpClient<IYooKassaClient, YooKassaClient>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 
 builder.Services.AddHostedService<VideoProcessedConsumer>();
 

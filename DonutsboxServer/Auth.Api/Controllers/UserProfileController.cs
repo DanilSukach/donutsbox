@@ -16,15 +16,15 @@ public class UserProfileController(IUserProfileService service) : ControllerBase
         try
         {
             await service.ChangePassword(dto, User);
-            return Ok();
+            return Ok(new { success = true, message = "Password changed successfully" });
         }
         catch(UnauthorizedAccessException e)
         {
-            return Unauthorized(e.Message);
+            return Unauthorized(new { success = false, message = e.Message });
         }
         catch(InvalidOperationException e)
         {
-            return BadRequest(e.Message);
+            return BadRequest(new { success = false, message = e.Message });
         }
     }
 

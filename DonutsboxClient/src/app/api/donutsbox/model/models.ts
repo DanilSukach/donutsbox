@@ -30,6 +30,7 @@ export * from './subscriptionPaymentRequestDto';
 export * from './subscriptionPaymentResponseDto';
 export * from './subscriptionPaymentStatusDto';
 export * from './updateCommentRequestDto';
+export * from './updateImageKeyDto';
 export * from './uploadImagesResponseDto';
 export * from './userAuthDto';
 export * from './userDataDto';

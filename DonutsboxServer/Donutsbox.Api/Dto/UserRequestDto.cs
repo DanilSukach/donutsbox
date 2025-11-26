@@ -13,4 +13,8 @@ public class UserRequestDto
     /// Имя пользователя
     /// </summary>
     public required string UserName { get; set; }
+    /// <summary>
+    /// Ссылка на аватарку пользователя
+    /// </summary>
+    public string? AvatarUrl { get; set; }
 }

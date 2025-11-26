@@ -41,7 +41,7 @@
           
           <div class="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden mr-3 ring-2 ring-gray-200 hover:ring-green-300 transition-all duration-200">
             <img 
-              [src]="defaultAvatar" 
+              [src]="supporter.avatarPresignedUrl || defaultAvatar" 
               [alt]="supporter.userName || 'Пользователь'"
               class="w-full h-full object-cover"
               (error)="onImageError($event)"

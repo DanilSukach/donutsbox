@@ -21,5 +21,9 @@ export interface UserRequestDto {
      * Имя пользователя
      */
     userName: string | null;
+    /**
+     * Ссылка на аватарку пользователя
+     */
+    avatarUrl?: string | null;
 }
 
