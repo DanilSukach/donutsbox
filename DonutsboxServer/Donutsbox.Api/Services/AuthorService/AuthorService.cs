@@ -98,6 +98,36 @@ public class AuthorService(
         };
     }
 
+    public async Task<bool> ChangeAuthorName(AuthorNameDto dto, ClaimsPrincipal user)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
+        var userId = Guid.Parse(userIdClaim.Value);
+        var author = await authorRepository.GetByIdAsync(userId);
+
+        if (author!.CreatorPageData!.PageName == dto.Name)
+            throw new InvalidOperationException("The new name is the same as the current name");
+
+        var authors = await authorRepository.GetAllAsync();
+        if (authors.Any(a => a.CreatorPageData != null && a.CreatorPageData.PageName == dto.Name))
+            throw new InvalidOperationException("This author name is already taken");
+
+        author.CreatorPageData.PageName = dto.Name;
+        await userRepository.UpdateAsync(author, userId);
+        return true;
+    }
+
+    public async Task<bool> ChangeAuthorDescription(AuthorDescriptionDto dto, ClaimsPrincipal user)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
+        var userId = Guid.Parse(userIdClaim.Value);
+        var author = await authorRepository.GetByIdAsync(userId);
+        if (author!.CreatorPageData!.Description == dto.Description)
+            throw new InvalidOperationException("The new description is the same as the current description");
+        author.CreatorPageData.Description = dto.Description;
+        await userRepository.UpdateAsync(author, userId);
+        return true;
+    }
+
     public string CalculatePrice(int periodInMonths, string monthlyPrice)
     {
         var normalizedPrice = monthlyPrice.Replace(',', '.');

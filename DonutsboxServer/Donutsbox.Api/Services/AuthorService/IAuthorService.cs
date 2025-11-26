@@ -13,4 +13,6 @@ public interface IAuthorService
     Task<CreatorPageDataDto> AddCreatorPageAsync(CreatorPageDataDto dto, ClaimsPrincipal user);
     Task<SubscriptionDto> AddSubscriptionAsync(SubscriptionCreateDto dto, ClaimsPrincipal user);
     Task<bool> UpdateBannerAsync(string bannerKey, ClaimsPrincipal user);
+    Task<bool> ChangeAuthorName(AuthorNameDto dto, ClaimsPrincipal user);
+    Task<bool> ChangeAuthorDescription(AuthorDescriptionDto dto, ClaimsPrincipal user);
 }

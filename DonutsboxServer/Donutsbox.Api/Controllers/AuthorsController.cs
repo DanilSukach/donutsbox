@@ -47,6 +47,36 @@ public class AuthorsController(IAuthorService authorService, ILogger<AuthorsCont
         }
     }
 
+    [HttpPut("author-name")]
+    [Authorize(Roles = "Creator")]
+    public async Task<ActionResult<CreatorPageDataDto>> ChangeAuthorName([FromBody] AuthorNameDto dto)
+    {
+        try
+        {
+            var page = await authorService.ChangeAuthorName(dto, User);
+            return Ok(page);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPut("author-description")]
+    [Authorize(Roles = "Creator")]
+    public async Task<ActionResult<CreatorPageDataDto>> ChangeAuthorDescription([FromBody] AuthorDescriptionDto dto)
+    {
+        try
+        {
+            var page = await authorService.ChangeAuthorDescription(dto, User);
+            return Ok(page);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     /// <summary>
     /// Добавление подписки автора
     /// </summary>
