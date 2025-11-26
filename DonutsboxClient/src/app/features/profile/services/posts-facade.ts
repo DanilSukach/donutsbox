@@ -43,7 +43,12 @@ export class PostsFacade {
   }
 
   unpublishPost(postId: string): Observable<MessageResponseDto> {
-    return this.creatorPostService.apiCreatorPostPostIdUnpublishPost(postId);
+    return this.creatorPostService.apiCreatorPostPostIdUnpublishPost(postId).pipe(
+      catchError((error) => {
+        console.error('Ошибка снятия публикации поста:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getMyPosts(

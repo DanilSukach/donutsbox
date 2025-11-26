@@ -150,7 +150,46 @@ public class FilesService(
 
     public async Task<ImageUploadResponseDto> UploadAvatarAsync(Guid userId, ImageUploadRequestDto request)
     {
-        return await UploadProfileImageAsync(userId, request, "avatars");
+        if (request.File == null || request.File.Length == 0)
+            throw new FilesServiceException("No file", StatusCodes.Status400BadRequest);
+
+        if (!request.File.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            throw new FilesServiceException("Invalid image type", StatusCodes.Status400BadRequest);
+
+        var user = await db.Users
+            .Include(u => u.UserData)
+            .FirstOrDefaultAsync(u => u.Id == userId) 
+            ?? throw new FilesServiceException("User not found", StatusCodes.Status404NotFound);
+
+        var ext = Path.GetExtension(request.File.FileName);
+        var key = $"avatars/{userId}/{Guid.NewGuid()}{ext}";
+
+        using (var stream = request.File.OpenReadStream())
+        {
+            await minioService.UploadImageAsync(key, stream, request.File.ContentType);
+        }
+
+        // Создаём UserData если её нет, или обновляем AvatarUrl
+        if (user.UserData == null)
+        {
+            user.UserData = new UserData
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                User = user,
+                AvatarUrl = key
+            };
+            db.UsersData.Add(user.UserData);
+        }
+        else
+        {
+            user.UserData.AvatarUrl = key;
+        }
+
+        await db.SaveChangesAsync();
+        logger.LogInformation("Avatar uploaded for user {UserId}: {Key}", userId, key);
+
+        return new ImageUploadResponseDto { Key = key };
     }
 
     public async Task<ImageUploadResponseDto> UploadBannerAsync(Guid userId, ImageUploadRequestDto request)
@@ -205,7 +244,7 @@ public class FilesService(
             {
                 Id = imageId,
                 UserId = userId,
-                Title = dto.Title,
+                Title = string.Empty,
                 Status = "UPLOADED",
                 ObjectKey = key,
                 CreatedAt = DateTime.UtcNow,

@@ -1,0 +1,109 @@
+<div class="modal-backdrop fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300 z-50">
+  
+  <div class="modal-content bg-white rounded-2xl shadow-2xl max-w-2xl w-full transform transition-all duration-300 relative" (click)="$event.stopPropagation()">
+    
+    <!-- Header -->
+    <div class="sticky top-0 bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-4 flex justify-between items-center rounded-t-2xl">
+      <h2 class="text-xl font-bold text-white">
+        @if (selectedFile()) {
+          🖼️ Предпросмотр баннера
+        } @else {
+          🖼️ Загрузить баннер
+        }
+      </h2>
+      <button 
+        (click)="onClose()" 
+        [disabled]="isUploading()"
+        class="text-white hover:text-amber-100 text-3xl font-bold leading-none disabled:opacity-50" 
+        type="button"
+      >×</button>
+    </div>
+
+    <!-- Content -->
+    <div class="p-6">
+      @if (error()) {
+        <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg flex items-start gap-3">
+          <span class="text-red-600 text-xl">⚠️</span>
+          <p class="text-red-800 flex-1">{{ error() }}</p>
+          <button (click)="error.set(null)" class="text-red-400 hover:text-red-600 text-xl" type="button">×</button>
+        </div>
+      }
+      
+      @if (previewUrl()) {
+        <!-- Preview -->
+        <div class="flex flex-col items-center gap-4">
+          <div class="relative w-full">
+            <img 
+              [src]="previewUrl()" 
+              alt="Предпросмотр"
+              class="w-full h-40 md:h-56 rounded-xl object-cover border-2 border-amber-300 shadow-lg"
+            />
+            @if (!isUploading()) {
+              <button
+                type="button"
+                (click)="clearSelection()"
+                class="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-md"
+                title="Удалить"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            }
+          </div>
+          
+          <p class="text-sm text-gray-500 text-center truncate max-w-full" [title]="selectedFile()?.name">
+            {{ selectedFile()?.name }}
+          </p>
+        </div>
+      } @else {
+        <!-- Upload area -->
+        <label class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-amber-400 hover:bg-amber-50 transition-colors">
+          <input
+            type="file"
+            accept="image/*"
+            class="hidden"
+            (change)="onFileSelected($event)"
+          />
+          <div class="flex flex-col items-center gap-3 text-gray-500">
+            <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
+              <span class="text-3xl">🖼️</span>
+            </div>
+            <div class="text-center">
+              <p class="font-semibold text-gray-700">Нажмите для выбора изображения</p>
+              <p class="text-xs text-gray-400 mt-1">PNG, JPG, GIF до 20 МБ</p>
+              <p class="text-xs text-gray-400">Рекомендуемый размер: 1200×400</p>
+            </div>
+          </div>
+        </label>
+      }
+    </div>
+    
+    <!-- Footer -->
+    <div class="sticky bottom-0 bg-gray-50 border-t-2 border-gray-200 px-6 py-4 flex justify-between rounded-b-2xl">
+      <button
+        type="button"
+        (click)="onClose()"
+        [disabled]="isUploading()"
+        class="px-6 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+      >
+        Отмена
+      </button>
+      <button
+        type="button"
+        (click)="onUpload()"
+        [disabled]="!selectedFile() || isUploading()"
+        class="px-8 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold flex items-center gap-2"
+      >
+        @if (isUploading()) {
+          <span class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          Загрузка...
+        } @else {
+          📤 Сохранить
+        }
+      </button>
+    </div>
+    
+  </div>
+</div>
+

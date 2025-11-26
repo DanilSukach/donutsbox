@@ -41,15 +41,28 @@ public class AuthRepository(DonutsboxDbContext db) : IAuthRepository
         var userType = await db.UserTypes
             .FirstOrDefaultAsync(ut => ut.Name == roleName) ?? throw new InvalidOperationException($"Role '{roleName}' not found.");
 
+        var userId = Guid.NewGuid();
+        
         var user = new User
         {
-            Id = Guid.NewGuid(),
+            Id = userId,
             UserAuth = userAuth,
             UserAuthId = userAuth.Id,
             Name = userAuth.AuthEmail,
             UserType = userType,
             UserTypeId = userType.Id,
         };
+
+        // Создаём UserData для хранения аватарки и других данных пользователя
+        var userData = new UserData
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            User = user,
+            AvatarUrl = string.Empty
+        };
+
+        user.UserData = userData;
 
         db.Users.Add(user);
 

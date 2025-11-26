@@ -1,4 +1,4 @@
-import { Component, effect, inject, input, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy, untracked, PLATFORM_ID } from '@angular/core';
+import { Component, effect, inject, input, output, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy, untracked, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { PostCard } from '@app/shared/components/post-card/post-card';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
@@ -20,6 +20,9 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
   readonly creatorId = input<string>(); // Только для режима 'creator'
   readonly loadPostsFunction = input.required<(page: number, pageSize: number) => Observable<any>>(); // Функция загрузки
   readonly showAuthorInfo = input<boolean>(false); // Показывать ли аватарку автора
+  
+  // Outputs
+  readonly postHidden = output<any>(); // Событие когда пост скрыт (moved to drafts) - передаём весь объект поста
   
   private postsRefreshService = inject(PostsRefresh);
   private sessionService = inject(SessionService);
@@ -55,12 +58,19 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
         return;
       }
       
+      const isFirstLoad = this.lastTrigger === -1;
       this.lastTrigger = trigger;
-      console.log('🔄 posts-feed: effect сработал, trigger:', trigger);
+      console.log('🔄 posts-feed: effect сработал, trigger:', trigger, 'isFirstLoad:', isFirstLoad);
       
       // Используем untracked для избежания бесконечного цикла
       untracked(() => {
-        this.resetAndLoad();
+        if (isFirstLoad || this.posts().length === 0) {
+          // Первая загрузка - полный сброс
+          this.hardReset();
+        } else {
+          // Обновление - мягкий refresh без мигания
+          this.resetAndLoad();
+        }
       });
     });
   }
@@ -109,7 +119,73 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
     if (!this.isBrowser) {
       return;
     }
-    console.log('🔄 Сброс и загрузка постов');
+    console.log('🔄 Мягкое обновление постов');
+    this.softRefresh();
+  }
+
+  /**
+   * Мягкое обновление - загружает первую страницу и добавляет новые посты
+   * без сброса всего списка (без мигания)
+   */
+  private softRefresh(): void {
+    if (this.isLoading()) return;
+
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    const loadFunction = this.loadPostsFunction();
+    
+    loadFunction(1, this.pageSize).subscribe({
+      next: (response) => {
+        console.log('✅ Soft refresh - посты загружены:', response);
+        
+        const newPosts = response.posts || [];
+        const existingPosts = this.posts();
+        
+        // Находим новые посты, которых нет в текущем списке
+        const existingIds = new Set(existingPosts.map((p: any) => p.postId || p.id));
+        const trulyNewPosts = newPosts.filter((p: any) => !existingIds.has(p.postId || p.id));
+        
+        if (trulyNewPosts.length > 0) {
+          console.log(`📥 Добавлено ${trulyNewPosts.length} новых постов`);
+          // Добавляем новые посты в начало
+          this.posts.update(existing => [...trulyNewPosts, ...existing]);
+        } else {
+          console.log('📭 Новых постов нет');
+        }
+        
+        // Обновляем существующие посты (например, статус видео)
+        this.posts.update(existing => {
+          return existing.map((existingPost: any) => {
+            const updatedPost = newPosts.find((p: any) => 
+              (p.postId || p.id) === (existingPost.postId || existingPost.id)
+            );
+            return updatedPost || existingPost;
+          });
+        });
+
+        if (!this.initialLoadCompleted()) {
+          this.initialLoadCompleted.set(true);
+        }
+        this.initialLoadError.set(false);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('❌ Ошибка soft refresh:', err);
+        this.error.set('Не удалось обновить посты');
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  /**
+   * Полный сброс и загрузка (используется только при первой загрузке)
+   */
+  hardReset(): void {
+    if (!this.isBrowser) {
+      return;
+    }
+    console.log('🔄 Полный сброс и загрузка постов');
     this.posts.set([]);
     this.currentPage.set(1);
     this.hasMore.set(true);
@@ -178,6 +254,19 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  onPostDeleted(postId: string): void {
+    this.posts.update(posts => posts.filter(p => p.id !== postId));
+  }
+
+  onPostHidden(postId: string): void {
+    // Находим пост перед удалением, чтобы передать его в profile-page для добавления в черновики
+    const post = this.posts().find(p => p.id === postId);
+    this.posts.update(posts => posts.filter(p => p.id !== postId));
+    if (post) {
+      this.postHidden.emit(post); // Передаём весь объект поста
+    }
   }
 }
 

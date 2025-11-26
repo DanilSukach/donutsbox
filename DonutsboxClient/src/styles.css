@@ -3,3 +3,16 @@
   --media-brand: #d97706;
   --media-focus-ring-color: #f59e0b;
 }
+
+/* CDK Overlay backdrop styles */
+.edit-modal-backdrop {
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.edit-modal-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

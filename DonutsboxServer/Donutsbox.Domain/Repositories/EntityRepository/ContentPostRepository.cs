@@ -29,7 +29,10 @@ public class ContentPostRepository(DonutsboxDbContext context) : IEntityReposito
 
     public async Task<ContentPost?> GetByIdAsync(Guid id)
     {
-        return await context.ContentPosts.Include(c => c.PostComments).ThenInclude(u => u.User)
+        return await context.ContentPosts
+                            .Include(c => c.PostComments)
+                                .ThenInclude(pc => pc.User)
+                                    .ThenInclude(u => u.UserData)
                             .FirstOrDefaultAsync(c => c.Id == id);
     }
 

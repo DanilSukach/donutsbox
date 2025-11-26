@@ -1,4 +1,5 @@
 ﻿using Donutsbox.Api.Dto;
+using Donutsbox.Api.Services.Kafka;
 using Donutsbox.Api.Services.MinioService;
 using Donutsbox.Domain.Context;
 using Donutsbox.Domain.Entities;
@@ -11,6 +12,7 @@ namespace Donutsbox.Api.Services.CreatorPostService;
 public class CreatorPostService(
     DonutsboxDbContext db,
     IMinioService minio,
+    IMessageProducer kafka,
     ILogger<CreatorPostService> logger) : ICreatorPostService
 {
     private const string AudiencePublic = "Public";
@@ -243,7 +245,7 @@ public class CreatorPostService(
                 p.Id == postId &&
                 p.CreatorPageDataId == currentUser.CreatorPageData.Id) ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
         post.IsPublished = false;
-        post.CreatedAt = null;
+        // CreatedAt оставляем как есть - поле NOT NULL в БД
 
         await db.SaveChangesAsync();
 
@@ -294,7 +296,7 @@ public class CreatorPostService(
                     Id = v.Id,
                     Title = v.Title,
                     Status = v.Status,
-                    ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
+                    ThumbnailUrl = v.ThumbnailUrl, // Временно сохраняем ключ, потом заменим на presigned URL
                     HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
                 }).ToList(),
                 PictureUrls = new List<string>(), // Инициализируем пустым списком, заполним ниже
@@ -313,6 +315,24 @@ public class CreatorPostService(
 
         foreach (var post in posts)
         {
+            // Генерируем presigned URLs для превью видео
+            foreach (var video in post.Videos)
+            {
+                if (!string.IsNullOrWhiteSpace(video.ThumbnailUrl))
+                {
+                    try
+                    {
+                        var presignedUrl = await minio.GetPresignedGetUrlAsync(video.ThumbnailUrl, minio.GetProcessedBucket(), 300);
+                        video.ThumbnailUrl = presignedUrl;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to generate presigned URL for thumbnail {ThumbnailKey}", video.ThumbnailUrl);
+                        video.ThumbnailUrl = null; // Убираем превью, если не удалось сгенерировать URL
+                    }
+                }
+            }
+
             var postImages = images.Where(img => img.ContentPostId == post.Id).ToList();
             var presignedUrls = new List<string>();
             
@@ -402,7 +422,7 @@ public class CreatorPostService(
                         Id = v.Id,
                         Title = v.Title,
                         Status = v.Status,
-                        ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
+                        ThumbnailUrl = v.ThumbnailUrl, // Временно сохраняем ключ, потом заменим на presigned URL
                         HlsUrl = $"/api/files/{v.Id}/hls/index.m3u8"
                     }).ToList()
                     : new List<PostVideoDto>(),
@@ -435,6 +455,24 @@ public class CreatorPostService(
             if (post.IsLocked)
             {
                 continue;
+            }
+
+            // Генерируем presigned URLs для превью видео
+            foreach (var video in post.Videos)
+            {
+                if (!string.IsNullOrWhiteSpace(video.ThumbnailUrl))
+                {
+                    try
+                    {
+                        var presignedUrl = await minio.GetPresignedGetUrlAsync(video.ThumbnailUrl, minio.GetProcessedBucket(), 300);
+                        video.ThumbnailUrl = presignedUrl;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to generate presigned URL for thumbnail {ThumbnailKey}", video.ThumbnailUrl);
+                        video.ThumbnailUrl = null; // Убираем превью, если не удалось сгенерировать URL
+                    }
+                }
             }
 
             var postImages = images.Where(img => img.ContentPostId == post.Id).ToList();
@@ -656,7 +694,7 @@ public class CreatorPostService(
                     Id = v.Id,
                     Title = v.Title,
                     Status = v.Status,
-                    ThumbnailUrl = v.ThumbnailUrl != null ? $"/api/files/{v.Id}/thumbnail" : null,
+                    ThumbnailUrl = v.ThumbnailUrl, // Временно сохраняем ключ, потом заменим на presigned URL
                     HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
                 }).ToList(),
                 PictureUrls = new List<string>(), // Инициализируем пустым списком, заполним ниже
@@ -682,6 +720,24 @@ public class CreatorPostService(
 
         foreach (var post in posts)
         {
+            // Генерируем presigned URLs для превью видео
+            foreach (var video in post.Videos)
+            {
+                if (!string.IsNullOrWhiteSpace(video.ThumbnailUrl))
+                {
+                    try
+                    {
+                        var presignedUrl = await minio.GetPresignedGetUrlAsync(video.ThumbnailUrl, minio.GetProcessedBucket(), 300);
+                        video.ThumbnailUrl = presignedUrl;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to generate presigned URL for thumbnail {ThumbnailKey}", video.ThumbnailUrl);
+                        video.ThumbnailUrl = null; // Убираем превью, если не удалось сгенерировать URL
+                    }
+                }
+            }
+
             // Генерируем presigned URLs для изображений поста
             var postImages = images.Where(img => img.ContentPostId == post.Id).ToList();
             var presignedUrls = new List<string>();
@@ -789,5 +845,124 @@ public class CreatorPostService(
 
         ValidateAudienceConfiguration(audienceType, post.Subscriptions);
         post.AudienceType = audienceType;
+    }
+
+    public async Task<MessageResponseDto> CancelVideoProcessingAsync(Guid videoId, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+
+        // Находим видео и проверяем, что оно принадлежит пользователю
+        var video = await db.Videos
+            .FirstOrDefaultAsync(v => v.Id == videoId);
+
+        if (video == null)
+        {
+            throw new InvalidOperationException("Video not found");
+        }
+
+        // Проверяем владельца через UserId
+        if (video.UserId != userId)
+        {
+            throw new InvalidOperationException("Access denied");
+        }
+
+        // Проверяем статус видео - можно отменить только PENDING или PROCESSING
+        var status = video.Status.ToUpperInvariant();
+        if (status != "PENDING" && status != "PROCESSING" && status != "UPLOADED")
+        {
+            throw new InvalidOperationException($"Cannot cancel video with status: {video.Status}");
+        }
+
+        // Обновляем статус видео
+        video.Status = "CANCELLED";
+        await db.SaveChangesAsync();
+
+        // Отправляем событие в Kafka для отмены обработки
+        await kafka.PublishVideoProcessingCancelledAsync(new VideoProcessingCancelledEvent(
+            videoId,
+            "Cancelled by user"
+        ));
+
+        logger.LogInformation("Video {VideoId} processing cancelled by user {UserId}", videoId, userId);
+
+        return new MessageResponseDto
+        {
+            Message = "Video processing cancelled"
+        };
+    }
+
+    public async Task<MessageResponseDto> DeleteVideoAsync(Guid videoId, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+
+        var video = await db.Videos
+            .FirstOrDefaultAsync(v => v.Id == videoId);
+
+        if (video == null)
+        {
+            throw new InvalidOperationException("Video not found");
+        }
+
+        if (video.UserId != userId)
+        {
+            throw new InvalidOperationException("Access denied");
+        }
+
+        // Отменяем обработку если видео ещё обрабатывается
+        var status = video.Status.ToUpperInvariant();
+        if (status == "PENDING" || status == "PROCESSING" || status == "UPLOADED")
+        {
+            await kafka.PublishVideoProcessingCancelledAsync(new VideoProcessingCancelledEvent(
+                videoId,
+                "Video deleted by user"
+            ));
+        }
+
+        // Удаляем видео из базы данных
+        db.Videos.Remove(video);
+        await db.SaveChangesAsync();
+
+        // TODO: Удалить файлы из MinIO (исходный и обработанные)
+
+        logger.LogInformation("Video {VideoId} deleted by user {UserId}", videoId, userId);
+
+        return new MessageResponseDto
+        {
+            Message = "Video deleted"
+        };
+    }
+
+    public async Task<MessageResponseDto> DeleteImageAsync(string imageKey, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+
+        var image = await db.Images
+            .FirstOrDefaultAsync(i => i.ObjectKey == imageKey);
+
+        if (image == null)
+        {
+            throw new InvalidOperationException("Image not found");
+        }
+
+        if (image.UserId != userId)
+        {
+            throw new InvalidOperationException("Access denied");
+        }
+
+        // Удаляем изображение из базы данных
+        db.Images.Remove(image);
+        await db.SaveChangesAsync();
+
+        // TODO: Удалить файл из MinIO
+
+        logger.LogInformation("Image {ImageKey} deleted by user {UserId}", imageKey, userId);
+
+        return new MessageResponseDto
+        {
+            Message = "Image deleted"
+        };
     }
 }
