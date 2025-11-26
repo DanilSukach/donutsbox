@@ -245,7 +245,6 @@ public class CreatorPostService(
                 p.Id == postId &&
                 p.CreatorPageDataId == currentUser.CreatorPageData.Id) ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
         post.IsPublished = false;
-        // CreatedAt оставляем как есть - поле NOT NULL в БД
 
         await db.SaveChangesAsync();
 
@@ -388,13 +387,16 @@ public class CreatorPostService(
             .Include(p => p.Videos.Where(v => v.Status == "READY"))
             .Include(p => p.Subscriptions);
 
-        var viewerSubscriptionIds = new List<Guid>();
+        // Получаем НАЗВАНИЯ активных подписок пользователя (не зависит от срока)
+        var viewerSubscriptionNames = new List<string>();
         if (!isOwner)
         {
             var now = DateTime.UtcNow;
-            viewerSubscriptionIds = await db.UsersSubscriptions
+            viewerSubscriptionNames = await db.UsersSubscriptions
+                .Include(us => us.Subscription)
                 .Where(us => us.UserId == userId && us.Status == "active" && us.EndDate >= now)
-                .Select(us => us.SubscriptionId)
+                .Select(us => us.Subscription.Name)
+                .Distinct()
                 .ToListAsync();
         }
 
@@ -408,7 +410,7 @@ public class CreatorPostService(
             {
                 Id = p.Id,
                 Title = p.Title,
-                Text = (isOwner || (p.AudienceType ?? AudiencePublic) == AudiencePublic || p.Subscriptions.Any(s => viewerSubscriptionIds.Contains(s.Id)))
+                Text = (isOwner || (p.AudienceType ?? AudiencePublic) == AudiencePublic || p.Subscriptions.Any(s => viewerSubscriptionNames.Contains(s.Name)))
                     ? p.Text
                     : null,
                 CreatedAt = (DateTimeOffset)p.CreatedAt!,
@@ -416,7 +418,7 @@ public class CreatorPostService(
                 LikesCount = p.LikesCount,
                 DislikesCount = p.DislikesCount,
                 CommentsCount = p.PostComments.Count,
-                Videos = (isOwner || (p.AudienceType ?? AudiencePublic) == AudiencePublic || p.Subscriptions.Any(s => viewerSubscriptionIds.Contains(s.Id)))
+                Videos = (isOwner || (p.AudienceType ?? AudiencePublic) == AudiencePublic || p.Subscriptions.Any(s => viewerSubscriptionNames.Contains(s.Name)))
                     ? p.Videos.Select(v => new PostVideoDto
                     {
                         Id = v.Id,
@@ -435,10 +437,10 @@ public class CreatorPostService(
                 SubscriptionIds = p.Subscriptions.Select(s => s.Id).ToList(),
                 IsLocked = !(isOwner ||
                              (p.AudienceType ?? AudiencePublic) == AudiencePublic ||
-                             p.Subscriptions.Any(s => viewerSubscriptionIds.Contains(s.Id))),
+                             p.Subscriptions.Any(s => viewerSubscriptionNames.Contains(s.Name))),
                 LockedMessage = !(isOwner ||
                                   (p.AudienceType ?? AudiencePublic) == AudiencePublic ||
-                                  p.Subscriptions.Any(s => viewerSubscriptionIds.Contains(s.Id)))
+                                  p.Subscriptions.Any(s => viewerSubscriptionNames.Contains(s.Name)))
                     ? "Оформите подписку, чтобы посмотреть этот контент"
                     : null
             })
@@ -658,7 +660,10 @@ public class CreatorPostService(
             .Distinct()
             .ToList();
 
-        var subscriptionIds = userSubscriptions.Select(us => us.SubscriptionId).Distinct().ToList();
+        var userSubscriptionNames = userSubscriptions
+            .Select(us => us.Subscription.Name)
+            .Distinct()
+            .ToList();
 
         IQueryable<ContentPost> query = db.ContentPosts
             .Where(p => creatorPageIds.Contains(p.CreatorPageDataId) && p.IsPublished == true);
@@ -671,7 +676,7 @@ public class CreatorPostService(
 
         query = query.Where(p =>
             (p.AudienceType ?? AudiencePublic) == AudiencePublic ||
-            p.Subscriptions.Any(s => subscriptionIds.Contains(s.Id)));
+            p.Subscriptions.Any(s => userSubscriptionNames.Contains(s.Name)));
 
         query = query.OrderByDescending(p => p.CreatedAt);
 
@@ -694,10 +699,10 @@ public class CreatorPostService(
                     Id = v.Id,
                     Title = v.Title,
                     Status = v.Status,
-                    ThumbnailUrl = v.ThumbnailUrl, // Временно сохраняем ключ, потом заменим на presigned URL
+                    ThumbnailUrl = v.ThumbnailUrl,
                     HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
                 }).ToList(),
-                PictureUrls = new List<string>(), // Инициализируем пустым списком, заполним ниже
+                PictureUrls = new List<string>(), 
                 CreatorPageName = p.CreatorPageData.PageName,
                 CreatorId = p.CreatorPageData.UserId,
                 CreatorAvatarUrl = p.CreatorPageData.AvatarURL,
@@ -712,7 +717,6 @@ public class CreatorPostService(
             })
             .ToListAsync();
 
-        // Получаем изображения из таблицы Images для каждого поста и генерируем presigned URLs
         var postIds = posts.Select(p => p.Id).ToList();
         var images = await db.Set<Image>()
             .Where(img => postIds.Contains(img.ContentPostId) && !string.IsNullOrWhiteSpace(img.ObjectKey))
@@ -720,7 +724,6 @@ public class CreatorPostService(
 
         foreach (var post in posts)
         {
-            // Генерируем presigned URLs для превью видео
             foreach (var video in post.Videos)
             {
                 if (!string.IsNullOrWhiteSpace(video.ThumbnailUrl))
@@ -733,12 +736,11 @@ public class CreatorPostService(
                     catch (Exception ex)
                     {
                         logger.LogWarning(ex, "Failed to generate presigned URL for thumbnail {ThumbnailKey}", video.ThumbnailUrl);
-                        video.ThumbnailUrl = null; // Убираем превью, если не удалось сгенерировать URL
+                        video.ThumbnailUrl = null; 
                     }
                 }
             }
 
-            // Генерируем presigned URLs для изображений поста
             var postImages = images.Where(img => img.ContentPostId == post.Id).ToList();
             var presignedUrls = new List<string>();
             
@@ -754,13 +756,11 @@ public class CreatorPostService(
                     catch (Exception ex)
                     {
                         logger.LogWarning(ex, "Failed to generate presigned URL for image {ImageKey}", image.ObjectKey);
-                        // Пропускаем изображение, если не удалось сгенерировать URL
                     }
                 }
             }
             post.PictureUrls = presignedUrls;
 
-            // Генерируем presigned URL для аватара создателя
             if (!post.IsLocked && !string.IsNullOrEmpty(post.CreatorAvatarUrl))
             {
                 try
@@ -807,14 +807,26 @@ public class CreatorPostService(
         if (subscriptionIds.Count == 0)
             return [];
 
-        var subscriptions = await db.Subscriptions
+        var selectedSubscriptions = await db.Subscriptions
             .Where(s => s.CreatorPageDataId == creatorPageDataId && subscriptionIds.Contains(s.Id))
             .ToListAsync();
 
-        if (subscriptions.Count != subscriptionIds.Count)
+        if (selectedSubscriptions.Count != subscriptionIds.Count)
             throw new InvalidOperationException("Subscription list contains invalid entries");
 
-        return subscriptions;
+        var subscriptionNames = selectedSubscriptions.Select(s => s.Name).Distinct().ToList();
+
+        var allSubscriptionsWithSameNames = await db.Subscriptions
+            .Where(s => s.CreatorPageDataId == creatorPageDataId && subscriptionNames.Contains(s.Name))
+            .ToListAsync();
+
+        logger.LogInformation(
+            "Loaded {Count} subscriptions (all periods) for creator {CreatorId} with names: {Names}",
+            allSubscriptionsWithSameNames.Count,
+            creatorPageDataId,
+            string.Join(", ", subscriptionNames));
+
+        return allSubscriptionsWithSameNames;
     }
 
     private static void ValidateAudienceConfiguration(string audienceType, List<Subscription>? subscriptions)
@@ -852,33 +864,22 @@ public class CreatorPostService(
         var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
             ?? throw new InvalidOperationException("User ID claim not found"));
 
-        // Находим видео и проверяем, что оно принадлежит пользователю
         var video = await db.Videos
-            .FirstOrDefaultAsync(v => v.Id == videoId);
-
-        if (video == null)
-        {
-            throw new InvalidOperationException("Video not found");
-        }
-
-        // Проверяем владельца через UserId
+            .FirstOrDefaultAsync(v => v.Id == videoId) ?? throw new InvalidOperationException("Video not found");
         if (video.UserId != userId)
         {
             throw new InvalidOperationException("Access denied");
         }
 
-        // Проверяем статус видео - можно отменить только PENDING или PROCESSING
         var status = video.Status.ToUpperInvariant();
         if (status != "PENDING" && status != "PROCESSING" && status != "UPLOADED")
         {
             throw new InvalidOperationException($"Cannot cancel video with status: {video.Status}");
         }
 
-        // Обновляем статус видео
         video.Status = "CANCELLED";
         await db.SaveChangesAsync();
 
-        // Отправляем событие в Kafka для отмены обработки
         await kafka.PublishVideoProcessingCancelledAsync(new VideoProcessingCancelledEvent(
             videoId,
             "Cancelled by user"
@@ -898,19 +899,12 @@ public class CreatorPostService(
             ?? throw new InvalidOperationException("User ID claim not found"));
 
         var video = await db.Videos
-            .FirstOrDefaultAsync(v => v.Id == videoId);
-
-        if (video == null)
-        {
-            throw new InvalidOperationException("Video not found");
-        }
-
+            .FirstOrDefaultAsync(v => v.Id == videoId) ?? throw new InvalidOperationException("Video not found");
         if (video.UserId != userId)
         {
             throw new InvalidOperationException("Access denied");
         }
 
-        // Отменяем обработку если видео ещё обрабатывается
         var status = video.Status.ToUpperInvariant();
         if (status == "PENDING" || status == "PROCESSING" || status == "UPLOADED")
         {
@@ -920,11 +914,8 @@ public class CreatorPostService(
             ));
         }
 
-        // Удаляем видео из базы данных
         db.Videos.Remove(video);
         await db.SaveChangesAsync();
-
-        // TODO: Удалить файлы из MinIO (исходный и обработанные)
 
         logger.LogInformation("Video {VideoId} deleted by user {UserId}", videoId, userId);
 
@@ -940,23 +931,15 @@ public class CreatorPostService(
             ?? throw new InvalidOperationException("User ID claim not found"));
 
         var image = await db.Images
-            .FirstOrDefaultAsync(i => i.ObjectKey == imageKey);
-
-        if (image == null)
-        {
-            throw new InvalidOperationException("Image not found");
-        }
-
+            .FirstOrDefaultAsync(i => i.ObjectKey == imageKey) ?? throw new InvalidOperationException("Image not found");
         if (image.UserId != userId)
         {
             throw new InvalidOperationException("Access denied");
         }
 
-        // Удаляем изображение из базы данных
         db.Images.Remove(image);
         await db.SaveChangesAsync();
 
-        // TODO: Удалить файл из MinIO
 
         logger.LogInformation("Image {ImageKey} deleted by user {UserId}", imageKey, userId);
 
