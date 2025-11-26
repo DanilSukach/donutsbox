@@ -26,6 +26,11 @@ public class PostCommentDto
     public string? UserName { get; set; }
 
     /// <summary>
+    /// URL аватарки пользователя
+    /// </summary>
+    public string? UserAvatarUrl { get; set; }
+
+    /// <summary>
     /// Текст комментария
     /// </summary>
     public required string Text { get; set; }

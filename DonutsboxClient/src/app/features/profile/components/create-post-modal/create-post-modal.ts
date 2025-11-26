@@ -1,8 +1,10 @@
-import { Component, OnInit, inject, output, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, output, signal } from '@angular/core';
 import { PostsFacade } from '../../services/posts-facade';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 import { VideoStatusPollService } from '../../services/video-status-poll.service';
 import { CreateDraftRequestDto, FilesService, SubscriptionDto } from '@app/api/donutsbox';
+import { HttpClient } from '@angular/common/http';
+import { Subscription } from 'rxjs';
 
 type ModalStep = 'create' | 'upload-video' | 'publish' | 'done';
 
@@ -26,11 +28,12 @@ interface UploadedImage {
   templateUrl: './create-post-modal.html',
   styleUrl: './create-post-modal.css',
 })
-export class CreatePostModal implements OnInit {
+export class CreatePostModal implements OnInit, OnDestroy {
   private postsFacade = inject(PostsFacade);
   private postsRefreshService = inject(PostsRefresh);
   private videoStatusPollService = inject(VideoStatusPollService);
   private filesService = inject(FilesService);
+  private http = inject(HttpClient);
 
   readonly closed = output<void>();
   readonly published = output<void>();
@@ -51,18 +54,26 @@ export class CreatePostModal implements OnInit {
 
   readonly videos = signal<UploadedVideo[]>([]);
   readonly videoTitle = signal('');
-  readonly videoDescription = signal('');
   readonly selectedVideoFile = signal<File | null>(null);
   readonly selectedThumbnail = signal<File | null>(null);
   readonly isVideoFormExpanded = signal(false);
+  readonly uploadProgress = signal(0);
+  readonly currentUploadingVideoId = signal<string | null>(null);
+
+  private uploadSubscription: Subscription | null = null;
+  private uploadAbortController: AbortController | null = null;
 
   readonly images = signal<UploadedImage[]>([]);
-  readonly imageTitle = signal('');
-  readonly selectedImageFiles = signal<File[]>([]);
   readonly isImageFormExpanded = signal(false);
+  readonly isUploadingImages = signal(false);
 
   ngOnInit(): void {
     this.loadCreatorSubscriptions();
+  }
+
+  ngOnDestroy(): void {
+    this.cancelUpload();
+    this.uploadSubscription?.unsubscribe();
   }
 
   private loadCreatorSubscriptions(): void {
@@ -160,17 +171,72 @@ export class CreatePostModal implements OnInit {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const files = Array.from(input.files);
-      // Ограничение до 8 файлов
-      const limitedFiles = files.slice(0, 8);
-      this.selectedImageFiles.set(limitedFiles);
+      const currentCount = this.images().length;
+      const maxAllowed = 8 - currentCount;
       
-      // Если выбрано больше 8, показываем предупреждение
-      if (files.length > 8) {
-        this.error.set(`Можно загрузить максимум 8 изображений. Выбрано ${limitedFiles.length}.`);
+      if (maxAllowed <= 0) {
+        this.error.set('Достигнут лимит в 8 изображений');
+        input.value = '';
+        return;
+      }
+      
+      const limitedFiles = files.slice(0, maxAllowed);
+      
+      if (files.length > maxAllowed) {
+        this.error.set(`Можно добавить ещё ${maxAllowed} изображений. Загружено ${limitedFiles.length}.`);
       } else {
         this.error.set(null);
       }
+      
+      // Сразу загружаем файлы
+      this.uploadImagesImmediately(limitedFiles);
+      input.value = '';
     }
+  }
+
+  private uploadImagesImmediately(files: File[]): void {
+    const postId = this.postId();
+    if (!postId || files.length === 0) return;
+
+    this.isLoading.set(true);
+    this.isUploadingImages.set(true);
+    this.error.set(null);
+
+    this.filesService.apiFilesImagesPostPost(files, postId)
+      .subscribe({
+        next: (response) => {
+          if (!response || response.length === 0) {
+            this.error.set('Изображения не загружены');
+            this.isLoading.set(false);
+            this.isUploadingImages.set(false);
+            return;
+          }
+
+          const uploadedImages: UploadedImage[] = response
+            .filter((item, index) => item.key && files[index])
+            .map((item, index) => ({
+              imageId: `img-${Date.now()}-${index}`,
+              title: '',
+              file: files[index],
+              key: item.key!,
+            }));
+
+          if (uploadedImages.length > 0) {
+            this.images.update((imgs) => [...imgs, ...uploadedImages]);
+            this.isImageFormExpanded.set(false);
+          } else {
+            this.error.set('Не удалось загрузить изображения');
+          }
+
+          this.isLoading.set(false);
+          this.isUploadingImages.set(false);
+        },
+        error: (err) => {
+          this.error.set(err.error?.message || 'Ошибка загрузки изображений');
+          this.isLoading.set(false);
+          this.isUploadingImages.set(false);
+        },
+      });
   }
 
   createDraft(): void {
@@ -231,23 +297,39 @@ export class CreatePostModal implements OnInit {
 
     this.isLoading.set(true);
     this.error.set(null);
+    this.uploadProgress.set(0);
 
-    this.postsFacade
-      .uploadVideo(
-        postId,
-        this.videoTitle(),
-        file,
-        this.videoDescription(),
-        this.selectedThumbnail() || undefined
-      )
-      .subscribe({
-        next: (response) => {
+    // Используем XMLHttpRequest для отслеживания прогресса и возможности отмены
+    const formData = new FormData();
+    formData.append('ContentPostId', postId);
+    formData.append('Title', this.videoTitle());
+    formData.append('File', file);
+    if (this.selectedThumbnail()) {
+      formData.append('Thumbnail', this.selectedThumbnail()!);
+    }
+
+    const xhr = new XMLHttpRequest();
+    this.uploadAbortController = new AbortController();
+    
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) {
+        const progress = Math.round((event.loaded / event.total) * 100);
+        this.uploadProgress.set(progress);
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const response = JSON.parse(xhr.responseText);
           if (!response.videoId) {
             this.error.set('Не получен ID видео от сервера');
             this.isLoading.set(false);
+            this.uploadProgress.set(0);
             return;
           }
 
+          this.currentUploadingVideoId.set(response.videoId);
           this.videos.update((vids) => [
             ...vids,
             {
@@ -259,9 +341,10 @@ export class CreatePostModal implements OnInit {
           ]);
 
           this.videoTitle.set('');
-          this.videoDescription.set('');
           this.selectedVideoFile.set(null);
           this.selectedThumbnail.set(null);
+          this.uploadProgress.set(0);
+          this.currentUploadingVideoId.set(null);
 
           const videoInput = document.getElementById('video-file') as HTMLInputElement;
           const thumbInput = document.getElementById('thumbnail-file') as HTMLInputElement;
@@ -269,74 +352,105 @@ export class CreatePostModal implements OnInit {
           if (thumbInput) thumbInput.value = '';
 
           this.isLoading.set(false);
-        },
-        error: (err) => {
-          this.error.set(err.error?.message || 'Ошибка загрузки видео');
+          this.isVideoFormExpanded.set(false);
+        } catch {
+          this.error.set('Ошибка обработки ответа сервера');
           this.isLoading.set(false);
-        },
-      });
+          this.uploadProgress.set(0);
+        }
+      } else {
+        this.error.set('Ошибка загрузки видео');
+        this.isLoading.set(false);
+        this.uploadProgress.set(0);
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      this.error.set('Ошибка сети при загрузке видео');
+      this.isLoading.set(false);
+      this.uploadProgress.set(0);
+    });
+
+    xhr.addEventListener('abort', () => {
+      this.error.set(null);
+      this.isLoading.set(false);
+      this.uploadProgress.set(0);
+      this.selectedVideoFile.set(null);
+      
+      const videoInput = document.getElementById('video-file') as HTMLInputElement;
+      if (videoInput) videoInput.value = '';
+    });
+
+    xhr.open('POST', '/api/Files/upload');
+    xhr.send(formData);
+
+    // Сохраняем ссылку на xhr для возможности отмены
+    (this as Record<string, unknown>)['_currentXhr'] = xhr;
   }
 
-  uploadImages(): void {
-    const files = this.selectedImageFiles();
-    const postId = this.postId();
-
-    if (!files || files.length === 0) {
-      this.error.set('Выберите изображения');
-      return;
+  cancelUpload(): void {
+    // Отменяем текущую загрузку
+    const xhr = (this as Record<string, unknown>)['_currentXhr'] as XMLHttpRequest | undefined;
+    if (xhr) {
+      xhr.abort();
+      (this as Record<string, unknown>)['_currentXhr'] = null;
     }
-
-    if (files.length > 8) {
-      this.error.set('Максимум 8 изображений');
-      return;
-    }
-
-    if (!postId) {
-      this.error.set('Пост не создан');
-      return;
-    }
-
-    this.isLoading.set(true);
-    this.error.set(null);
-
-    this.filesService.apiFilesImagesPostPost(files, postId, this.imageTitle() || undefined)
-      .subscribe({
-        next: (response) => {
-          if (!response || response.length === 0) {
-            this.error.set('Изображения не загружены');
-            this.isLoading.set(false);
-            return;
-          }
-
-          // Добавляем загруженные изображения (фильтруем те, у которых есть key)
-          const uploadedImages: UploadedImage[] = response
-            .filter((item, index) => item.key && files[index])
-            .map((item, index) => ({
-              imageId: `img-${Date.now()}-${index}`,
-              title: this.imageTitle(),
-              file: files[index],
-              key: item.key!,
-            }));
-
-          if (uploadedImages.length > 0) {
-            this.images.update((imgs) => [...imgs, ...uploadedImages]);
-          } else {
-            this.error.set('Не удалось загрузить изображения');
-          }
-
-          // Очищаем форму
-          this.imageTitle.set('');
-          this.selectedImageFiles.set([]);
-          const imageInput = document.getElementById('image-files') as HTMLInputElement;
-          if (imageInput) imageInput.value = '';
-
-          this.isLoading.set(false);
+    
+    // Если видео уже загружено и в обработке, отменяем обработку
+    const videoId = this.currentUploadingVideoId();
+    if (videoId) {
+      this.http.post(`/api/CreatorPost/video/${videoId}/cancel`, {}).subscribe({
+        next: () => {
+          console.log('Обработка видео отменена');
         },
-        error: (err) => {
-          this.error.set(err.error?.message || 'Ошибка загрузки изображений');
-          this.isLoading.set(false);
-        },
+        error: (err: unknown) => {
+          console.error('Ошибка отмены обработки видео:', err);
+        }
       });
+      this.currentUploadingVideoId.set(null);
+    }
+    
+    this.isLoading.set(false);
+    this.uploadProgress.set(0);
+    this.selectedVideoFile.set(null);
+    
+    const videoInput = document.getElementById('video-file') as HTMLInputElement;
+    if (videoInput) videoInput.value = '';
+  }
+
+  removeVideo(videoId: string): void {
+    // Удаляем из локального списка
+    this.videos.update((vids) => vids.filter((v) => v.videoId !== videoId));
+    
+    // Отправляем запрос на удаление на сервер
+    this.http.delete(`/api/CreatorPost/video/${videoId}`).subscribe({
+      next: () => {
+        console.log('Видео удалено:', videoId);
+      },
+      error: (err: unknown) => {
+        console.error('Ошибка удаления видео:', err);
+      }
+    });
+  }
+
+  removeImage(imageId: string): void {
+    // Находим изображение чтобы получить ключ
+    const image = this.images().find((img) => img.imageId === imageId);
+    
+    // Удаляем из локального списка
+    this.images.update((imgs) => imgs.filter((img) => img.imageId !== imageId));
+    
+    // Отправляем запрос на удаление на сервер
+    if (image?.key) {
+      this.http.delete(`/api/CreatorPost/image/${encodeURIComponent(image.key)}`).subscribe({
+        next: () => {
+          console.log('Изображение удалено:', imageId);
+        },
+        error: (err: unknown) => {
+          console.error('Ошибка удаления изображения:', err);
+        }
+      });
+    }
   }
 
   proceedToPublish(): void {
@@ -353,18 +467,24 @@ export class CreatePostModal implements OnInit {
     this.isLoading.set(true);
     this.error.set(null);
 
+    const hasVideos = this.videos().length > 0;
+
     this.postsFacade.publishPost(postId).subscribe({
       next: () => {
         this.currentStep.set('done');
         this.isLoading.set(false);
         console.log('✅ Пост опубликован');
         
-        // Сразу обновляем список постов
-        this.postsRefreshService.triggerRefresh();
-        
-        // Запускаем polling для автоматического обновления после обработки видео
-        console.log('🎬 Запускаю polling статуса видео...');
-        this.videoStatusPollService.startPollingAfterPublish();
+        if (hasVideos) {
+          // Если есть видео - ждём обработки, не обновляем сразу
+          // Плашка покажет что контент обрабатывается
+          console.log('🎬 Запускаю polling статуса видео...');
+          this.videoStatusPollService.startPollingAfterPublish();
+        } else {
+          // Если только текст/изображения - обновляем сразу
+          console.log('📝 Пост без видео, обновляем сразу');
+          this.postsRefreshService.triggerRefresh();
+        }
       },
       error: (err) => {
         this.error.set(err.error?.message || 'Ошибка публикации поста');
@@ -388,14 +508,14 @@ export class CreatePostModal implements OnInit {
     this.selectedSubscriptionIds.set(new Set<string>());
     this.videos.set([]);
     this.videoTitle.set('');
-    this.videoDescription.set('');
     this.selectedVideoFile.set(null);
     this.selectedThumbnail.set(null);
     this.isVideoFormExpanded.set(false);
+    this.uploadProgress.set(0);
+    this.currentUploadingVideoId.set(null);
     this.images.set([]);
-    this.imageTitle.set('');
-    this.selectedImageFiles.set([]);
     this.isImageFormExpanded.set(false);
+    this.isUploadingImages.set(false);
     this.error.set(null);
     this.wasPublished.set(false);
   }

@@ -30,7 +30,9 @@ public class UserRepository(DonutsboxDbContext context) : IEntityRepository<User
 
     public async Task<IEnumerable<User>> GetAllAsync() => await context.Users.ToListAsync();
 
-    public async Task<User?> GetByIdAsync(Guid id) => await context.Users.FirstOrDefaultAsync(u => u.Id == id);
+    public async Task<User?> GetByIdAsync(Guid id) => await context.Users
+        .Include(u => u.UserData)
+        .FirstOrDefaultAsync(u => u.Id == id);
 
     public async Task<bool> UpdateAsync(User entity, Guid id)
     {

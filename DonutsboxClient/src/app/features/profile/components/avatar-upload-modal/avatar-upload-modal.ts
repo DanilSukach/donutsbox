@@ -1,0 +1,77 @@
+import { Component, EventEmitter, Output, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-avatar-upload-modal',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './avatar-upload-modal.html',
+  styleUrl: './avatar-upload-modal.css'
+})
+export class AvatarUploadModal {
+  @Output() closed = new EventEmitter<void>();
+  @Output() uploaded = new EventEmitter<File>();
+
+  readonly selectedFile = signal<File | null>(null);
+  readonly previewUrl = signal<string | null>(null);
+  readonly isUploading = signal(false);
+  readonly error = signal<string | null>(null);
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    
+    if (!file) return;
+
+    // Проверка типа файла
+    if (!file.type.startsWith('image/')) {
+      this.error.set('Пожалуйста, выберите изображение');
+      return;
+    }
+
+    // Проверка размера (максимум 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      this.error.set('Файл слишком большой (максимум 10 МБ)');
+      return;
+    }
+
+    this.error.set(null);
+    this.selectedFile.set(file);
+
+    // Создаём preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.previewUrl.set(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  onUpload(): void {
+    const file = this.selectedFile();
+    if (!file) return;
+
+    this.isUploading.set(true);
+    this.uploaded.emit(file);
+  }
+
+  onClose(): void {
+    if (this.isUploading()) return;
+    this.closed.emit();
+  }
+
+  clearSelection(): void {
+    this.selectedFile.set(null);
+    this.previewUrl.set(null);
+    this.error.set(null);
+  }
+
+  setUploading(value: boolean): void {
+    this.isUploading.set(value);
+  }
+
+  setError(message: string): void {
+    this.error.set(message);
+    this.isUploading.set(false);
+  }
+}
+

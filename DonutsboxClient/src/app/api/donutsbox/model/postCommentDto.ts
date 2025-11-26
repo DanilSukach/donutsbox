@@ -30,6 +30,10 @@ export interface PostCommentDto {
      */
     userName?: string | null;
     /**
+     * URL аватарки пользователя
+     */
+    userAvatarUrl?: string | null;
+    /**
      * Текст комментария
      */
     text: string | null;

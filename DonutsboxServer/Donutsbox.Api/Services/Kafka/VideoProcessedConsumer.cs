@@ -1,6 +1,8 @@
 ﻿using Confluent.Kafka;
+using Donutsbox.Api.Services.MinioService;
 using Donutsbox.Domain.Context;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 using System.Text.Json;
 
 namespace Donutsbox.Api.Services.Kafka;
@@ -9,7 +11,8 @@ public class VideoProcessedConsumer(
     ILogger<VideoProcessedConsumer> logger,
     IServiceScopeFactory scopeFactory,
     IConfiguration config,
-    IHostApplicationLifetime appLifetime
+    IHostApplicationLifetime appLifetime,
+    IMinioService minioService
 ) : BackgroundService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -75,6 +78,42 @@ public class VideoProcessedConsumer(
                     logger.LogWarning("Video {VideoId} not found", evt.VideoId);
                     consumer.Commit(cr);
                     continue;
+                }
+
+                // Перемещаем превью из временного бакета в обработанный, если оно есть
+                if (!string.IsNullOrEmpty(video.ThumbnailUrl))
+                {
+                    try
+                    {
+                        var tempBucket = minioService.GetTempBucket();
+                        var processedBucket = minioService.GetProcessedBucket();
+                        var oldThumbnailKey = video.ThumbnailUrl;
+                        
+                        // Новый ключ для превью в обработанном бакете
+                        var newThumbnailKey = $"processed/{evt.VideoId}/thumbnail{Path.GetExtension(oldThumbnailKey)}";
+                        
+                        // Копируем превью из tempBucket в processedBucket
+                        await minioService.CopyObjectAsync(
+                            oldThumbnailKey,
+                            tempBucket,
+                            newThumbnailKey,
+                            processedBucket
+                        );
+                        
+                        // Обновляем ThumbnailUrl на новое местоположение
+                        video.ThumbnailUrl = newThumbnailKey;
+                        
+                        // Удаляем старое превью из временного бакета
+                        await minioService.DeleteObjectAsync(oldThumbnailKey, tempBucket);
+                        
+                        logger.LogInformation("Thumbnail moved for video {VideoId} from {OldKey} to {NewKey}",
+                            evt.VideoId, oldThumbnailKey, newThumbnailKey);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to move thumbnail for video {VideoId}", evt.VideoId);
+                        // Продолжаем обработку даже если не удалось переместить превью
+                    }
                 }
 
                 video.ProcessedPath = evt.OutputPath;

@@ -1,5 +1,6 @@
 ﻿using Donutsbox.Api.Dto;
 using Donutsbox.Api.Hubs;
+using Donutsbox.Api.Services.MinioService;
 using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.EntityRepository;
 using Microsoft.AspNetCore.SignalR;
@@ -10,7 +11,8 @@ public class PostCommentService(
     IEntityRepository<PostComment, Guid> comment, 
     IEntityRepository<ContentPost, Guid> post, 
     IEntityRepository<User, Guid> user, 
-    IHubContext<CommentsHub> hubContext) : IPostCommentService
+    IHubContext<CommentsHub> hubContext,
+    IMinioService minioService) : IPostCommentService
 {
     public async Task<PostCommentDto?> AddAsync(CreatePostCommentDto dto, Guid userId)
     {
@@ -31,12 +33,29 @@ public class PostCommentService(
 
         var addedComment = await comment.AddAsync(commentEntity);
 
+        string? avatarUrl = null;
+        if (!string.IsNullOrEmpty(userEntity.UserData?.AvatarUrl))
+        {
+            try
+            {
+                avatarUrl = await minioService.GetPresignedGetUrlAsync(
+                    userEntity.UserData.AvatarUrl, 
+                    minioService.GetImagesBucket(), 
+                    300);
+            }
+            catch (Exception)
+            {
+                avatarUrl = null;
+            }
+        }
+
         var result = new PostCommentDto
         {
             Id = addedComment.Id,
             PostId = addedComment.ContentPostId,
             UserId = addedComment.UserId,
             UserName = userEntity.Name,
+            UserAvatarUrl = avatarUrl,
             Text = addedComment.Text,
             CreatedAt = addedComment.CreatedAt
         };
@@ -83,15 +102,36 @@ public class PostCommentService(
     {
         var postEntity = await post.GetByIdAsync(postId) ?? throw new InvalidOperationException($"Post with ID {postId} not found");
 
-        return postEntity.PostComments.Select(c => new PostCommentDto()
+        var tasks = postEntity.PostComments.Select(async c =>
         {
-            Id = c.Id,
-            Text = c.Text,
-            UserId = c.UserId,
-            PostId = c.ContentPostId,
-            CreatedAt = c.CreatedAt,
-            UserName = c.User.Name
+            string? avatarUrl = null;
+            if (!string.IsNullOrEmpty(c.User?.UserData?.AvatarUrl))
+            {
+                try
+                {
+                    avatarUrl = await minioService.GetPresignedGetUrlAsync(
+                        c.User.UserData.AvatarUrl,
+                        minioService.GetImagesBucket(),
+                        300);
+                }
+                catch (Exception)
+                {
+                    avatarUrl = null;
+                }
+            }
+
+            return new PostCommentDto
+            {
+                Id = c.Id,
+                Text = c.Text,
+                UserId = c.UserId,
+                PostId = c.ContentPostId,
+                CreatedAt = c.CreatedAt,
+                UserName = c.User?.Name,
+                UserAvatarUrl = avatarUrl
+            };
         });
 
+        return await Task.WhenAll(tasks);
     }
 }

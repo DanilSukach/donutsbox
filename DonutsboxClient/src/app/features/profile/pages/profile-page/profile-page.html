@@ -2,12 +2,47 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="flex justify-between items-center mb-8">
       <div class="flex items-center gap-3">
-        <div
-          class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center"
-        >
-          <span class="text-white font-bold text-sm">👤</span>
+        <!-- Аватарка с возможностью загрузки для своего профиля -->
+        <div class="flex flex-col items-center gap-1">
+          <div class="relative group">
+            @if (avatarSrc()) {
+              <img 
+                [src]="avatarSrc()" 
+                [alt]="author()?.pageName || 'Аватар'"
+                class="w-14 h-14 rounded-full object-cover border-2 border-amber-300 shadow-sm"
+                [class.cursor-pointer]="isOwnProfile()"
+                [class.hover:opacity-80]="isOwnProfile()"
+              />
+            } @else {
+              <div
+                class="w-14 h-14 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center"
+                [class.cursor-pointer]="isOwnProfile()"
+                [class.hover:opacity-80]="isOwnProfile()"
+              >
+                <span class="text-white font-bold text-xl">👤</span>
+              </div>
+            }
+            
+            @if (isOwnProfile()) {
+              <button
+                type="button"
+                (click)="openAvatarModal()"
+                class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Изменить аватарку"
+              >
+                <span class="text-white text-lg">📷</span>
+              </button>
+            }
+          </div>
+          
         </div>
-        <h1 class="text-2xl font-extrabold text-amber-900 tracking-tight">Профиль пользователя</h1>
+        
+        <div>
+          <h1 class="text-2xl font-extrabold text-amber-900 tracking-tight">Профиль пользователя</h1>
+          @if (avatarUploadError()) {
+            <p class="text-xs text-red-500">{{ avatarUploadError() }}</p>
+          }
+        </div>
       </div>
       <div class="flex items-center gap-4">
         <button
@@ -17,6 +52,19 @@
         >
           Перейти к ленте
         </button>
+        @if (isOwnProfile() && isCurrentUserCreator()) {
+          <button
+            type="button"
+            (click)="toggleDrafts()"
+            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+            [class.bg-gray-800]="showDrafts()"
+          >
+            📝 Черновики
+            @if (drafts().length > 0) {
+              <span class="ml-1 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">{{ drafts().length }}</span>
+            }
+          </button>
+        }
         <button
           type="button"
           (click)="onLogout()"
@@ -27,15 +75,90 @@
       </div>
     </div>
 
-    @if (author() && bannerSrc()){
-      <div class="mb-6">
+    <!-- Черновики -->
+    @if (showDrafts() && isOwnProfile()) {
+      <div class="mb-6 bg-gray-50 rounded-xl p-4 border border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">📝 Черновики</h3>
+        
+        @if (draftsLoading()) {
+          <div class="flex items-center justify-center py-8">
+            <div class="animate-spin h-6 w-6 border-2 border-amber-600 border-t-transparent rounded-full"></div>
+            <span class="ml-2 text-gray-600">Загрузка...</span>
+          </div>
+        } @else if (drafts().length === 0) {
+          <div class="text-center py-8 text-gray-500">
+            <span class="text-4xl mb-2 block">📭</span>
+            <p>Нет черновиков</p>
+          </div>
+        } @else {
+          <div class="space-y-3">
+            @for (draft of drafts(); track draft.id) {
+              <div class="bg-white rounded-lg p-4 border border-gray-200 flex items-start gap-4">
+                <div class="flex-1 min-w-0">
+                  <h4 class="font-semibold text-gray-900 truncate">{{ draft.title || 'Без названия' }}</h4>
+                  <p class="text-sm text-gray-600 line-clamp-2 mt-1">{{ draft.text || 'Нет описания' }}</p>
+                  <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                    @if (draft.videos?.length) {
+                      <span>🎬 {{ draft.videos.length }} видео</span>
+                    }
+                    @if (draft.pictureUrls?.length) {
+                      <span>🖼️ {{ draft.pictureUrls.length }} изображений</span>
+                    }
+                    <span>{{ draft.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    type="button"
+                    (click)="publishDraft(draft.id!)"
+                    class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                  >
+                    Опубликовать
+                  </button>
+                  <button
+                    type="button"
+                    (click)="deleteDraft(draft.id!)"
+                    class="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Баннер с кнопкой редактирования (только для авторов) -->
+    @if (author()) {
+    <div class="mb-6 relative">
+      @if (bannerSrc()) {
         <img
-          [src]="bannerSrc() || '/images/banner-placeholder.jpg'"
+          [src]="bannerSrc()"
           alt="Баннер автора"
           class="w-full h-40 md:h-56 rounded-xl object-cover"
           (error)="onBannerError($event)"
         />
-      </div>
+      } @else if (isOwnProfile()) {
+        <div class="w-full h-40 md:h-56 rounded-xl bg-gradient-to-r from-amber-100 to-amber-200 flex items-center justify-center">
+          <span class="text-amber-400 text-lg">Добавьте баннер</span>
+        </div>
+      }
+      
+      @if (isOwnProfile()) {
+        <button
+          type="button"
+          (click)="openBannerModal()"
+          class="absolute top-3 right-3 w-10 h-10 bg-white hover:bg-gray-100 text-gray-700 rounded-full shadow-lg flex items-center justify-center transition-colors border border-gray-200"
+          title="Изменить баннер"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        </button>
+      }
+    </div>
     }
 
     <main class="max-w-7xl mx-auto">
@@ -87,6 +210,7 @@
               [creatorId]="profileId()!"
               [loadPostsFunction]="loadCreatorPosts"
               [showAuthorInfo]="false"
+              (postHidden)="onPostHidden($event)"
             ></app-posts-feed>
             }
           </div>
@@ -124,6 +248,7 @@
               [creatorId]="profileId()!"
               [loadPostsFunction]="loadCreatorPosts"
               [showAuthorInfo]="false"
+              (postHidden)="onPostHidden($event)"
             ></app-posts-feed>
             }
           </div>
@@ -202,6 +327,20 @@
   (published)="onPostPublished()" 
   (closed)="closeCreatePostModal()"
 ></app-create-post-modal>
+}
+
+@if (showAvatarModal()) {
+<app-avatar-upload-modal
+  (closed)="closeAvatarModal()"
+  (uploaded)="onAvatarUpload($event)"
+></app-avatar-upload-modal>
+}
+
+@if (showBannerModal()) {
+<app-banner-upload-modal
+  (closed)="closeBannerModal()"
+  (uploaded)="onBannerUpload($event)"
+></app-banner-upload-modal>
 }
 
 <!-- Индикатор обработки видео -->

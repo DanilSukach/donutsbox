@@ -2,10 +2,32 @@
 .modal-backdrop {
   z-index: 1000;
   isolation: isolate;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .modal-content {
   z-index: 1001;
   isolation: isolate;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 

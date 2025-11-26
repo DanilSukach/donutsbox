@@ -18,3 +18,9 @@ media-player {
   z-index: 1;
   isolation: isolate;
 }
+
+/* Убеждаемся, что постер показывается во время загрузки */
+media-player::part(poster) {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}

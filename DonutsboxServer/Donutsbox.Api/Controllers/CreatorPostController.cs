@@ -207,6 +207,57 @@ public class CreatorPostController(ICreatorPostService creatorPostService) : Con
         }
     }
 
+    /// <summary>
+    /// Отменить обработку видео
+    /// </summary>
+    [HttpPost("video/{videoId:guid}/cancel")]
+    public async Task<ActionResult<MessageResponseDto>> CancelVideoProcessing([FromRoute] Guid videoId)
+    {
+        try
+        {
+            var result = await creatorPostService.CancelVideoProcessingAsync(videoId, User);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Удалить видео из поста
+    /// </summary>
+    [HttpDelete("video/{videoId:guid}")]
+    public async Task<ActionResult<MessageResponseDto>> DeleteVideo([FromRoute] Guid videoId)
+    {
+        try
+        {
+            var result = await creatorPostService.DeleteVideoAsync(videoId, User);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Удалить изображение из поста
+    /// </summary>
+    [HttpDelete("image/{imageKey}")]
+    public async Task<ActionResult<MessageResponseDto>> DeleteImage([FromRoute] string imageKey)
+    {
+        try
+        {
+            var result = await creatorPostService.DeleteImageAsync(imageKey, User);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
 
     /// <summary>
     /// Получить ленту постов от авторов, на которых подписан пользователь

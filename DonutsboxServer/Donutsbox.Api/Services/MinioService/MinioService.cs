@@ -171,4 +171,22 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
             logger.LogError(ex, "Failed to delete directory with prefix {Prefix} from bucket {Bucket}", prefix, bucket);
         }
     }
+
+    public async Task CopyObjectAsync(string sourceObjectKey, string sourceBucket, string destObjectKey, string destBucket)
+    {
+        await EnsureBucketAsync();
+
+        var copySource = new CopySourceObjectArgs()
+            .WithBucket(sourceBucket)
+            .WithObject(sourceObjectKey);
+
+        var copyArgs = new CopyObjectArgs()
+            .WithBucket(destBucket)
+            .WithObject(destObjectKey)
+            .WithCopyObjectSource(copySource);
+
+        await _client.CopyObjectAsync(copyArgs);
+        logger.LogInformation("Object {SourceObjectKey} copied from {SourceBucket} to {DestObjectKey} in {DestBucket}",
+            sourceObjectKey, sourceBucket, destObjectKey, destBucket);
+    }
 }

@@ -10,7 +10,7 @@ public class FfmpegService(ILogger<FfmpegService> logger, MinioService minio, IC
         ?? Environment.GetEnvironmentVariable("FFMPEG_PATH")
         ?? (OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg");
 
-    public async Task<string> ProcessVideoAsync(Guid videoId, string objectKey)
+    public async Task<string> ProcessVideoAsync(Guid videoId, string objectKey, CancellationToken cancellationToken = default)
     {
         var tempDir = Path.Combine(Path.GetTempPath(), videoId.ToString());
         Directory.CreateDirectory(tempDir);
@@ -23,6 +23,9 @@ public class FfmpegService(ILogger<FfmpegService> logger, MinioService minio, IC
 
         try
         {
+            // Check cancellation before starting
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Скачиваем исходный файл
             await minio.DownloadFileAsync(objectKey, inputFile);
 
@@ -71,11 +74,28 @@ public class FfmpegService(ILogger<FfmpegService> logger, MinioService minio, IC
 
             try
             {
+                // Check cancellation before starting ffmpeg
+                cancellationToken.ThrowIfCancellationRequested();
+
                 using var process = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start ffmpeg process.");
                 var stdOutTask = process.StandardOutput.ReadToEndAsync();
                 var stdErrTask = process.StandardError.ReadToEndAsync();
 
-                await process.WaitForExitAsync();
+                // Wait with cancellation support
+                try
+                {
+                    await process.WaitForExitAsync(cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    logger.LogInformation("Video {VideoId} processing cancelled, killing ffmpeg process", videoId);
+                    try
+                    {
+                        process.Kill(true); // Kill process tree
+                    }
+                    catch { /* ignore */ }
+                    throw;
+                }
 
                 var stdOut = await stdOutTask;
                 var stdErr = await stdErrTask;
