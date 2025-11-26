@@ -1,6 +1,9 @@
-import { Component, inject, OnInit, signal, OnDestroy, ViewChild, HostListener } from '@angular/core';
+import { Component, inject, OnInit, signal, OnDestroy, ViewChild, HostListener, TemplateRef, ViewContainerRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
+import { Overlay, OverlayRef, OverlayModule } from '@angular/cdk/overlay';
+import { TemplatePortal, PortalModule } from '@angular/cdk/portal';
 import { AuthFacade } from '../../../auth/services/auth-facade';
 import { AuthorSupporters } from '../../components/author-supporters/author-supporters';
 import { CreatePostModal } from '../../components/create-post-modal/create-post-modal';
@@ -15,7 +18,7 @@ import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 import { UserSubscriptionsFacade } from '../../services/user-subscriptions-facade';
 import { SubscriptionModalService } from '@app/shared/services/subscription-modal.service';
 import { CreateSubscriptionModalService } from '@app/shared/services/create-subscription-modal.service';
-import { AuthorRequestDto, UserDataService } from '@app/api/donutsbox';
+import { AuthorRequestDto, UserDataService, UserService } from '@app/api/donutsbox';
 import { of, Subscription } from 'rxjs';
 import { SessionService } from '@app/core/services/session.service';
 import { catchError } from 'rxjs/operators';
@@ -25,7 +28,7 @@ import { ChangeEmailModal } from '@app/shared/components/change-email-modal/chan
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, AuthorSupporters, CreatePostModal, AvatarUploadModal, BannerUploadModal, PostsFeed, UserSubscriptions, VideoProcessingIndicator, ChangePasswordModal, ChangeEmailModal],
+  imports: [CommonModule, FormsModule, AuthorSupporters, CreatePostModal, AvatarUploadModal, BannerUploadModal, PostsFeed, UserSubscriptions, VideoProcessingIndicator, ChangePasswordModal, ChangeEmailModal, OverlayModule, PortalModule],
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.css'
 })
@@ -40,15 +43,25 @@ export class ProfilePage implements OnInit, OnDestroy {
   private subscriptionModalService = inject(SubscriptionModalService);
   private createSubscriptionModalService = inject(CreateSubscriptionModalService);
   private userDataService = inject(UserDataService);
+  private userService = inject(UserService);
   private postsRefresh = inject(PostsRefresh);
+  private overlay = inject(Overlay);
+  private viewContainerRef = inject(ViewContainerRef);
 
   readonly isOwnProfile = signal(false);
   readonly profileId = signal<string | null>(null);  
   readonly isCurrentUserCreator = signal(false);
   readonly showCreatePostModal = signal(false);
   readonly author = signal<AuthorRequestDto | null>(null);
+  readonly userName = signal<string | null>(null);
   readonly bannerSrc = signal<string | null>(null);
   readonly avatarSrc = signal<string | null>(null);
+  
+  // Редактирование имени пользователя
+  readonly isEditingUserName = signal(false);
+  readonly editUserNameValue = signal('');
+  readonly isUpdatingUserName = signal(false);
+  readonly userNameUpdateError = signal<string | null>(null);
   readonly isSubscribed = signal(false);
   readonly showUnsubscribeModal = signal(false);
   readonly isUploadingAvatar = signal(false);
@@ -61,10 +74,28 @@ export class ProfilePage implements OnInit, OnDestroy {
   readonly drafts = signal<any[]>([]);
   readonly draftsLoading = signal(false);
   
+  // Редактирование черновика
+  readonly editingDraft = signal<any | null>(null);
+  readonly editDraftTitle = signal('');
+  readonly editDraftText = signal('');
+  readonly isUpdatingDraft = signal(false);
+  private editDraftOverlayRef: OverlayRef | null = null;
+  @ViewChild('editDraftModalTemplate') editDraftModalTemplate!: TemplateRef<any>;
+  
   // Настройки
   readonly showSettingsDropdown = signal(false);
   readonly showChangePasswordModal = signal(false);
   readonly showChangeEmailModal = signal(false);
+  
+  // Редактирование названия и описания
+  readonly isEditingName = signal(false);
+  readonly isEditingDescription = signal(false);
+  readonly editNameValue = signal('');
+  readonly editDescriptionValue = signal('');
+  readonly isUpdatingName = signal(false);
+  readonly isUpdatingDescription = signal(false);
+  readonly nameUpdateError = signal<string | null>(null);
+  readonly descriptionUpdateError = signal<string | null>(null);
   
   @ViewChild(AvatarUploadModal) avatarModal?: AvatarUploadModal;
   @ViewChild(BannerUploadModal) bannerModal?: BannerUploadModal;
@@ -164,6 +195,7 @@ export class ProfilePage implements OnInit, OnDestroy {
   private loadAuthorAndBanner(profileId: string | null): void {
     if (!profileId) {
       this.author.set(null);
+      this.userName.set(null);
       this.bannerSrc.set(null);
       this.avatarSrc.set(null);
       return;
@@ -175,9 +207,11 @@ export class ProfilePage implements OnInit, OnDestroy {
 
     if (isOwnNonCreatorProfile) {
       // Logged-in user is not a creator, no author data exists in backend.
+      // Load user name from User entity
       this.author.set(null);
       this.bannerSrc.set(null);
       this.avatarSrc.set(null);
+      this.loadUserName(profileId);
       return;
     }
 
@@ -560,6 +594,194 @@ export class ProfilePage implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Ошибка удаления:', err);
+      }
+    });
+  }
+
+  // Загрузка имени пользователя
+  private loadUserName(userId: string): void {
+    this.userService.apiUserIdGet(userId).subscribe({
+      next: (user) => {
+        this.userName.set(user.name);
+        this.editUserNameValue.set(user.name || '');
+      },
+      error: (err) => {
+        console.error('Ошибка загрузки имени пользователя:', err);
+        this.userName.set(null);
+      }
+    });
+  }
+
+  // Редактирование имени пользователя
+  startEditingUserName(): void {
+    const currentName = this.userName() || '';
+    this.editUserNameValue.set(currentName);
+    this.userNameUpdateError.set(null);
+    this.isEditingUserName.set(true);
+  }
+
+  cancelEditingUserName(): void {
+    this.isEditingUserName.set(false);
+    this.editUserNameValue.set('');
+    this.userNameUpdateError.set(null);
+  }
+
+  saveUserName(): void {
+    const newName = this.editUserNameValue().trim();
+    if (!newName) return;
+
+    this.isUpdatingUserName.set(true);
+    this.userNameUpdateError.set(null);
+
+    this.profileFacade.updateUserName(newName).subscribe({
+      next: (result) => {
+        this.isUpdatingUserName.set(false);
+        if (result.success) {
+          this.userName.set(newName);
+          this.isEditingUserName.set(false);
+        } else {
+          this.userNameUpdateError.set(result.message || 'Ошибка при обновлении имени');
+        }
+      },
+      error: (err) => {
+        this.isUpdatingUserName.set(false);
+        this.userNameUpdateError.set('Ошибка при обновлении имени');
+      }
+    });
+  }
+
+  openEditDraftModal(draft: any): void {
+    this.editingDraft.set(draft);
+    this.editDraftTitle.set(draft.title || '');
+    this.editDraftText.set(draft.text || '');
+    
+    // Создаём overlay
+    this.editDraftOverlayRef = this.overlay.create({
+      hasBackdrop: true,
+      backdropClass: 'edit-modal-backdrop',
+      panelClass: 'edit-modal-panel',
+      positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
+      scrollStrategy: this.overlay.scrollStrategies.block(),
+      width: '95vw',
+      maxWidth: '800px'
+    });
+    
+    // Подключаем template
+    const portal = new TemplatePortal(this.editDraftModalTemplate, this.viewContainerRef);
+    this.editDraftOverlayRef.attach(portal);
+    
+    // Закрытие по клику на backdrop
+    this.editDraftOverlayRef.backdropClick().subscribe(() => this.closeEditDraftModal());
+  }
+
+  closeEditDraftModal(): void {
+    if (this.editDraftOverlayRef) {
+      this.editDraftOverlayRef.dispose();
+      this.editDraftOverlayRef = null;
+    }
+    this.editingDraft.set(null);
+  }
+
+  saveDraftEdit(): void {
+    if (this.isUpdatingDraft()) return;
+    
+    const draft = this.editingDraft();
+    if (!draft) return;
+    
+    const title = this.editDraftTitle().trim();
+    const text = this.editDraftText().trim();
+    
+    if (!title && !text) {
+      return;
+    }
+
+    this.isUpdatingDraft.set(true);
+
+    this.postsFacade.updatePostText(draft.id, title, text).subscribe({
+      next: () => {
+        // Обновляем черновик локально
+        this.drafts.update(drafts => 
+          drafts.map(d => d.id === draft.id ? { ...d, title, text } : d)
+        );
+        this.isUpdatingDraft.set(false);
+        this.closeEditDraftModal();
+      },
+      error: (err: any) => {
+        console.error('Ошибка обновления черновика:', err);
+        this.isUpdatingDraft.set(false);
+      }
+    });
+  }
+
+  // Редактирование названия страницы
+  startEditingName(): void {
+    const currentName = this.author()?.pageName || '';
+    this.editNameValue.set(currentName);
+    this.nameUpdateError.set(null);
+    this.isEditingName.set(true);
+  }
+
+  cancelEditingName(): void {
+    this.isEditingName.set(false);
+    this.editNameValue.set('');
+    this.nameUpdateError.set(null);
+  }
+
+  saveAuthorName(): void {
+    const newName = this.editNameValue().trim();
+    if (!newName) return;
+
+    this.isUpdatingName.set(true);
+    this.nameUpdateError.set(null);
+
+    this.profileFacade.updateAuthorName(newName).subscribe(result => {
+      this.isUpdatingName.set(false);
+      
+      if (result.success) {
+        // Обновляем локально
+        const currentAuthor = this.author();
+        if (currentAuthor) {
+          this.author.set({ ...currentAuthor, pageName: newName });
+        }
+        this.isEditingName.set(false);
+      } else {
+        this.nameUpdateError.set(result.message || 'Ошибка при обновлении названия');
+      }
+    });
+  }
+
+  // Редактирование описания
+  startEditingDescription(): void {
+    const currentDescription = this.author()?.description || '';
+    this.editDescriptionValue.set(currentDescription);
+    this.descriptionUpdateError.set(null);
+    this.isEditingDescription.set(true);
+  }
+
+  cancelEditingDescription(): void {
+    this.isEditingDescription.set(false);
+    this.editDescriptionValue.set('');
+    this.descriptionUpdateError.set(null);
+  }
+
+  saveAuthorDescription(): void {
+    const newDescription = this.editDescriptionValue().trim();
+
+    this.isUpdatingDescription.set(true);
+    this.descriptionUpdateError.set(null);
+
+    this.profileFacade.updateAuthorDescription(newDescription).subscribe(result => {
+      this.isUpdatingDescription.set(false);
+      
+      if (result.success) {
+        // Обновляем локально
+        const currentAuthor = this.author();
+        if (currentAuthor) {
+          this.author.set({ ...currentAuthor, description: newDescription });
+        }
+        this.isEditingDescription.set(false);
+      } else {
+        this.descriptionUpdateError.set(result.message || 'Ошибка при обновлении описания');
       }
     });
   }

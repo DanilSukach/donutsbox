@@ -89,8 +89,9 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
             .OrderByDescending(us => us.Subscription.SubscriptionPeriod.Months)
             .ThenByDescending(us => us.Subscription.Price)
             .ThenByDescending(us => us.BeginDate)
-            .Take(count)
             .Select(us => us.User)
+            .Distinct()
+            .Take(count)
             .ToListAsync();
     }
 

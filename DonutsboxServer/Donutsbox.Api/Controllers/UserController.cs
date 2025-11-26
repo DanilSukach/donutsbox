@@ -1,12 +1,13 @@
 ﻿using Donutsbox.Api.Dto;
 using Donutsbox.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Donutsbox.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class UserController(IEntityService<UserDto, Guid> service) : ControllerBase
+public class UserController(IUserService service) : ControllerBase
 {   /// <summary>
     /// Возвращает всех пользователей
     /// </summary>
@@ -76,5 +77,27 @@ public class UserController(IEntityService<UserDto, Guid> service) : ControllerB
         var result = await service.DeleteAsync(id);
         if (!result) return NotFound();
         return Ok();
+    }
+
+    /// <summary>
+    /// Изменяет имя пользователя
+    /// </summary>
+    /// <param name="dto">Новое имя пользователя</param>
+    /// <returns>Результат операции</returns>
+    /// <response code="200">Имя успешно изменено</response>
+    /// <response code="400">Ошибка валидации</response>
+    [HttpPut("user-name")]
+    [Authorize]
+    public async Task<ActionResult> ChangeUserName([FromBody] UserNameDto dto)
+    {
+        try
+        {
+            var result = await service.ChangeUserName(dto, User);
+            return Ok(new { success = result, message = "Имя успешно изменено" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
     }
 }

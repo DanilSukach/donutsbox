@@ -145,6 +145,16 @@
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <button
                     type="button"
+                    (click)="openEditDraftModal(draft)"
+                    class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                    title="Редактировать черновик"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
                     (click)="publishDraft(draft.id!)"
                     class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
                   >
@@ -203,20 +213,214 @@
           <app-user-subscriptions></app-user-subscriptions>
         </div>
 
-        <div class="xl:col-span-2">
-          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
-            @if (author()) {
+        @if (!author() && userName()) {
+          <!-- Для обычного пользователя (не автора) -->
+          <div class="xl:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
               <div class="border-b border-gray-200 pb-6 mb-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-2">{{ author()!.pageName || 'Канал автора' }}</h2>
-                @if (author()!.description) {
-                  <p class="text-gray-600">
-                    {{ author()!.description }}
-                  </p>
+                @if (!isEditingUserName()) {
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1 min-w-0">
+                      <h2 class="text-3xl font-bold text-gray-900 mb-2 break-words">{{ userName() }}</h2>
+                      <p class="text-gray-600">Пользователь платформы</p>
+                    </div>
+                    @if (isOwnProfile()) {
+                      <button
+                        type="button"
+                        (click)="startEditingUserName()"
+                        class="flex-shrink-0 px-3 py-1.5 text-sm text-amber-600 hover:bg-amber-50 rounded-lg transition-colors font-medium flex items-center gap-1"
+                      >
+                        <span>Изменить</span>
+                      </button>
+                    }
+                  </div>
                 } @else {
-                  <p class="text-gray-400 italic">
-                    Описание отсутствует
-                  </p>
+                  <div class="space-y-3">
+                    <input
+                      type="text"
+                      [(ngModel)]="editUserNameValue"
+                      placeholder="Ваше имя"
+                      minlength="3"
+                      maxlength="50"
+                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-lg font-semibold"
+                    />
+                    @if (userNameUpdateError()) {
+                      <div class="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                        {{ userNameUpdateError() }}
+                      </div>
+                    }
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        (click)="saveUserName()"
+                        [disabled]="isUpdatingUserName() || !editUserNameValue().trim() || editUserNameValue().trim().length < 3"
+                        class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        @if (isUpdatingUserName()) {
+                          <span class="flex items-center gap-2">
+                            <span class="animate-spin">⏳</span>
+                            <span>Сохранение...</span>
+                          </span>
+                        } @else {
+                          <span>Сохранить</span>
+                        }
+                      </button>
+                      <button
+                        type="button"
+                        (click)="cancelEditingUserName()"
+                        [disabled]="isUpdatingUserName()"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </div>
                 }
+              </div>
+            </div>
+          </div>
+          
+          <!-- Аватарка пользователя справа -->
+          <div class="xl:col-span-1">
+            @if (avatarSrc()) {
+              <img 
+                [src]="avatarSrc()" 
+                [alt]="userName() || 'Пользователь'"
+                class="w-full aspect-square rounded-xl object-cover border-4 border-amber-300 shadow-lg"
+              />
+            } @else {
+              <div class="w-full aspect-square bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center border-4 border-amber-300 shadow-lg">
+                <span class="text-white font-bold text-8xl">👤</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- Для автора -->
+          <div class="xl:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+              @if (author()) {
+                <div class="border-b border-gray-200 pb-6 mb-6">
+                  <!-- Название страницы -->
+                  <div class="mb-4">
+                    @if (!isEditingName()) {
+                      <div class="flex items-start justify-between gap-3">
+                        <h2 class="text-2xl font-bold text-gray-900 break-words flex-1 min-w-0">{{ author()!.pageName || 'Канал автора' }}</h2>
+                        @if (isOwnProfile()) {
+                          <button
+                            type="button"
+                            (click)="startEditingName()"
+                            class="flex-shrink-0 px-3 py-1.5 text-sm text-amber-600 hover:bg-amber-50 rounded-lg transition-colors font-medium flex items-center gap-1"
+                          >
+                            <span>Изменить</span>
+                          </button>
+                        }
+                      </div>
+                  } @else {
+                    <div class="space-y-3">
+                      <input
+                        type="text"
+                        [(ngModel)]="editNameValue"
+                        placeholder="Название страницы"
+                        maxlength="40"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-lg font-semibold"
+                      />
+                      @if (nameUpdateError()) {
+                        <div class="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                          {{ nameUpdateError() }}
+                        </div>
+                      }
+                      <div class="flex gap-2">
+                        <button
+                          type="button"
+                          (click)="saveAuthorName()"
+                          [disabled]="isUpdatingName() || !editNameValue().trim()"
+                          class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          @if (isUpdatingName()) {
+                            <span class="flex items-center gap-2">
+                              <span class="animate-spin">⏳</span>
+                              <span>Сохранение...</span>
+                            </span>
+                          } @else {
+                            <span>Сохранить</span>
+                          }
+                        </button>
+                        <button
+                          type="button"
+                          (click)="cancelEditingName()"
+                          [disabled]="isUpdatingName()"
+                          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                <!-- Описание -->
+                <div>
+                  @if (!isEditingDescription()) {
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="flex-1 min-w-0">
+                        @if (author()!.description) {
+                          <p class="text-gray-600 break-words whitespace-pre-wrap">{{ author()!.description }}</p>
+                        } @else {
+                          <p class="text-gray-400 italic">Описание отсутствует</p>
+                        }
+                      </div>
+                      @if (isOwnProfile()) {
+                        <button
+                          type="button"
+                          (click)="startEditingDescription()"
+                          class="flex-shrink-0 px-3 py-1.5 text-sm text-amber-600 hover:bg-amber-50 rounded-lg transition-colors font-medium flex items-center gap-1"
+                        >
+                          <span>Изменить</span>
+                        </button>
+                      }
+                    </div>
+                  } @else {
+                    <div class="space-y-3">
+                      <textarea
+                        [(ngModel)]="editDescriptionValue"
+                        placeholder="Описание страницы"
+                        rows="4"
+                        maxlength="500"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none"
+                      ></textarea>
+                      @if (descriptionUpdateError()) {
+                        <div class="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                          {{ descriptionUpdateError() }}
+                        </div>
+                      }
+                      <div class="flex gap-2">
+                        <button
+                          type="button"
+                          (click)="saveAuthorDescription()"
+                          [disabled]="isUpdatingDescription()"
+                          class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          @if (isUpdatingDescription()) {
+                            <span class="flex items-center gap-2">
+                              <span class="animate-spin">⏳</span>
+                              <span>Сохранение...</span>
+                            </span>
+                          } @else {
+                            <span>Сохранить</span>
+                          }
+                        </button>
+                        <button
+                          type="button"
+                          (click)="cancelEditingDescription()"
+                          [disabled]="isUpdatingDescription()"
+                          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
               </div>
             }
             @if (isCurrentUserCreator()) {
@@ -252,11 +456,12 @@
         </div>
 
         @if (isCurrentUserCreator()) {
-        <div class="xl:col-span-1">
-          @if (profileId()) {
-          <app-author-supporters [authorId]="profileId()!" [count]="5"></app-author-supporters>
-          }
-        </div>
+          <div class="xl:col-span-1">
+            @if (profileId()) {
+            <app-author-supporters [authorId]="profileId()!" [count]="5"></app-author-supporters>
+            }
+          </div>
+        }
         }
       </div>
       } @else {
@@ -391,6 +596,71 @@
   (emailChanged)="onEmailChanged()"
 ></app-change-email-modal>
 }
+
+<!-- Шаблон модального окна редактирования черновика -->
+<ng-template #editDraftModalTemplate>
+  <div class="bg-white rounded-2xl shadow-2xl w-full m-4" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 flex justify-between items-center rounded-t-2xl">
+      <h2 class="text-xl font-bold text-white flex items-center gap-2">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+        Редактировать черновик
+      </h2>
+      <button (click)="closeEditDraftModal()" class="text-white hover:text-blue-100 text-3xl font-bold leading-none" type="button">×</button>
+    </div>
+
+    <!-- Content -->
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Заголовок</label>
+        <input
+          type="text"
+          [value]="editDraftTitle()"
+          (input)="editDraftTitle.set($any($event.target).value)"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+          placeholder="Введите заголовок"
+        />
+      </div>
+      
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Текст</label>
+        <textarea
+          [value]="editDraftText()"
+          (input)="editDraftText.set($any($event.target).value)"
+          rows="4"
+          class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+          placeholder="Введите текст поста"
+        ></textarea>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="bg-gray-50 border-t border-gray-200 px-6 py-4 flex gap-3 rounded-b-2xl">
+      <button 
+        type="button"
+        (click)="closeEditDraftModal()"
+        [disabled]="isUpdatingDraft()"
+        class="flex-1 px-4 py-3 text-sm font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+      >
+        Отмена
+      </button>
+      <button 
+        type="button"
+        (click)="saveDraftEdit()"
+        [disabled]="isUpdatingDraft() || (!editDraftTitle().trim() && !editDraftText().trim())"
+        class="flex-1 px-4 py-3 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        @if (isUpdatingDraft()) {
+          ⏳ Сохранение...
+        } @else {
+          Сохранить
+        }
+      </button>
+    </div>
+  </div>
+</ng-template>
 
 <!-- Индикатор обработки видео -->
 <app-video-processing-indicator></app-video-processing-indicator>
