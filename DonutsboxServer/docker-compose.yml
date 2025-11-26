@@ -4,9 +4,9 @@ services:
     container_name: postgres
     restart: always
     environment:
-      POSTGRES_USER: donuts
-      POSTGRES_PASSWORD: donutspw
-      POSTGRES_DB: donutsboxdb
+      POSTGRES_USER: ${POSTGRES_USER:-donuts}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-donutspw}
+      POSTGRES_DB: ${POSTGRES_DB:-donutsboxdb}
     ports:
       - "5432:5432"
     volumes:
@@ -91,10 +91,10 @@ services:
       - "9000:9000" 
       - "9001:9001" 
     environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
       # Настройка для работы через прокси
-      MINIO_BROWSER_REDIRECT_URL: https://192.168.0.13/minio-console
+      MINIO_BROWSER_REDIRECT_URL: https://${HOST_IP:-192.168.0.13}/minio-console
     volumes:
       - minio_data:/data
     healthcheck:
@@ -121,8 +121,8 @@ services:
       - Kafka__Topics__VideoProcessed=video.processed
       - Cors__AllowedOrigins__0=https://localhost
       - Cors__AllowedOrigins__1=http://localhost
-      - Cors__AllowedOrigins__2=https://192.168.0.13
-      - Cors__AllowedOrigins__3=http://192.168.0.13
+      - Cors__AllowedOrigins__2=https://${HOST_IP:-192.168.0.13}
+      - Cors__AllowedOrigins__3=http://${HOST_IP:-192.168.0.13}
     depends_on:
       postgres:
         condition: service_healthy
@@ -154,15 +154,15 @@ services:
       - Kafka__Topics__VideoUploaded=video.uploaded
       - Kafka__Topics__VideoProcessed=video.processed
       - Minio__Endpoint=minio:9000
-      - Minio__AccessKey=minio
-      - Minio__SecretKey=minio123
+      - Minio__AccessKey=${MINIO_ROOT_USER:-minio}
+      - Minio__SecretKey=${MINIO_ROOT_PASSWORD:-minio123}
       - Minio__UseSSL=false
       - Minio__BucketName=my-bucket
-      - Minio__PublicEndpoint=https://192.168.0.13/minio
+      - Minio__PublicEndpoint=https://${HOST_IP:-192.168.0.13}/minio
       - Cors__AllowedOrigins__0=https://localhost
       - Cors__AllowedOrigins__1=http://localhost
-      - Cors__AllowedOrigins__2=https://192.168.0.13
-      - Cors__AllowedOrigins__3=http://192.168.0.13
+      - Cors__AllowedOrigins__2=https://${HOST_IP:-192.168.0.13}
+      - Cors__AllowedOrigins__3=http://${HOST_IP:-192.168.0.13}
     depends_on:
       postgres:
         condition: service_healthy
@@ -195,17 +195,17 @@ services:
       - Kafka__Topics__VideoProcessed=video.processed
       - Kafka__GroupIdApi=video-processed-updater
       - Minio__Endpoint=minio:9000
-      - Minio__AccessKey=minio
-      - Minio__SecretKey=minio123
+      - Minio__AccessKey=${MINIO_ROOT_USER:-minio}
+      - Minio__SecretKey=${MINIO_ROOT_PASSWORD:-minio123}
       - Minio__UseSSL=false
       - Minio__BucketName=donutsbox
       - Minio__BucketTemp=video-temp
       - Minio__BucketProcessed=video-processed
-      - Minio__PublicEndpoint=https://192.168.0.13/minio
+      - Minio__PublicEndpoint=https://${HOST_IP:-192.168.0.13}/minio
       - Cors__AllowedOrigins__0=https://localhost
       - Cors__AllowedOrigins__1=http://localhost
-      - Cors__AllowedOrigins__2=https://192.168.0.13
-      - Cors__AllowedOrigins__3=http://192.168.0.13
+      - Cors__AllowedOrigins__2=https://${HOST_IP:-192.168.0.13}
+      - Cors__AllowedOrigins__3=http://${HOST_IP:-192.168.0.13}
     depends_on:
       postgres:
         condition: service_healthy
@@ -237,12 +237,12 @@ services:
       - Kafka__Topics__VideoProcessed=video.processed
       - Kafka__GroupId=video-processor
       - Minio__Endpoint=minio:9000
-      - Minio__AccessKey=minio
-      - Minio__SecretKey=minio123
+      - Minio__AccessKey=${MINIO_ROOT_USER:-minio}
+      - Minio__SecretKey=${MINIO_ROOT_PASSWORD:-minio123}
       - Minio__UseSSL=false
       - Minio__BucketTemp=video-temp
       - Minio__BucketProcessed=video-processed
-      - Minio__PublicEndpoint=https://192.168.0.13/minio
+      - Minio__PublicEndpoint=https://${HOST_IP:-192.168.0.13}/minio
       - FFmpeg__Path=/usr/bin/ffmpeg
     depends_on:
       kafka:
@@ -312,8 +312,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
