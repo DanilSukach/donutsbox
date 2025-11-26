@@ -5,6 +5,7 @@ namespace Donutsbox.Domain.Repositories.AuthRepository;
 public interface IAuthRepository
 {
     Task<UserAuth?> GetByEmailAsync(string email);
+    Task<UserAuth?> GetByIdAsync(Guid id);
     Task<UserAuth?> GetByRefreshTokenAsync(string refreshToken);
     Task<bool> EmailExistsAsync(string email);
     Task AddAsync(UserAuth user, string role);

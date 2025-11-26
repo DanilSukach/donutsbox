@@ -17,6 +17,15 @@ public class AuthRepository(DonutsboxDbContext db) : IAuthRepository
         return userAuth;
     }
 
+    public async Task<UserAuth?> GetByIdAsync(Guid id)
+    {
+        var userAuth = await db.UsersAuths
+            .Include(u => u.User)
+                .ThenInclude(u => u!.UserType)
+            .FirstOrDefaultAsync(ua => ua.Id == id);
+        return userAuth;
+    }
+
     public async Task<UserAuth?> GetByRefreshTokenAsync(string refreshToken)
     {
         var userAuth = await db.UsersAuths
