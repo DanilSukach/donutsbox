@@ -27,5 +27,9 @@ export interface AuthResponseDto {
     creatorPageId?: string | null;
     hasCreatorPage?: boolean;
     isNewCreator?: boolean;
+    /**
+     * Флаг первого входа (LastAuth == null)
+     */
+    isFirstLogin?: boolean;
 }
 
