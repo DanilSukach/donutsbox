@@ -44,10 +44,14 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
 
         var isCreator = string.Equals(user.User!.UserType.Name, "Creator", StringComparison.OrdinalIgnoreCase);
         var isNewCreator = isCreator && user.LastAuth == null;
+        var isFirstLogin = user.LastAuth == null || user.User.Name == "User";
         string accessToken = jwt.GenerateAccessToken(user, isNewCreator);
         var refreshToken = jwt.GenerateRefreshToken();
 
-        user.LastAuth = DateTime.UtcNow;
+        if (!isFirstLogin)
+        {
+            user.LastAuth = DateTime.UtcNow;
+        }
         user.RefreshToken = refreshToken;
         user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
 
@@ -62,7 +66,8 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
             IsCreator = isCreator,
             HasCreatorPage = user.User.CreatorPageData != null,
             CreatorPageId = user.User.CreatorPageData?.Id,
-            IsNewCreator = isNewCreator
+            IsNewCreator = isNewCreator,
+            IsFirstLogin = isFirstLogin
         };
 
         return tokens;

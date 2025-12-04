@@ -138,41 +138,82 @@
     </div>
   </div>
 
-  @if (getMediaItems().length > 0) {
-    <div class="relative pb-10 bg-gray-50">
-      <swiper-container
-        class="media-swiper"
-        pagination="true"
-        navigation="true"
-        space-between="10"
-        slides-per-view="1"
-        allow-touch-move="false"
-        style="--swiper-pagination-color: #f59e0b; --swiper-navigation-color: #f59e0b; --swiper-pagination-bullet-size: 10px; --swiper-pagination-bottom: -40px;"
-      >
-        @for (item of getMediaItems(); track item.url + (item.videoId || '')) {
-          <swiper-slide>
-            @if (item.type === 'video') {
-              <div class="relative w-full aspect-video bg-black">
-                <app-video-player
-                  [hlsUrl]="item.url"
-                  [poster]="item.thumbnailUrl || undefined"
-                  [title]="item.title || ''"
-                ></app-video-player>
-              </div>
-            } @else {
-              <div class="relative w-full">
-                <img
-                  [src]="item.url"
-                  alt="Post image"
-                  class="w-full h-auto max-h-[600px] object-contain bg-gray-100"
-                  loading="lazy"
-                />
-              </div>
-            }
-          </swiper-slide>
+  @if (mediaItems().length > 0) {
+    @if (shouldShowMediaAsList()) {
+      <!-- Список медиа (для нескольких аудио или аудио + изображения) -->
+      <div class="bg-gray-50 p-4 space-y-4">
+        @for (item of mediaItems(); track item.url + (item.videoId || item.audioId || '')) {
+          @if (item.type === 'video') {
+            <div class="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+              <app-video-player
+                [hlsUrl]="item.url"
+                [poster]="item.thumbnailUrl || undefined"
+                [title]="item.title || ''"
+              ></app-video-player>
+            </div>
+          } @else if (item.type === 'audio' && item.url && item.url.startsWith('http')) {
+            <div class="bg-white rounded-lg">
+              <app-audio-player
+                [src]="item.url"
+                [title]="item.title || 'Audio'"
+              ></app-audio-player>
+            </div>
+          } @else {
+            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <img
+                [src]="item.url"
+                alt="Post image"
+                class="w-full h-auto max-h-[600px] object-contain bg-gray-100"
+                loading="lazy"
+              />
+            </div>
+          }
         }
-      </swiper-container>
-    </div>
+      </div>
+    } @else {
+      <!-- Карусель (для одного видео или только изображений) -->
+      <div class="relative pb-10 bg-gray-50">
+        <swiper-container
+          class="media-swiper"
+          pagination="true"
+          navigation="true"
+          space-between="10"
+          slides-per-view="1"
+          allow-touch-move="false"
+          style="--swiper-pagination-color: #f59e0b; --swiper-navigation-color: #f59e0b; --swiper-pagination-bullet-size: 10px; --swiper-pagination-bottom: -40px;"
+        >
+          @for (item of mediaItems(); track item.url + (item.videoId || item.audioId || '')) {
+            <swiper-slide>
+              @if (item.type === 'video') {
+                <div class="relative w-full aspect-video bg-black">
+                  <app-video-player
+                    [hlsUrl]="item.url"
+                    [poster]="item.thumbnailUrl || undefined"
+                    [title]="item.title || ''"
+                  ></app-video-player>
+                </div>
+              } @else if (item.type === 'audio' && item.url && item.url.startsWith('http')) {
+                <div class="relative w-full bg-gray-50 p-6">
+                  <app-audio-player
+                    [src]="item.url"
+                    [title]="item.title || 'Audio'"
+                  ></app-audio-player>
+                </div>
+              } @else {
+                  <div class="relative w-full">
+                    <img
+                      [src]="item.url"
+                      alt="Post image"
+                      class="w-full h-auto max-h-[600px] object-contain bg-gray-100"
+                      loading="lazy"
+                    />
+                  </div>
+              }
+            </swiper-slide>
+          }
+        </swiper-container>
+      </div>
+    }
   }
 
   @if (!post().isLocked) {

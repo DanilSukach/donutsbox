@@ -100,4 +100,46 @@ public class UserController(IUserService service) : ControllerBase
             return BadRequest(new { success = false, message = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Завершает первый вход пользователя (заполнение имени и телефона)
+    /// </summary>
+    /// <param name="dto">Данные для первого входа</param>
+    /// <returns>Результат операции</returns>
+    /// <response code="200">Данные успешно сохранены</response>
+    /// <response code="400">Ошибка валидации</response>
+    [HttpPost("complete-first-login")]
+    [Authorize]
+    public async Task<ActionResult> CompleteFirstLogin([FromBody] FirstLoginDto dto)
+    {
+        try
+        {
+            var result = await service.CompleteFirstLogin(dto, User);
+            return Ok(new { success = result, message = "Данные успешно сохранены" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Пропускает заполнение данных при первом входе (обновляет LastAuth, чтобы пользователь мог войти)
+    /// </summary>
+    /// <returns>Результат операции</returns>
+    /// <response code="200">Вход разрешен</response>
+    [HttpPost("skip-first-login")]
+    [Authorize]
+    public async Task<ActionResult> SkipFirstLogin()
+    {
+        try
+        {
+            var result = await service.SkipFirstLogin(User);
+            return Ok(new { success = result, message = "Вход разрешен" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
 }

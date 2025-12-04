@@ -142,7 +142,7 @@
                     <span>{{ draft.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
                   </div>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="flex items-center gap-2 flex-shrink-0 relative">
                   <button
                     type="button"
                     (click)="openEditDraftModal(draft)"
@@ -167,6 +167,31 @@
                   >
                     Удалить
                   </button>
+                  
+                  <!-- Модальное окно подтверждения удаления черновика -->
+                  @if (showDeleteDraftModal() && draftToDelete() === draft.id) {
+                    <div class="delete-draft-modal absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50" (click)="$event.stopPropagation()">
+                      <div class="p-4 space-y-4 text-center">
+                        <h4 class="text-sm font-semibold text-gray-900">Удалить черновик?</h4>
+                        <div class="flex gap-2">
+                          <button 
+                            type="button"
+                            (click)="closeDeleteDraftModal()"
+                            class="flex-1 px-3 py-1.5 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                          >
+                            Нет
+                          </button>
+                          <button 
+                            type="button"
+                            (click)="confirmDeleteDraft()"
+                            class="flex-1 px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                          >
+                            Да
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  }
                 </div>
               </div>
             }
@@ -178,12 +203,16 @@
     <!-- Баннер с кнопкой редактирования (только для авторов) -->
     @if (author()) {
     <div class="mb-6 relative">
-      @if (bannerSrc()) {
+      @if (bannerLoading()) {
+        <!-- Скелетон для баннера -->
+        <div class="w-full h-40 md:h-56 rounded-xl bg-gray-200 animate-pulse"></div>
+      } @else if (bannerSrc()) {
         <img
           [src]="bannerSrc()"
           alt="Баннер автора"
           class="w-full h-40 md:h-56 rounded-xl object-cover"
           (error)="onBannerError($event)"
+          (load)="bannerLoading.set(false)"
         />
       } @else if (isOwnProfile()) {
         <div class="w-full h-40 md:h-56 rounded-xl bg-gradient-to-r from-amber-100 to-amber-200 flex items-center justify-center">
@@ -191,7 +220,7 @@
         </div>
       }
       
-      @if (isOwnProfile()) {
+      @if (isOwnProfile() && !bannerLoading()) {
         <button
           type="button"
           (click)="openBannerModal()"
@@ -444,13 +473,13 @@
             </div>
             }
             @if (profileId() && author()) {
-            <app-posts-feed
-              [mode]="'creator'"
-              [creatorId]="profileId()!"
-              [loadPostsFunction]="loadCreatorPosts"
-              [showAuthorInfo]="false"
-              (postHidden)="onPostHidden($event)"
-            ></app-posts-feed>
+              <app-posts-feed
+                [mode]="'creator'"
+                [creatorId]="profileId()!"
+                [loadPostsFunction]="loadCreatorPosts"
+                [showAuthorInfo]="false"
+                (postHidden)="onPostHidden($event)"
+              ></app-posts-feed>
             }
           </div>
         </div>
@@ -483,13 +512,13 @@
               </div>
             }
             @if (profileId() && author()) {
-            <app-posts-feed
-              [mode]="'creator'"
-              [creatorId]="profileId()!"
-              [loadPostsFunction]="loadCreatorPosts"
-              [showAuthorInfo]="false"
-              (postHidden)="onPostHidden($event)"
-            ></app-posts-feed>
+              <app-posts-feed
+                [mode]="'creator'"
+                [creatorId]="profileId()!"
+                [loadPostsFunction]="loadCreatorPosts"
+                [showAuthorInfo]="false"
+                (postHidden)="onPostHidden($event)"
+              ></app-posts-feed>
             }
           </div>
         </div>
@@ -664,3 +693,11 @@
 
 <!-- Индикатор обработки видео -->
 <app-video-processing-indicator></app-video-processing-indicator>
+
+<!-- Модальное окно первого входа -->
+@if (showFirstLoginModal()) {
+  <app-first-login-modal
+    (completed)="onFirstLoginCompleted()"
+    (closed)="onFirstLoginClosed()"
+  ></app-first-login-modal>
+}

@@ -92,6 +92,37 @@ public class FilesController(IFilesService filesService) : ControllerBase
         return await ExecuteAsync(() => filesService.UploadPostImagesAsync(GetUserId(), dto));
     }
 
+    /// <summary>
+    /// Загружает аудио (только для creator)
+    /// </summary>
+    [Authorize(Roles = "Creator")]
+    [HttpPost("audio")]
+    [RequestSizeLimit(100 * 1024 * 1024)] // 100 MB
+    public async Task<ActionResult<AudioUploadResponseDto>> UploadAudio([FromForm] AudioUploadRequestDto request)
+    {
+        return await ExecuteAsync(() => filesService.UploadAudioAsync(GetUserId(), request));
+    }
+
+    /// <summary>
+    /// Получить presigned URL для прослушивания аудио
+    /// </summary>
+    [Authorize]
+    [HttpGet("audio/url")]
+    public async Task<ActionResult<AudioUrlResponseDto>> GetAudioUrl([FromQuery] string key, [FromQuery] int ttl = 300)
+    {
+        return await ExecuteAsync(() => filesService.GetAudioUrlAsync(key, ttl));
+    }
+
+    /// <summary>
+    /// Удалить аудио (только для creator)
+    /// </summary>
+    [Authorize(Roles = "Creator")]
+    [HttpDelete("audio/{audioId:guid}")]
+    public async Task<ActionResult<MessageResponseDto>> DeleteAudio([FromRoute] Guid audioId)
+    {
+        return await ExecuteAsync(() => filesService.DeleteAudioAsync(audioId, GetUserId()));
+    }
+
     private Guid GetUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);

@@ -24,11 +24,12 @@ import { SessionService } from '@app/core/services/session.service';
 import { catchError } from 'rxjs/operators';
 import { ChangePasswordModal } from '@app/shared/components/change-password-modal/change-password-modal';
 import { ChangeEmailModal } from '@app/shared/components/change-email-modal/change-email-modal';
+import { FirstLoginModal } from '../../../auth/components/first-login-modal/first-login-modal';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, AuthorSupporters, CreatePostModal, AvatarUploadModal, BannerUploadModal, PostsFeed, UserSubscriptions, VideoProcessingIndicator, ChangePasswordModal, ChangeEmailModal, OverlayModule, PortalModule],
+  imports: [CommonModule, FormsModule, AuthorSupporters, CreatePostModal, AvatarUploadModal, BannerUploadModal, PostsFeed, UserSubscriptions, VideoProcessingIndicator, ChangePasswordModal, ChangeEmailModal, FirstLoginModal, OverlayModule, PortalModule],
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.css'
 })
@@ -55,6 +56,7 @@ export class ProfilePage implements OnInit, OnDestroy {
   readonly author = signal<AuthorRequestDto | null>(null);
   readonly userName = signal<string | null>(null);
   readonly bannerSrc = signal<string | null>(null);
+  readonly bannerLoading = signal(false);
   readonly avatarSrc = signal<string | null>(null);
   
   // Редактирование имени пользователя
@@ -73,6 +75,8 @@ export class ProfilePage implements OnInit, OnDestroy {
   readonly showDrafts = signal(false);
   readonly drafts = signal<any[]>([]);
   readonly draftsLoading = signal(false);
+  readonly showDeleteDraftModal = signal(false);
+  readonly draftToDelete = signal<string | null>(null);
   
   // Редактирование черновика
   readonly editingDraft = signal<any | null>(null);
@@ -86,6 +90,9 @@ export class ProfilePage implements OnInit, OnDestroy {
   readonly showSettingsDropdown = signal(false);
   readonly showChangePasswordModal = signal(false);
   readonly showChangeEmailModal = signal(false);
+  
+  // Первый вход
+  readonly showFirstLoginModal = signal(false);
   
   // Редактирование названия и описания
   readonly isEditingName = signal(false);
@@ -150,13 +157,17 @@ export class ProfilePage implements OnInit, OnDestroy {
       }
     });
     
-    this.sessionService.ensureSession().subscribe(() => {
+    this.sessionService.ensureSession().subscribe((session) => {
       this.checkProfileOwnership();
       this.checkUserRole();
       // Загружаем аватарку и черновики после проверки сессии
       if (this.isOwnProfile()) {
         this.loadUserAvatar();
         this.loadDraftsIfCreator();
+      }
+      // Проверяем, нужно ли показать модальное окно первого входа
+      if (session?.isFirstLogin && this.isOwnProfile()) {
+        this.showFirstLoginModal.set(true);
       }
     });
     
@@ -190,13 +201,45 @@ export class ProfilePage implements OnInit, OnDestroy {
         this.closeUnsubscribeModal();
       }
     }
+    if (this.showDeleteDraftModal()) {
+      const target = event.target as HTMLElement;
+      // Закрываем модальное окно удаления черновика, если клик был вне его
+      if (!target.closest('.delete-draft-modal') && !target.closest('.relative')) {
+        this.closeDeleteDraftModal();
+      }
+    }
   };
+
+  onFirstLoginCompleted(): void {
+    this.showFirstLoginModal.set(false);
+    // Обновляем сессию после завершения первого входа
+    this.sessionService.refreshSession().subscribe(() => {
+      // Перезагружаем имя пользователя, чтобы отобразить новое имя
+      const profileId = this.profileId();
+      if (profileId && this.isOwnProfile()) {
+        this.loadUserName(profileId);
+      }
+    });
+  }
+
+  onFirstLoginClosed(): void {
+    this.showFirstLoginModal.set(false);
+    // Обновляем сессию после закрытия модального окна
+    this.sessionService.refreshSession().subscribe(() => {
+      // Перезагружаем имя пользователя, чтобы отобразить новое имя (если было введено)
+      const profileId = this.profileId();
+      if (profileId && this.isOwnProfile()) {
+        this.loadUserName(profileId);
+      }
+    });
+  }
 
   private loadAuthorAndBanner(profileId: string | null): void {
     if (!profileId) {
       this.author.set(null);
       this.userName.set(null);
       this.bannerSrc.set(null);
+      this.bannerLoading.set(false);
       this.avatarSrc.set(null);
       return;
     }
@@ -210,6 +253,7 @@ export class ProfilePage implements OnInit, OnDestroy {
       // Load user name from User entity
       this.author.set(null);
       this.bannerSrc.set(null);
+      this.bannerLoading.set(false);
       this.avatarSrc.set(null);
       this.loadUserName(profileId);
       return;
@@ -222,10 +266,18 @@ export class ProfilePage implements OnInit, OnDestroy {
       const bannerKey = author?.bannerUrl ?? null;
       if (!bannerKey) {
         this.bannerSrc.set(null);
+        this.bannerLoading.set(false);
       } else {
+        this.bannerLoading.set(true);
         this.profileFacade.getImageUrl(bannerKey, 300).subscribe({
-          next: (url) => this.bannerSrc.set(url),
-          error: () => this.bannerSrc.set(null)
+          next: (url) => {
+            this.bannerSrc.set(url);
+            this.bannerLoading.set(false);
+          },
+          error: () => {
+            this.bannerSrc.set(null);
+            this.bannerLoading.set(false);
+          }
         });
       }
       
@@ -357,6 +409,7 @@ export class ProfilePage implements OnInit, OnDestroy {
 
   onBannerError(e: Event): void {
     const img = e.target as HTMLImageElement;
+    this.bannerLoading.set(false);
     img.src = '/images/banner-placeholder.jpg';
   }
 
@@ -489,6 +542,7 @@ export class ProfilePage implements OnInit, OnDestroy {
 
   onBannerUpload(file: File): void {
     this.bannerModal?.setUploading(true);
+    this.bannerLoading.set(true);
 
     // 1. Загружаем файл в MinIO
     this.profileFacade.uploadBanner(file).subscribe({
@@ -502,6 +556,7 @@ export class ProfilePage implements OnInit, OnDestroy {
                 this.profileFacade.getImageUrl(key, 300).subscribe({
                   next: (url) => {
                     this.bannerSrc.set(url);
+                    this.bannerLoading.set(true); // Устанавливаем в true, чтобы показать скелетон пока изображение загружается
                     this.showBannerModal.set(false);
                     this.bannerModal?.setUploading(false);
                     // Обновляем данные автора если они есть
@@ -511,22 +566,27 @@ export class ProfilePage implements OnInit, OnDestroy {
                     }
                   },
                   error: () => {
+                    this.bannerLoading.set(false);
                     this.bannerModal?.setError('Не удалось загрузить URL баннера');
                   }
                 });
               } else {
+                this.bannerLoading.set(false);
                 this.bannerModal?.setError('Не удалось сохранить баннер в БД');
               }
             },
             error: () => {
+              this.bannerLoading.set(false);
               this.bannerModal?.setError('Ошибка сохранения баннера');
             }
           });
         } else {
+          this.bannerLoading.set(false);
           this.bannerModal?.setError('Ошибка загрузки');
         }
       },
       error: () => {
+        this.bannerLoading.set(false);
         this.bannerModal?.setError('Ошибка загрузки баннера');
       }
     });
@@ -586,16 +646,29 @@ export class ProfilePage implements OnInit, OnDestroy {
   }
 
   deleteDraft(postId: string): void {
-    if (!confirm('Удалить черновик?')) return;
+    this.draftToDelete.set(postId);
+    this.showDeleteDraftModal.set(true);
+  }
+
+  confirmDeleteDraft(): void {
+    const postId = this.draftToDelete();
+    if (!postId) return;
     
     this.postsFacade.deletePost(postId).subscribe({
       next: () => {
         this.drafts.update(d => d.filter(p => p.id !== postId));
+        this.closeDeleteDraftModal();
       },
       error: (err) => {
         console.error('Ошибка удаления:', err);
+        this.closeDeleteDraftModal();
       }
     });
+  }
+
+  closeDeleteDraftModal(): void {
+    this.showDeleteDraftModal.set(false);
+    this.draftToDelete.set(null);
   }
 
   // Загрузка имени пользователя

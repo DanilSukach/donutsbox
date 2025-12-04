@@ -22,4 +22,8 @@ public class AuthResponseDto
     public Guid? CreatorPageId { get; set; }
     public bool HasCreatorPage { get; set; }
     public bool IsNewCreator { get; set; }
+    /// <summary>
+    /// Флаг первого входа (LastAuth == null)
+    /// </summary>
+    public bool IsFirstLogin { get; set; }
 }

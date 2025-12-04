@@ -11,5 +11,6 @@ public class SessionInfoDto
     public bool IsCreator { get; set; }
     public bool HasCreatorPage { get; set; }
     public Guid? CreatorPageId { get; set; }
+    public bool IsFirstLogin { get; set; }
 }
 

@@ -12,25 +12,15 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ������������
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
 
-// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Donutsbox Admin API",
-        Version = "v1",
-        Description = "API ��� ����������������� ��������� Donutsbox"
-    });
-
-    // ����������� XML ������������
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     if (File.Exists(xmlPath))
@@ -38,7 +28,6 @@ builder.Services.AddSwaggerGen(options =>
         options.IncludeXmlComments(xmlPath);
     }
 
-    // JWT ����������� � Swagger
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
@@ -65,7 +54,6 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// JWT Authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -91,11 +79,9 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// Database Context
 builder.Services.AddDbContext<DonutsboxDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 
-// Repositories
 builder.Services.AddScoped<IEntityRepository<User, Guid>, UserRepository>();
 builder.Services.AddScoped<IEntityRepository<UserAuth, Guid>, UserAuthRepository>();
 builder.Services.AddScoped<IEntityRepository<UserData, Guid>, UserDataRepository>();
@@ -103,11 +89,9 @@ builder.Services.AddScoped<IEntityRepository<CreatorPageData, Guid>, CreatorPage
 builder.Services.AddScoped<IEntityRepository<ContentPost, Guid>, ContentPostRepository>();
 builder.Services.AddScoped<IEntityRepository<UserSubscription, Guid>, UserSubscriptionRepository>();
 
-// Admin Services
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IAdminContentService, AdminContentService>();
 
-// CORS
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
 {
@@ -129,12 +113,10 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Controllers
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

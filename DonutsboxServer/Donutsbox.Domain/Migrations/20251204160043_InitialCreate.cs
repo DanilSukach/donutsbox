@@ -180,7 +180,7 @@ namespace Donutsbox.Domain.Migrations
                     price = table.Column<string>(type: "text", nullable: false),
                     name = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     description = table.Column<string>(type: "text", nullable: false),
-                    picture_url = table.Column<string>(type: "text", nullable: false),
+                    picture_url = table.Column<string>(type: "text", nullable: true),
                     subscription_period_id = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -203,6 +203,30 @@ namespace Donutsbox.Domain.Migrations
                         column: x => x.subscription_id,
                         principalTable: "subscription",
                         principalColumn: "id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Audios",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    ObjectKey = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ProcessedPath = table.Column<string>(type: "text", nullable: true),
+                    ContentPostId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Audios", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Audios_content_post_ContentPostId",
+                        column: x => x.ContentPostId,
+                        principalTable: "content_post",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -440,6 +464,11 @@ namespace Donutsbox.Domain.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Audios_ContentPostId",
+                table: "Audios",
+                column: "ContentPostId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_content_post_page_id",
                 table: "content_post",
                 column: "page_id");
@@ -551,6 +580,9 @@ namespace Donutsbox.Domain.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Audios");
+
             migrationBuilder.DropTable(
                 name: "ContentPostSubscription");
 

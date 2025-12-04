@@ -14,10 +14,12 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
     private readonly string _tempBucket = configuration["Minio:BucketTemp"] ?? "video-temp";
     private readonly string _processedBucket = configuration["Minio:BucketProcessed"] ?? "video-processed";
     private readonly string _imagesBucket = configuration["Minio:BucketImages"] ?? "images";
+    private readonly string _audioBucket = configuration["Minio:BucketAudio"] ?? "audio-temp";
 
     public string GetTempBucket() => _tempBucket;
     public string GetProcessedBucket() => _processedBucket;
     public string GetImagesBucket() => _imagesBucket;
+    public string GetAudioBucket() => _audioBucket;
 
     public async Task EnsureBucketAsync()
     {
@@ -34,6 +36,7 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
         await ensure(_tempBucket);
         await ensure(_processedBucket);
         await ensure(_imagesBucket);
+        await ensure(_audioBucket);
     }
 
     public async Task UploadFileAsync(string objectKey, Stream stream, string contentType)
@@ -65,6 +68,21 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
 
         await _client.PutObjectAsync(args);
         logger.LogInformation("Image {ObjectKey} uploaded to MinIO bucket {Bucket}", objectKey, _imagesBucket);
+    }
+
+    public async Task UploadAudioAsync(string objectKey, Stream stream, string contentType)
+    {
+        await EnsureBucketAsync();
+
+        var args = new PutObjectArgs()
+            .WithBucket(_audioBucket)
+            .WithObject(objectKey)
+            .WithStreamData(stream)
+            .WithObjectSize(stream.Length)
+            .WithContentType(contentType);
+
+        await _client.PutObjectAsync(args);
+        logger.LogInformation("Audio {ObjectKey} uploaded to MinIO bucket {Bucket}", objectKey, _audioBucket);
     }
 
     public async Task<byte[]> GetProcessedObjectBytesAsync(string objectKey, CancellationToken ct = default)

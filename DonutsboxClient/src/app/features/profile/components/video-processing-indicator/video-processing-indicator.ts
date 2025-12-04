@@ -15,7 +15,7 @@ import { VideoStatusPollService } from '../../services/video-status-poll.service
         </svg>
         <div>
           <p class="font-semibold">📝 Готовится новый пост...</p>
-          <p class="text-xs opacity-90">Появится в ленте после обработки видео</p>
+          <p class="text-xs opacity-90">Появится в ленте после обработки медиа (видео и аудио)</p>
         </div>
       </div>
     }

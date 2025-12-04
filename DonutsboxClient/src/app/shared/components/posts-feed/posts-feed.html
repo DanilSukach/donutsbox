@@ -1,6 +1,6 @@
 <div class="space-y-6">
 @if (posts().length === 0 && initialLoadCompleted() && !isLoading() && !error()) {
-    <div class="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-300">
+    <div class="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center">
       <span class="text-6xl mb-4 block">📭</span>
       <p class="text-gray-600 text-lg">Постов пока нет</p>
       @if (mode() === 'subscriptions') {
@@ -58,7 +58,7 @@
 
 <!-- Индикатор загрузки при первой загрузке -->
 @if (!initialLoadCompleted()) {
-  <div class="text-center py-12">
+  <div class="text-center py-12 flex flex-col items-center justify-center">
     <div class="animate-spin text-4xl mb-4">⏳</div>
     @if (!initialLoadError()) {
       <p class="text-gray-600">Загружаем вашу ленту...</p>

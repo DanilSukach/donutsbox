@@ -168,6 +168,35 @@
             </div>
           }
 
+          <!-- Загруженные аудио -->
+          @if (audios().length > 0) {
+            <div class="bg-green-50 border-l-4 border-green-500 rounded-lg p-4">
+              <h3 class="font-semibold text-green-900 mb-3">✅ Загруженные аудио ({{ audios().length }})</h3>
+              <div class="space-y-2">
+                @for (audio of audios(); track audio.audioId) {
+                  <div class="flex items-center gap-3 bg-white rounded-lg p-3">
+                    <span class="text-green-600 text-xl">🎵</span>
+                    <div class="flex-1">
+                      <p class="font-medium text-gray-900">{{ audio.title }}</p>
+                      <p class="text-xs text-gray-500">
+                        {{ getAudioFileSize(audio.file) }} MB
+                      </p>
+                      <p class="text-xs text-gray-400">Статус: {{ audio.status }}</p>
+                    </div>
+                    <button 
+                      type="button" 
+                      (click)="removeAudio(audio.audioId)"
+                      class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                      title="Удалить аудио"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
           <!-- Кнопка добавления видео -->
           <button 
             (click)="isVideoFormExpanded.set(!isVideoFormExpanded())" 
@@ -282,6 +311,80 @@
             </div>
           </div>
         </div>
+
+        <!-- Кнопка добавления аудио -->
+        <button 
+          (click)="isAudioFormExpanded.set(!isAudioFormExpanded())" 
+          type="button" 
+          class="w-full px-6 py-4 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors duration-200 flex items-center justify-center gap-3 font-semibold text-gray-700">
+          @if (isAudioFormExpanded()) {
+            <span>▲</span>
+            <span>Скрыть форму загрузки аудио</span>
+          } @else {
+            <span>🎵</span>
+            <span>Добавить аудио</span>
+          }
+        </button>
+
+        <!-- Форма загрузки аудио с анимацией раскрытия -->
+        <div 
+          class="overflow-hidden transition-all duration-300 ease-in-out"
+          [style.max-height]="isAudioFormExpanded() ? '2000px' : '0px'"
+          [style.opacity]="isAudioFormExpanded() ? '1' : '0'">
+          <div class="space-y-4 border-2 border-dashed border-gray-300 rounded-xl p-6 bg-gray-50 mt-4">
+            <h3 class="font-semibold text-gray-900">📤 Загрузить новое аудио</h3>
+            
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">🎵 Название аудио</label>
+              <input 
+                type="text" 
+                [value]="audioTitle()"
+                (input)="audioTitle.set($any($event.target).value)"
+                placeholder="Введите название аудио"
+                class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-amber-500 focus:outline-none" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">📁 Выберите MP3 файл</label>
+              <input 
+                type="file" 
+                id="audio-file" 
+                accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg" 
+                [disabled]="isLoading() || isUploadingAudio()"
+                (change)="onAudioFileChange($event)" 
+                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg disabled:bg-gray-100" />
+              @if (isLoading() && isUploadingAudio()) {
+                <div class="mt-3">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-600">⏳ Загрузка аудио... {{ audioUploadProgress() }}%</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div class="bg-amber-600 h-2 rounded-full transition-all" [style.width.%]="audioUploadProgress()"></div>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="flex gap-3">
+              <button 
+                type="button"
+                (click)="uploadAudioFile()"
+                [disabled]="isLoading() || isUploadingAudio() || !selectedAudioFile() || !audioTitle().trim()"
+                class="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold">
+                Загрузить MP3
+              </button>
+            </div>
+
+            <div class="border-t border-gray-300 pt-4">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">🎤 Или записать аудио</label>
+              <app-audio-recorder
+                [audioTitle]="audioTitle()"
+                (recorded)="onRecordedAudio($event)"
+                (cancelled)="isRecordingAudio.set(false)"
+              ></app-audio-recorder>
+            </div>
+          </div>
+        </div>
       }
 
       <!-- STEP 3: PUBLISH -->
@@ -296,6 +399,9 @@
               }
               @if (images().length > 0) {
                 <div class="flex gap-3"><span class="text-green-600">✓</span><div><p class="text-sm text-gray-600">Изображения</p><p class="font-semibold text-gray-900">{{ images().length }} изображений</p></div></div>
+              }
+              @if (audios().length > 0) {
+                <div class="flex gap-3"><span class="text-green-600">✓</span><div><p class="text-sm text-gray-600">Аудио</p><p class="font-semibold text-gray-900">{{ audios().length }} аудио</p></div></div>
               }
               <div class="flex gap-3"><span class="text-green-600">✓</span><div><p class="text-sm text-gray-600">Аудитория</p><p class="font-semibold text-gray-900">{{ getAudienceDescription() }}</p></div></div>
             </div>

@@ -2,9 +2,10 @@ import { Component, OnInit, OnDestroy, inject, output, signal } from '@angular/c
 import { PostsFacade } from '../../services/posts-facade';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 import { VideoStatusPollService } from '../../services/video-status-poll.service';
-import { CreateDraftRequestDto, FilesService, SubscriptionDto } from '@app/api/donutsbox';
-import { HttpClient } from '@angular/common/http';
+import { CreateDraftRequestDto, FilesService, SubscriptionDto, AudioUploadResponseDto } from '@app/api/donutsbox';
+import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
+import { AudioRecorder } from '@app/shared/components/audio-recorder/audio-recorder';
 
 type ModalStep = 'create' | 'upload-video' | 'publish' | 'done';
 
@@ -22,9 +23,16 @@ interface UploadedImage {
   key: string;
 }
 
+interface UploadedAudio {
+  audioId: string;
+  title: string;
+  file: File | Blob;
+  status: string;
+}
+
 @Component({
   selector: 'app-create-post-modal',
-  imports: [],
+  imports: [AudioRecorder],
   templateUrl: './create-post-modal.html',
   styleUrl: './create-post-modal.css',
 })
@@ -66,6 +74,14 @@ export class CreatePostModal implements OnInit, OnDestroy {
   readonly images = signal<UploadedImage[]>([]);
   readonly isImageFormExpanded = signal(false);
   readonly isUploadingImages = signal(false);
+
+  readonly audios = signal<UploadedAudio[]>([]);
+  readonly audioTitle = signal('');
+  readonly selectedAudioFile = signal<File | null>(null);
+  readonly isAudioFormExpanded = signal(false);
+  readonly isRecordingAudio = signal(false);
+  readonly isUploadingAudio = signal(false);
+  readonly audioUploadProgress = signal(0);
 
   ngOnInit(): void {
     this.loadCreatorSubscriptions();
@@ -310,6 +326,7 @@ export class CreatePostModal implements OnInit, OnDestroy {
 
     const xhr = new XMLHttpRequest();
     this.uploadAbortController = new AbortController();
+    xhr.withCredentials = true; // Отправляем cookies для авторизации
     
     xhr.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable) {
@@ -475,14 +492,17 @@ export class CreatePostModal implements OnInit, OnDestroy {
         this.isLoading.set(false);
         console.log('✅ Пост опубликован');
         
-        if (hasVideos) {
-          // Если есть видео - ждём обработки, не обновляем сразу
+        const hasAudios = this.audios().length > 0;
+        const hasVideos = this.videos().length > 0;
+        
+        if (hasVideos || hasAudios) {
+          // Если есть видео или аудио - ждём обработки, не обновляем сразу
           // Плашка покажет что контент обрабатывается
-          console.log('🎬 Запускаю polling статуса видео...');
+          console.log('🎬 Запускаю polling статуса медиа (видео и/или аудио)...');
           this.videoStatusPollService.startPollingAfterPublish();
         } else {
           // Если только текст/изображения - обновляем сразу
-          console.log('📝 Пост без видео, обновляем сразу');
+          console.log('📝 Пост без медиа, обновляем сразу');
           this.postsRefreshService.triggerRefresh();
         }
       },
@@ -516,6 +536,13 @@ export class CreatePostModal implements OnInit, OnDestroy {
     this.images.set([]);
     this.isImageFormExpanded.set(false);
     this.isUploadingImages.set(false);
+    this.audios.set([]);
+    this.audioTitle.set('');
+    this.selectedAudioFile.set(null);
+    this.isAudioFormExpanded.set(false);
+    this.isRecordingAudio.set(false);
+    this.isUploadingAudio.set(false);
+    this.audioUploadProgress.set(0);
     this.error.set(null);
     this.wasPublished.set(false);
   }
@@ -527,5 +554,138 @@ export class CreatePostModal implements OnInit, OnDestroy {
     } else if (step === 'publish') {
       this.currentStep.set('upload-video');
     }
+  }
+
+  onAudioFileChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.selectedAudioFile.set(input.files[0]);
+    }
+  }
+
+  uploadAudioFile(): void {
+    const file = this.selectedAudioFile();
+    const postId = this.postId();
+
+    if (!file) {
+      this.error.set('Выберите аудио файл');
+      return;
+    }
+
+    if (!postId) {
+      this.error.set('Пост не создан');
+      return;
+    }
+
+    if (!this.audioTitle().trim()) {
+      this.error.set('Введите название аудио');
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.isUploadingAudio.set(true);
+    this.error.set(null);
+    this.audioUploadProgress.set(0);
+
+    // File уже является Blob, можно передать напрямую
+    this.filesService
+      .apiFilesAudioPost(postId, this.audioTitle(), file, 'events', true)
+      .subscribe({
+        next: (event: HttpEvent<AudioUploadResponseDto>) => {
+          if (event.type === HttpEventType.UploadProgress) {
+            // Обновляем прогресс загрузки
+            if (event.total) {
+              const progress = Math.round((event.loaded / event.total) * 100);
+              this.audioUploadProgress.set(progress);
+            }
+          } else if (event.type === HttpEventType.Response) {
+            // Загрузка завершена
+            const response = event.body;
+            if (!response?.audioId) {
+              this.error.set('Не получен ID аудио от сервера');
+              this.isLoading.set(false);
+              this.isUploadingAudio.set(false);
+              this.audioUploadProgress.set(0);
+              return;
+            }
+
+            this.audios.update((auds) => [
+              ...auds,
+              {
+                audioId: response.audioId!,
+                title: this.audioTitle(),
+                file: file,
+                status: response.status || 'UPLOADING',
+              },
+            ]);
+
+            this.audioTitle.set('');
+            this.selectedAudioFile.set(null);
+            this.audioUploadProgress.set(0);
+
+            const audioInput = document.getElementById('audio-file') as HTMLInputElement;
+            if (audioInput) audioInput.value = '';
+
+            this.isLoading.set(false);
+            this.isUploadingAudio.set(false);
+            this.isAudioFormExpanded.set(false);
+          }
+        },
+        error: (err) => {
+          let errorMessage = 'Ошибка загрузки аудио';
+          if (err.error?.message) {
+            errorMessage = err.error.message;
+          } else if (err.message) {
+            errorMessage = err.message;
+          }
+          this.error.set(`Ошибка загрузки аудио: ${errorMessage}`);
+          this.isLoading.set(false);
+          this.isUploadingAudio.set(false);
+          this.audioUploadProgress.set(0);
+        },
+      });
+  }
+
+  onRecordedAudio(blob: Blob): void {
+    const postId = this.postId();
+    if (!postId) {
+      this.error.set('Пост не создан');
+      return;
+    }
+
+    if (!this.audioTitle().trim()) {
+      this.error.set('Введите название аудио');
+      return;
+    }
+
+    // Конвертируем Blob в File для загрузки
+    const fileName = `recording_${Date.now()}.webm`;
+    const file = new File([blob], fileName, { type: blob.type || 'audio/webm' });
+    
+    this.selectedAudioFile.set(file);
+    this.uploadAudioFile();
+  }
+
+  removeAudio(audioId: string): void {
+    this.audios.update((auds) => auds.filter((a) => a.audioId !== audioId));
+    
+    // Отправляем запрос на удаление на сервер
+    this.http.delete(`/api/Files/audio/${audioId}`).subscribe({
+      next: () => {
+        console.log('Аудио удалено:', audioId);
+      },
+      error: (err: unknown) => {
+        console.error('Ошибка удаления аудио:', err);
+        // Восстанавливаем аудио в списке при ошибке
+        // (можно добавить уведомление пользователю)
+      }
+    });
+  }
+
+  getAudioFileSize(file: File | Blob): string {
+    if (file && 'size' in file) {
+      return (file.size / 1024 / 1024).toFixed(2);
+    }
+    return '0.00';
   }
 }

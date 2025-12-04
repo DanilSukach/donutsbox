@@ -46,17 +46,6 @@
     }
   </div>
 
-  <div>
-    <label for="pictureURL" class="block text-sm font-medium text-gray-700">URL изображения (опционально)</label>
-    <input
-      id="pictureURL"
-      type="text"
-      formControlName="pictureURL"
-      placeholder="https://example.com/image.jpg"
-      class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-amber-500 focus:border-amber-500 transition-colors"
-    />
-  </div>
-
   @if (errorMessage()) {
     <div class="mt-2 text-red-500 text-center">
       {{ errorMessage() }}

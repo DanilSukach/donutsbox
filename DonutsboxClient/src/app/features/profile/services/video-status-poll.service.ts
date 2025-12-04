@@ -17,8 +17,8 @@ export class VideoStatusPollService {
   private pollingAttempts = 0;
 
   /**
-   * Начать polling статуса видео после публикации поста
-   * Автоматически обновит список постов когда все видео обработаны
+   * Начать polling статуса видео и аудио после публикации поста
+   * Автоматически обновит список постов когда весь медиа-контент обработан
    */
   startPollingAfterPublish(): void {
     if (this.isPolling()) {
@@ -26,7 +26,7 @@ export class VideoStatusPollService {
       return;
     }
 
-    console.log('🔄 Запускаю polling статуса видео...');
+    console.log('🔄 Запускаю polling статуса медиа (видео и аудио)...');
     this.isPolling.set(true);
     this.pollingAttempts = 0;
 
@@ -45,19 +45,34 @@ export class VideoStatusPollService {
         }),
         switchMap(() => {
           console.log(`🔍 Polling попытка ${this.pollingAttempts}/${this.maxPollingAttempts}...`);
-          // Проверяем видео в статусах UPLOADED и PROCESSING
-          return this.postsFacade.getMyVideos(1, 100);
+          // Проверяем посты для получения статуса видео и аудио
+          return this.postsFacade.getMyPosts(1, 100, true);
         }),
         tap((response) => {
-          const videos = response.videos || [];
-          const processingVideos = videos.filter((v: any) => 
-            v.status === 'UPLOADED' || v.status === 'PROCESSING'
-          ).length;
-          console.log(`  - Контент в обработке: ${processingVideos}`);
+          const posts = response.posts || [];
+          let processingVideos = 0;
+          let processingAudios = 0;
+
+          // Проверяем статус видео и аудио во всех постах
+          posts.forEach((post: any) => {
+            const videos = post.videos || [];
+            const audios = post.audios || [];
+            
+            processingVideos += videos.filter((v: any) => 
+              v.status === 'UPLOADED' || v.status === 'PROCESSING' || v.status === 'UPLOADING'
+            ).length;
+            
+            processingAudios += audios.filter((a: any) => 
+              a.status === 'UPLOADED' || a.status === 'PROCESSING' || a.status === 'UPLOADING'
+            ).length;
+          });
+
+          const totalProcessing = processingVideos + processingAudios;
+          console.log(`  - Видео в обработке: ${processingVideos}, Аудио в обработке: ${processingAudios}, Всего: ${totalProcessing}`);
 
           // Если весь контент обработан
-          if (processingVideos === 0) {
-            console.log('✅ Весь контент обработан! Мягкое обновление постов...');
+          if (totalProcessing === 0) {
+            console.log('✅ Весь медиа-контент обработан! Мягкое обновление постов...');
             this.stopPolling();
             this.postsRefreshService.triggerRefresh();
           }

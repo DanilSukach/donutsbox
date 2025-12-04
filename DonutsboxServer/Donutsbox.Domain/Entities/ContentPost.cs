@@ -77,6 +77,12 @@ public class ContentPost
     [Required]
     public List<Video> Videos { get; set; } = [];
     /// <summary>
+    /// Ссылки на аудио
+    /// </summary>
+    [Column("audio_urls")]
+    [Required]
+    public List<Audio> Audios { get; set; } = [];
+    /// <summary>
     /// Ссылки на картинки  
     /// </summary>
     [Column("picture_urls")]

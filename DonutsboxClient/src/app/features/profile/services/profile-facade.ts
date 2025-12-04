@@ -14,7 +14,7 @@ import {
 } from '@app/api/donutsbox';
 import { SessionService } from '@app/core/services/session.service';
 import { Observable, catchError, map, of, tap } from 'rxjs';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpClient } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root',
@@ -26,6 +26,7 @@ export class ProfileFacade {
   private readonly filesService = inject(FilesService);
   private readonly sessionService = inject(SessionService);
   private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
 
   readonly isCreatingProfile = signal(false);
   readonly isCreatingSubscription = signal(false);
@@ -35,6 +36,8 @@ export class ProfileFacade {
   readonly isUploadingAvatar = signal(false);
   readonly isUploadingBanner = signal(false);
   readonly imageUploadError = signal<string | null>(null);
+  readonly isUploadingAudio = signal(false);
+  readonly audioUploadError = signal<string | null>(null);
 
   uploadAvatar(file: File): Observable<string | null> {
     this.isUploadingAvatar.set(true);
@@ -77,6 +80,30 @@ export class ProfileFacade {
   getImageUrl(key: string, ttl = 300): Observable<string | null> {
     if (!key) return of(null);
     return this.filesService.apiFilesImagesUrlGet(key, ttl).pipe(
+      map((r) => r.url ?? null),
+      catchError(() => of(null))
+    );
+  }
+
+  uploadAudio(file: File, postId: string, title: string): Observable<{ audioId: string; status: string } | null> {
+    this.isUploadingAudio.set(true);
+    this.audioUploadError.set(null);
+
+    // File уже является Blob, можно передать напрямую
+    return this.filesService.apiFilesAudioPost(postId, title, file as Blob).pipe(
+      map((resp) => ({ audioId: resp.audioId ?? '', status: resp.status ?? 'UPLOADING' })),
+      tap(() => this.isUploadingAudio.set(false)),
+      catchError((err: HttpErrorResponse) => {
+        this.isUploadingAudio.set(false);
+        this.audioUploadError.set(this.normalizeUploadError(err));
+        return of(null);
+      })
+    );
+  }
+
+  getAudioUrl(key: string, ttl = 300): Observable<string | null> {
+    if (!key) return of(null);
+    return this.filesService.apiFilesAudioUrlGet(key, ttl).pipe(
       map((r) => r.url ?? null),
       catchError(() => of(null))
     );

@@ -6,6 +6,7 @@ import { SubscriptionDto } from '@app/api/donutsbox/model/subscriptionDto';
 import { SubscriptionPaymentsService } from '@app/api/donutsbox/api/subscriptionPayments.service';
 import { SubscriptionPaymentRequestDto } from '@app/api/donutsbox/model/subscriptionPaymentRequestDto';
 import { SubscriptionPaymentResponseDto } from '@app/api/donutsbox/model/subscriptionPaymentResponseDto';
+import { FilesService } from '@app/api/donutsbox/api/files.service';
 
 type SubscriptionPlan = {
   key: string;
@@ -27,8 +28,19 @@ export class SubscriptionModal {
   private router = inject(Router);
   private paymentsService = inject(SubscriptionPaymentsService);
   private document = inject(DOCUMENT);
+  private filesService = inject(FilesService);
 
-  @Input() author: AuthorRequestDto | null = null;
+  private _author: AuthorRequestDto | null = null;
+  
+  @Input() 
+  set author(value: AuthorRequestDto | null) {
+    this._author = value;
+    this.loadAuthorAvatar();
+  }
+  get author(): AuthorRequestDto | null {
+    return this._author;
+  }
+  
   @Input() isOpen = false;
   @Output() closeModal = new EventEmitter<void>();
   @Output() subscriptionSuccess = new EventEmitter<void>();
@@ -36,9 +48,26 @@ export class SubscriptionModal {
   readonly isSubscribing = signal(false);
   readonly subscriptionError = signal<string | null>(null);
   readonly expandedPlanKey = signal<string | null>(null);
+  readonly authorAvatarUrl = signal<string | null>(null);
 
   readonly defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFOUVDRUYiLz4KPHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeD0iOCIgeT0iOCI+CjxwYXRoIGQ9Ik0xMiAxMkM5Ljc5IDEyIDggMTAuMjEgOCA4UzkuNzkgNCA0IDRTMTYgNS43OSAxNiA4UzE0LjIxIDEyIDEyIDEyWk0xMiAxNEMxNi40MiAxNCAyMCAxNS43OSAyMCAxOFYyMEg0VjE4QzQgMTUuNzkgNy41OCAxNCAxMiAxNFoiIGZpbGw9IiM2Qzc1N0QiLz4KPC9zdmc+Cjwvc3ZnPgo=';
   readonly defaultSubscriptionImage = 'https://via.placeholder.com/300x200?text=Subscription';
+
+  private loadAuthorAvatar(): void {
+    const author = this._author;
+    if (author?.avatarUrl) {
+      this.filesService.apiFilesImagesUrlGet(author.avatarUrl, 300).subscribe({
+        next: (response) => {
+          this.authorAvatarUrl.set(response.url ?? null);
+        },
+        error: () => {
+          this.authorAvatarUrl.set(null);
+        }
+      });
+    } else {
+      this.authorAvatarUrl.set(null);
+    }
+  }
   private readonly currencyFormatter = new Intl.NumberFormat('ru-RU', {
     style: 'currency',
     currency: 'RUB',

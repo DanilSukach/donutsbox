@@ -11,6 +11,7 @@ export interface SessionInfo {
   isCreator: boolean;
   hasCreatorPage: boolean;
   creatorPageId?: string | null;
+  isFirstLogin?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })

@@ -285,5 +285,155 @@ public class FilesService(
 
         return new ImageUploadResponseDto { Key = key };
     }
+
+    public async Task<AudioUploadResponseDto> UploadAudioAsync(Guid userId, AudioUploadRequestDto request)
+    {
+        if (request.File == null || request.File.Length == 0)
+            throw new FilesServiceException("No file uploaded", StatusCodes.Status400BadRequest);
+
+        // Валидация типа файла
+        var allowedContentTypes = new[] { 
+            "audio/mpeg", 
+            "audio/mp3", 
+            "audio/mpeg3",
+            "audio/x-mpeg-3",
+            "audio/x-mpeg",
+            "audio/wav", 
+            "audio/wave",
+            "audio/x-wav",
+            "audio/x-pn-wav",
+            "audio/ogg", 
+            "audio/vorbis",
+            "audio/webm",
+            "audio/x-m4a",
+            "audio/mp4",
+            "audio/aac",
+            "audio/x-aac",
+            "application/octet-stream" // Для файлов без определенного MIME типа
+        };
+        
+        var contentType = request.File.ContentType?.ToLowerInvariant() ?? string.Empty;
+        var fileName = request.File.FileName ?? string.Empty;
+        
+        // Проверяем расширение файла
+        var hasValidExtension = fileName.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
+                               fileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) ||
+                               fileName.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) ||
+                               fileName.EndsWith(".m4a", StringComparison.OrdinalIgnoreCase) ||
+                               fileName.EndsWith(".aac", StringComparison.OrdinalIgnoreCase) ||
+                               fileName.EndsWith(".webm", StringComparison.OrdinalIgnoreCase);
+        
+        // Проверяем MIME-тип (может быть пустым или неправильным)
+        var hasValidContentType = string.IsNullOrEmpty(contentType) || 
+                                 allowedContentTypes.Any(ct => contentType.Contains(ct, StringComparison.OrdinalIgnoreCase)) ||
+                                 contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase);
+        
+        // Если есть валидное расширение, разрешаем загрузку (даже если MIME-тип неправильный)
+        // Или если MIME-тип валидный
+        if (!hasValidExtension && !hasValidContentType)
+        {
+            logger.LogWarning("Invalid audio file type. ContentType: {ContentType}, FileName: {FileName}", contentType, fileName);
+            throw new FilesServiceException($"Invalid audio file type. ContentType: {contentType}, FileName: {fileName}. Supported: MP3, WAV, OGG, M4A, AAC, WEBM", StatusCodes.Status400BadRequest);
+        }
+        
+        // Логируем для отладки
+        logger.LogInformation("Audio file validation passed. ContentType: {ContentType}, FileName: {FileName}", contentType, fileName);
+
+        var user = await db.Users
+            .Include(u => u.UserType)
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId) ?? throw new FilesServiceException("Unauthorized", StatusCodes.Status401Unauthorized);
+        if (user.CreatorPageData == null)
+            throw new FilesServiceException("Creator page not found", StatusCodes.Status400BadRequest);
+
+        var post = await db.ContentPosts.FirstOrDefaultAsync(
+            p => p.Id == request.ContentPostId && p.CreatorPageDataId == user.CreatorPageData.Id) ?? throw new FilesServiceException("Content post not found or does not belong to you", StatusCodes.Status400BadRequest);
+
+        var audioId = Guid.NewGuid();
+        var ext = Path.GetExtension(request.File.FileName);
+        var objectKey = $"{audioId}/{Path.GetFileName(request.File.FileName)}";
+
+        var audio = new Audio
+        {
+            Id = audioId,
+            Title = request.Title,
+            UserId = userId,
+            ContentPostId = request.ContentPostId,
+            ContentPost = post,
+            Status = "UPLOADING",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        db.Audios.Add(audio);
+        await db.SaveChangesAsync();
+
+        using (var stream = request.File.OpenReadStream())
+        {
+            await minioService.UploadAudioAsync(objectKey, stream, request.File.ContentType);
+        }
+
+        audio.Status = "UPLOADED";
+        audio.ObjectKey = objectKey;
+        await db.SaveChangesAsync();
+
+        await kafka.PublishAudioUploadedAsync(new AudioUploadedEvent(audio.Id, objectKey));
+
+        logger.LogInformation("Audio {AudioId} uploaded by creator {UserId}", audio.Id, userId);
+
+        var response = new AudioUploadResponseDto
+        {
+            AudioId = audio.Id,
+            Status = audio.Status
+        };
+
+        return response;
+    }
+
+    public async Task<AudioUrlResponseDto> GetAudioUrlAsync(string key, int ttl)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            throw new FilesServiceException("Key is required", StatusCodes.Status400BadRequest);
+
+        var audioBucket = minioService.GetAudioBucket();
+        var url = await minioService.GetPresignedGetUrlAsync(key, audioBucket, ttl);
+        return new AudioUrlResponseDto { Url = url, TtlSeconds = ttl };
+    }
+
+    public async Task<MessageResponseDto> DeleteAudioAsync(Guid audioId, Guid userId)
+    {
+        var audio = await db.Audios
+            .FirstOrDefaultAsync(a => a.Id == audioId) 
+            ?? throw new FilesServiceException("Audio not found", StatusCodes.Status404NotFound);
+
+        if (audio.UserId != userId)
+            throw new FilesServiceException("Access denied", StatusCodes.Status403Forbidden);
+
+        // Удаляем файлы из MinIO
+        try
+        {
+            var audioBucket = minioService.GetAudioBucket();
+            if (!string.IsNullOrEmpty(audio.ObjectKey))
+            {
+                await minioService.DeleteObjectAsync(audio.ObjectKey, audioBucket);
+            }
+            if (!string.IsNullOrEmpty(audio.ProcessedPath))
+            {
+                var processedBucket = minioService.GetProcessedBucket();
+                await minioService.DeleteObjectAsync(audio.ProcessedPath, processedBucket);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to delete MinIO files for audio {AudioId}", audioId);
+            // Продолжаем удаление из БД даже если файлы не удалились
+        }
+
+        db.Audios.Remove(audio);
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("Audio {AudioId} deleted by user {UserId}", audioId, userId);
+
+        return new MessageResponseDto { Message = "Audio deleted successfully" };
+    }
 }
 

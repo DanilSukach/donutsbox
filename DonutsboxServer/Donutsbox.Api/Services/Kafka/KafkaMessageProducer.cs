@@ -10,6 +10,7 @@ public class KafkaMessageProducer : IMessageProducer, IDisposable
     private readonly ILogger<KafkaMessageProducer> _logger;
     private readonly string _topicVideoUploaded;
     private readonly string _topicVideoProcessingCancelled;
+    private readonly string _topicAudioUploaded;
 
     // Кэшированные JsonSerializerOptions
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -22,6 +23,7 @@ public class KafkaMessageProducer : IMessageProducer, IDisposable
         _logger = logger;
         _topicVideoUploaded = configuration["Kafka:Topics:VideoUploaded"] ?? "video.uploaded";
         _topicVideoProcessingCancelled = configuration["Kafka:Topics:VideoProcessingCancelled"] ?? "video.processing.cancelled";
+        _topicAudioUploaded = configuration["Kafka:Topics:AudioUploaded"] ?? "audio.uploaded";
 
         var config = new ProducerConfig
         {
@@ -181,6 +183,49 @@ public class KafkaMessageProducer : IMessageProducer, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Kafka: Unexpected error while sending cancellation event for video {VideoId}", evt.VideoId);
+            throw;
+        }
+    }
+
+    public async Task PublishAudioUploadedAsync(AudioUploadedEvent evt)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(evt, JsonOptions);
+
+            var msg = new Message<string, string>
+            {
+                Key = evt.AudioId.ToString(),
+                Value = json
+            };
+
+            _logger.LogInformation(
+                "Publishing audio.uploaded event for audio {AudioId} to topic {Topic}. Message: {Message}",
+                evt.AudioId, _topicAudioUploaded, json);
+
+            var result = await _producer.ProduceAsync(_topicAudioUploaded, msg);
+
+            // Принудительная отправка
+            _producer.Flush(TimeSpan.FromSeconds(10));
+
+            _logger.LogInformation(
+                "Kafka: Successfully sent event to {Topic} (partition {Partition}, offset {Offset}) for audio {AudioId}",
+                _topicAudioUploaded,
+                result.Partition,
+                result.Offset,
+                evt.AudioId
+            );
+        }
+        catch (ProduceException<string, string> ex)
+        {
+            _logger.LogError(ex,
+                "Kafka: ProduceException while sending event for audio {AudioId}. Error: {Error}, Code: {Code}, IsFatal: {IsFatal}",
+                evt.AudioId, ex.Error.Reason, ex.Error.Code, ex.Error.IsFatal);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Kafka: Unexpected error while sending event for audio {AudioId}", evt.AudioId);
             throw;
         }
     }

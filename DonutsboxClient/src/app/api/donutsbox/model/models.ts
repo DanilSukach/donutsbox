@@ -4,6 +4,8 @@ export * from './addTextRequestDto';
 export * from './addTextResponseDto';
 export * from './addVideosRequestDto';
 export * from './addVideosResponseDto';
+export * from './audioUploadResponseDto';
+export * from './audioUrlResponseDto';
 export * from './authorDescriptionDto';
 export * from './authorNameDto';
 export * from './authorPreviewDto';

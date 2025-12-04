@@ -71,7 +71,7 @@ public class AuthorService(
                 Price = CalculatePrice(period.Months, dto.Price),
                 Name = dto.Name,
                 Description = dto.Description,
-                PictureURL = dto.PictureURL!,
+                PictureURL = dto.PictureURL,
                 SubscriptionPeriodId = period.Id,
                 SubscriptionPeriod = period
             };
