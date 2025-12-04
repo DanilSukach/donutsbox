@@ -1,14 +1,10 @@
 import { Component, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { SessionService } from '@app/core/services/session.service';
 import { Router } from '@angular/router';
-
-interface FirstLoginDto {
-  name: string;
-  phoneNumber?: string | null;
-}
+import { UserService, FirstLoginDto } from '@app/api/donutsbox';
 
 @Component({
   selector: 'app-first-login-modal',
@@ -18,7 +14,7 @@ interface FirstLoginDto {
   styleUrl: './first-login-modal.css'
 })
 export class FirstLoginModal {
-  private http = inject(HttpClient);
+  private userService = inject(UserService);
   private sessionService = inject(SessionService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
@@ -34,10 +30,6 @@ export class FirstLoginModal {
     phoneNumber: ['', [Validators.maxLength(11)]]
   });
 
-  get basePath(): string {
-    return 'https://localhost:7133';
-  }
-
   onSubmit(): void {
     if (this.firstLoginForm.invalid || this.isLoading()) {
       return;
@@ -48,35 +40,26 @@ export class FirstLoginModal {
 
     const formValue = this.firstLoginForm.getRawValue();
     const dto: FirstLoginDto = {
-      name: formValue.name || '',
+      name: formValue.name || null,
       phoneNumber: formValue.phoneNumber || null
     };
 
-    this.http.post<{ success: boolean; message: string }>(
-      `${this.basePath}/api/User/complete-first-login`,
-      dto,
-      { withCredentials: true }
-    ).subscribe({
-      next: (response) => {
-        if (response.success) {
-          // Обновляем сессию
-          this.sessionService.refreshSession().subscribe(() => {
-            this.completed.emit();
-            this.isLoading.set(false);
-            // Если мы не на странице профиля, перенаправляем туда
-            if (!this.router.url.startsWith('/profile/')) {
-              const userId = this.sessionService.userId();
-              if (userId) {
-                this.router.navigate(['/profile', userId]);
-              } else {
-                this.router.navigate(['/feed']);
-              }
-            }
-          });
-        } else {
-          this.error.set(response.message || 'Ошибка сохранения данных');
+    this.userService.apiUserCompleteFirstLoginPost(dto).subscribe({
+      next: () => {
+        // Обновляем сессию
+        this.sessionService.refreshSession().subscribe(() => {
+          this.completed.emit();
           this.isLoading.set(false);
-        }
+          // Если мы не на странице профиля, перенаправляем туда
+          if (!this.router.url.startsWith('/profile/')) {
+            const userId = this.sessionService.userId();
+            if (userId) {
+              this.router.navigate(['/profile', userId]);
+            } else {
+              this.router.navigate(['/feed']);
+            }
+          }
+        });
       },
       error: (err: HttpErrorResponse) => {
         this.isLoading.set(false);
@@ -118,11 +101,7 @@ export class FirstLoginModal {
     
     // Обновляем LastAuth, чтобы пользователь мог войти в систему
     // При следующем входе модальное окно снова появится, пока данные не заполнены
-    this.http.post<{ success: boolean; message: string }>(
-      `${this.basePath}/api/User/skip-first-login`,
-      {},
-      { withCredentials: true }
-    ).subscribe({
+    this.userService.apiUserSkipFirstLoginPost().subscribe({
       next: () => {
         // Обновляем сессию
         this.sessionService.refreshSession().subscribe(() => {

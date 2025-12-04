@@ -42,12 +42,14 @@ model/createPostCommentDto.ts
 model/creatorInfoDto.ts
 model/creatorPageDataDto.ts
 model/creatorPostsResponseDto.ts
+model/firstLoginDto.ts
 model/imageUploadResponseDto.ts
 model/imageUrlResponseDto.ts
 model/messageResponseDto.ts
 model/models.ts
 model/myPostsResponseDto.ts
 model/myVideoResponseDto.ts
+model/postAudioDto.ts
 model/postCommentDto.ts
 model/postDetailsDto.ts
 model/postDraftResponseDto.ts

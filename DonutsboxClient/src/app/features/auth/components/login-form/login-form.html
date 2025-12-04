@@ -1,11 +1,11 @@
-<form [formGroup]="loginForm" (ngSubmit)="submit()" class="space-y-6" autocomplete="off">
+<form [formGroup]="loginForm" (ngSubmit)="submit()" class="space-y-6">
   <!-- Email -->
   <div>
     <label class="block text-sm font-medium leading-6 text-gray-900">Email</label>
     <input 
       formControlName="emailAuth" 
       type="email"
-      autocomplete="off"
+      autocomplete="email"
       class="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
       [class.border-red-500]="hasFieldError('emailAuth')"
       [class.focus:ring-red-500]="hasFieldError('emailAuth')"
@@ -24,7 +24,7 @@
     <input 
       formControlName="password" 
       type="password"
-      autocomplete="off"
+      autocomplete="current-password"
       class="mt-2 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
       [class.border-red-500]="hasFieldError('password')"
       [class.focus:ring-red-500]="hasFieldError('password')"

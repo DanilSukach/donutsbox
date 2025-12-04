@@ -17,5 +17,6 @@ export interface SessionInfoDto {
     isCreator?: boolean;
     hasCreatorPage?: boolean;
     creatorPageId?: string | null;
+    isFirstLogin?: boolean;
 }
 

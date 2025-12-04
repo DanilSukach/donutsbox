@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { PostAudioDto } from './postAudioDto';
 import { PostVideoDto } from './postVideoDto';
 
 
@@ -20,6 +21,7 @@ export interface PostDetailsDto {
     dislikesCount?: number;
     commentsCount?: number;
     videos?: Array<PostVideoDto> | null;
+    audios?: Array<PostAudioDto> | null;
     pictureUrls?: Array<string> | null;
     creatorPageName?: string | null;
     creatorId?: string | null;
