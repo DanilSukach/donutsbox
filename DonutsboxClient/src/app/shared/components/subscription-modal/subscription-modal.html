@@ -5,8 +5,8 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <img 
-            [src]="author.avatarUrl || defaultAvatar"
-            [alt]="author.pageName"
+            [src]="authorAvatarUrl() || (author && author.avatarUrl && author.avatarUrl.startsWith('http') ? author.avatarUrl : defaultAvatar)"
+            [alt]="(author && author.pageName) || 'Автор'"
             class="w-10 h-10 rounded-full object-cover"
             (error)="onImageError($event)"
           />
@@ -40,14 +40,6 @@
             <div class="subscription-plan-card border border-gray-200 rounded-lg p-5 hover:border-amber-300 transition-colors">
               <div class="plan-header flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div class="flex items-start gap-4 flex-1">
-                  @if (plan.pictureURL && plan.pictureURL !== defaultSubscriptionImage) {
-                    <img 
-                      [src]="plan.pictureURL"
-                      [alt]="plan.name || 'Подписка'"
-                      class="w-16 h-16 rounded-xl object-cover"
-                      (error)="onSubscriptionImageError($event)"
-                    />
-                  }
                   <div>
                     <h3 class="text-xl font-semibold text-gray-900">{{ plan.name || 'Подписка' }}</h3>
                     @if (plan.description) {

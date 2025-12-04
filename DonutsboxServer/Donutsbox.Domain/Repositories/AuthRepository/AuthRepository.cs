@@ -57,7 +57,7 @@ public class AuthRepository(DonutsboxDbContext db) : IAuthRepository
             Id = userId,
             UserAuth = userAuth,
             UserAuthId = userAuth.Id,
-            Name = userAuth.AuthEmail,
+            Name = "User", // Временное имя, будет заменено при первом входе
             UserType = userType,
             UserTypeId = userType.Id,
         };

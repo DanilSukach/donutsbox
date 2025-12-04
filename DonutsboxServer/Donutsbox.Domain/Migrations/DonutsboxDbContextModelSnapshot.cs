@@ -38,6 +38,43 @@ namespace Donutsbox.Domain.Migrations
                     b.ToTable("ContentPostSubscription");
                 });
 
+            modelBuilder.Entity("Donutsbox.Domain.Entities.Audio", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ContentPostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProcessedPath")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContentPostId");
+
+                    b.ToTable("Audios");
+                });
+
             modelBuilder.Entity("Donutsbox.Domain.Entities.ContentPost", b =>
                 {
                     b.Property<Guid>("Id")
@@ -300,7 +337,6 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnName("subscription_id");
 
                     b.Property<string>("PictureURL")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("picture_url");
 
@@ -692,6 +728,17 @@ namespace Donutsbox.Domain.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Donutsbox.Domain.Entities.Audio", b =>
+                {
+                    b.HasOne("Donutsbox.Domain.Entities.ContentPost", "ContentPost")
+                        .WithMany("Audios")
+                        .HasForeignKey("ContentPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ContentPost");
+                });
+
             modelBuilder.Entity("Donutsbox.Domain.Entities.ContentPost", b =>
                 {
                     b.HasOne("Donutsbox.Domain.Entities.CreatorPageData", "CreatorPageData")
@@ -883,6 +930,8 @@ namespace Donutsbox.Domain.Migrations
 
             modelBuilder.Entity("Donutsbox.Domain.Entities.ContentPost", b =>
                 {
+                    b.Navigation("Audios");
+
                     b.Navigation("PostComments");
 
                     b.Navigation("PostReactions");

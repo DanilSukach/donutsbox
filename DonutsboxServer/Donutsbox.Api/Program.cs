@@ -207,6 +207,7 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddHostedService<VideoProcessedConsumer>();
+builder.Services.AddHostedService<AudioProcessedConsumer>();
 
 
 var app = builder.Build();

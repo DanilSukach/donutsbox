@@ -13,5 +13,8 @@ public interface IFilesService
     Task<ImageUploadResponseDto> UploadBannerAsync(Guid userId, ImageUploadRequestDto request);
     Task<ImageUrlResponseDto> GetImageUrlAsync(string key, int ttl);
     Task<List<ImageUploadResponseDto>> UploadPostImagesAsync(Guid userId, UploadPostImageDto dto);
+    Task<AudioUploadResponseDto> UploadAudioAsync(Guid userId, AudioUploadRequestDto request);
+    Task<AudioUrlResponseDto> GetAudioUrlAsync(string key, int ttl);
+    Task<MessageResponseDto> DeleteAudioAsync(Guid audioId, Guid userId);
 }
 

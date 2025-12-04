@@ -28,16 +28,18 @@ export class LoginPage {
     this.cdr.detectChanges();
 
     this.authFacade.login(data).subscribe({
-      next: ({ guid, isNewCreator }) => {
+      next: ({ guid, isNewCreator, isFirstLogin }) => {
         this.isLoading = false;
         this.cdr.detectChanges();
 
+        // Модальное окно первого входа теперь показывается на странице профиля
         if (isNewCreator) {
           this.router.navigate(['/profile/setup']);
         } else if (guid) {
-          this.router.navigate(['/feed']);
+          // Перенаправляем на профиль, где будет показано модальное окно, если нужно
+          this.router.navigate(['/profile', guid]);
         } else {
-          this.router.navigate(['/']);
+          this.router.navigate(['/feed']);
         }
       },
       error: (err: HttpErrorResponse) => {
@@ -53,4 +55,5 @@ export class LoginPage {
       },
     });
   }
+
 }

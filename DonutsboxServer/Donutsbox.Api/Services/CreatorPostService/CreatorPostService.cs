@@ -82,6 +82,7 @@ public class CreatorPostService(
 
         var post = await db.ContentPosts
             .Include(p => p.Videos)
+            .Include(p => p.Audios)
             .Include(p => p.Subscriptions)
             .FirstOrDefaultAsync(p =>
                 p.Id == postId &&
@@ -203,6 +204,7 @@ public class CreatorPostService(
 
         var post = await db.ContentPosts
             .Include(p => p.Videos)
+            .Include(p => p.Audios)
             .Include(p => p.Subscriptions)
             .FirstOrDefaultAsync(p =>
                 p.Id == postId &&
@@ -268,6 +270,7 @@ public class CreatorPostService(
         var query = db.ContentPosts
             .Where(p => p.CreatorPageDataId == currentUser.CreatorPageData.Id)
             .Include(p => p.Videos)
+            .Include(p => p.Audios)
             .Include(p => p.Subscriptions)
             .AsQueryable();
 
@@ -297,6 +300,13 @@ public class CreatorPostService(
                     Status = v.Status,
                     ThumbnailUrl = v.ThumbnailUrl, // Временно сохраняем ключ, потом заменим на presigned URL
                     HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
+                }).ToList(),
+                Audios = p.Audios.Select(a => new PostAudioDto
+                {
+                    Id = a.Id,
+                    Title = a.Title,
+                    Status = a.Status,
+                    ProcessedPath = a.ProcessedPath
                 }).ToList(),
                 PictureUrls = new List<string>(), // Инициализируем пустым списком, заполним ниже
                 AudienceType = p.AudienceType ?? AudiencePublic,
@@ -328,6 +338,24 @@ public class CreatorPostService(
                     {
                         logger.LogWarning(ex, "Failed to generate presigned URL for thumbnail {ThumbnailKey}", video.ThumbnailUrl);
                         video.ThumbnailUrl = null; // Убираем превью, если не удалось сгенерировать URL
+                    }
+                }
+            }
+
+            // Генерируем presigned URLs для аудио
+            foreach (var audio in post.Audios)
+            {
+                if (!string.IsNullOrWhiteSpace(audio.ProcessedPath))
+                {
+                    try
+                    {
+                        var presignedUrl = await minio.GetPresignedGetUrlAsync(audio.ProcessedPath, minio.GetProcessedBucket(), 300);
+                        audio.ProcessedPath = presignedUrl; // Заменяем путь на presigned URL
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to generate presigned URL for audio {AudioPath}", audio.ProcessedPath);
+                        audio.ProcessedPath = null; // Убираем путь, если не удалось сгенерировать URL
                     }
                 }
             }
@@ -386,6 +414,7 @@ public class CreatorPostService(
 
         query = query
             .Include(p => p.Videos.Where(v => v.Status == "READY"))
+            .Include(p => p.Audios.Where(a => a.Status == "READY"))
             .Include(p => p.Subscriptions);
 
         // Получаем НАЗВАНИЯ активных подписок пользователя (не зависит от срока)
@@ -429,6 +458,15 @@ public class CreatorPostService(
                         HlsUrl = $"/api/files/{v.Id}/hls/index.m3u8"
                     }).ToList()
                     : new List<PostVideoDto>(),
+                Audios = (isOwner || (p.AudienceType ?? AudiencePublic) == AudiencePublic || p.Subscriptions.Any(s => viewerSubscriptionNames.Contains(s.Name)))
+                    ? p.Audios.Select(a => new PostAudioDto
+                    {
+                        Id = a.Id,
+                        Title = a.Title,
+                        Status = a.Status,
+                        ProcessedPath = a.ProcessedPath
+                    }).ToList()
+                    : new List<PostAudioDto>(),
                 PictureUrls = new List<string>(), // Инициализируем пустым списком, заполним ниже
                 ReactionTypeId = p.PostReactions
                                     .Where(pr => pr.UserId == userId)
@@ -495,6 +533,24 @@ public class CreatorPostService(
                     {
                         logger.LogWarning(ex, "Failed to generate presigned URL for thumbnail {ThumbnailKey}", video.ThumbnailUrl);
                         video.ThumbnailUrl = null; // Убираем превью, если не удалось сгенерировать URL
+                    }
+                }
+            }
+
+            // Генерируем presigned URLs для аудио
+            foreach (var audio in post.Audios)
+            {
+                if (!string.IsNullOrWhiteSpace(audio.ProcessedPath))
+                {
+                    try
+                    {
+                        var presignedUrl = await minio.GetPresignedGetUrlAsync(audio.ProcessedPath, minio.GetProcessedBucket(), 300);
+                        audio.ProcessedPath = presignedUrl; // Заменяем путь на presigned URL
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to generate presigned URL for audio {AudioPath}", audio.ProcessedPath);
+                        audio.ProcessedPath = null; // Убираем путь, если не удалось сгенерировать URL
                     }
                 }
             }

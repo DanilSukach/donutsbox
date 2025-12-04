@@ -25,8 +25,7 @@ export class SubscriptionForm {
   readonly form = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(30)]],
     description: ['', [Validators.required]],
-    monthlyPrice: ['', [Validators.required, Validators.min(0.01)]],
-    pictureURL: ['']
+    monthlyPrice: ['', [Validators.required, Validators.min(1)]]
   });
 
   onSubmit(): void {
@@ -41,7 +40,7 @@ export class SubscriptionForm {
       name: value.name ?? '',
       description: value.description ?? '',
       price: priceControl !== undefined && priceControl !== null ? priceControl.toString() : '0',
-      pictureURL: value.pictureURL ?? ''
+      pictureURL: null
     };
 
     this.submitted.emit(payload);

@@ -3,12 +3,14 @@ using File.Service.Api.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<VideoCancellationService>();
+builder.Services.AddSingleton<AudioCancellationService>();
 
 builder.Services.AddHostedService<KafkaCancellationConsumerService>();
-builder.Services.AddHostedService<KafkaConsumerService>();
+builder.Services.AddHostedService<UnifiedKafkaConsumerService>();
 
 builder.Services.AddSingleton<MinioService>();
 builder.Services.AddSingleton<FfmpegService>();
+builder.Services.AddSingleton<AudioProcessingService>();
 builder.Services.AddSingleton<KafkaProducerService>();
 
 builder.Logging.ClearProviders();

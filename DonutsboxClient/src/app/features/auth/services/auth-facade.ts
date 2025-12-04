@@ -39,7 +39,9 @@ export class AuthFacade {
       map((resp: AuthResponseDto) => {
         const guid = resp.userId ?? null;
         const isNewCreator = resp.isNewCreator ?? false;
-        return { guid, isNewCreator };
+        // Проверяем isFirstLogin, если поле существует
+        const isFirstLogin = (resp as any).isFirstLogin ?? false;
+        return { guid, isNewCreator, isFirstLogin };
       })
     );
   }

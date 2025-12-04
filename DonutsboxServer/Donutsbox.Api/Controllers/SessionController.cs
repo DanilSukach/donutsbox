@@ -30,6 +30,9 @@ public class SessionController(DonutsboxDbContext db) : ControllerBase
         if (user == null)
             return Unauthorized();
 
+        // Проверяем, является ли это первым входом (LastAuth == null ИЛИ имя == "User")
+        var isFirstLogin = user.UserAuth.LastAuth == null || user.Name == "User";
+
         var session = new SessionInfoDto
         {
             UserId = user.Id,
@@ -38,7 +41,8 @@ public class SessionController(DonutsboxDbContext db) : ControllerBase
             Role = user.UserType.Name,
             IsCreator = string.Equals(user.UserType.Name, "Creator", StringComparison.OrdinalIgnoreCase),
             HasCreatorPage = user.CreatorPageData != null,
-            CreatorPageId = user.CreatorPageData?.Id
+            CreatorPageId = user.CreatorPageData?.Id,
+            IsFirstLogin = isFirstLogin
         };
 
         return Ok(session);

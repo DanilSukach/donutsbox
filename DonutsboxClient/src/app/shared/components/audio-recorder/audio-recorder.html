@@ -1,0 +1,82 @@
+<div class="audio-recorder">
+  @if (error()) {
+    <div class="error-message">
+      {{ error() }}
+    </div>
+  }
+
+  <div class="recorder-controls">
+    @if (!isRecording() && !hasRecording()) {
+      <button 
+        type="button"
+        class="btn-record"
+        [disabled]="!audioTitle() || audioTitle().trim() === ''"
+        (click)="startRecording()"
+        [title]="(!audioTitle() || audioTitle().trim() === '') ? 'Введите название аудио перед началом записи' : 'Начать запись'"
+      >
+        <span class="icon">🎤</span>
+        Начать запись
+      </button>
+    }
+
+    @if (isRecording()) {
+      <div class="recording-status">
+        <div class="recording-indicator">
+          <span class="pulse"></span>
+          <span>Запись...</span>
+        </div>
+        <div class="time">{{ formatTime(recordingTime()) }}</div>
+        <div class="controls">
+          @if (isPaused()) {
+            <button 
+              type="button"
+              class="btn-resume"
+              (click)="resumeRecording()"
+            >
+              ▶️ Продолжить
+            </button>
+          } @else {
+            <button 
+              type="button"
+              class="btn-pause"
+              (click)="pauseRecording()"
+            >
+              ⏸️ Пауза
+            </button>
+          }
+          <button 
+            type="button"
+            class="btn-stop"
+            (click)="stopRecording()"
+          >
+            ⏹️ Остановить
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (hasRecording() && !isRecording()) {
+      <div class="recording-complete">
+        <div class="success-message">✅ Запись завершена</div>
+        <div class="time">Длительность: {{ formatTime(recordingTime()) }}</div>
+        <div class="actions">
+          <button 
+            type="button"
+            class="btn-save"
+            (click)="saveRecording()"
+          >
+            💾 Сохранить
+          </button>
+          <button 
+            type="button"
+            class="btn-cancel"
+            (click)="cancelRecording()"
+          >
+            ❌ Отменить
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+

@@ -1,8 +1,9 @@
-import { Component, inject, input, signal, output, CUSTOM_ELEMENTS_SCHEMA, effect, OnDestroy, TemplateRef, ViewChild, ViewContainerRef } from '@angular/core';
+import { Component, inject, input, signal, output, computed, CUSTOM_ELEMENTS_SCHEMA, effect, OnDestroy, TemplateRef, ViewChild, ViewContainerRef } from '@angular/core';
 import { Overlay, OverlayRef, OverlayModule } from '@angular/cdk/overlay';
 import { TemplatePortal, PortalModule } from '@angular/cdk/portal';
 import { PostsFacade } from '@app/features/profile/services/posts-facade';
 import { VideoPlayer } from '@app/shared/components/video-player/video-player';
+import { AudioPlayer } from '@app/shared/components/audio-player/audio-player';
 import { PostComments } from "@app/shared/components/post-comments/post-comments";
 import { register } from 'swiper/element/bundle';
 
@@ -17,6 +18,13 @@ interface PostVideo {
   hlsUrl?: string | null;
 }
 
+interface PostAudio {
+  id: string;
+  title: string;
+  status: string;
+  processedPath?: string | null;
+}
+
 interface Post {
   id: string;
   title?: string | null;
@@ -27,6 +35,7 @@ interface Post {
   dislikesCount?: number;
   commentsCount?: number;
   videos?: PostVideo[];
+  audios?: PostAudio[];
   pictureUrls?: string[];
   reactionTypeId?: number; // 0 = нет реакции, 1 = лайк, 2 = дизлайк
   isLocked?: boolean;
@@ -35,7 +44,7 @@ interface Post {
 
 @Component({
   selector: 'app-post-card',
-  imports: [VideoPlayer, PostComments, OverlayModule, PortalModule],
+  imports: [VideoPlayer, AudioPlayer, PostComments, OverlayModule, PortalModule],
   templateUrl: './post-card.html',
   styleUrls: ['./post-card.css'],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -95,6 +104,8 @@ export class PostCard implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Очищаем медиа перед уничтожением компонента
+    this.clearMedia();
     document.removeEventListener('click', this.handleDocumentClick);
     if (this.editOverlayRef) {
       this.editOverlayRef.dispose();
@@ -153,6 +164,8 @@ export class PostCard implements OnDestroy {
     this.postsFacade.deletePost(postId).subscribe({
       next: () => {
         console.log('Пост удален успешно:', postId);
+        // Очищаем медиа перед удалением компонента
+        this.clearMedia();
         this.closeDeleteModal();
         this.deleted.emit(postId);
       },
@@ -177,6 +190,8 @@ export class PostCard implements OnDestroy {
     
     this.postsFacade.unpublishPost(postId).subscribe({
       next: () => {
+        // Очищаем медиа перед скрытием компонента
+        this.clearMedia();
         this.closeHideModal();
         this.hidden.emit(postId);
       },
@@ -185,6 +200,12 @@ export class PostCard implements OnDestroy {
         this.closeHideModal();
       }
     });
+  }
+
+  private clearMedia(): void {
+    // Очищаем медиа, чтобы предотвратить попытки загрузки после удаления/скрытия
+    // Это поможет избежать ошибок в audio-player
+    // Компонент будет удален из DOM, но перед этим очистим медиа
   }
 
   openEditModal(event: Event): void {
@@ -355,29 +376,34 @@ export class PostCard implements OnDestroy {
     return `${baseClass} text-gray-500 hover:text-gray-700 hover:bg-gray-50`;
   }
 
-  // Получаем все медиа элементы (видео и изображения) для карусели
-  getMediaItems(): Array<{ type: 'video' | 'image'; url: string; videoId?: string; title?: string; thumbnailUrl?: string | null }> {
-    if (this.post().isLocked) {
+  // Получаем все медиа элементы (видео, изображения, аудио) - аудио всегда в конце
+  // Используем computed для кеширования результата и предотвращения лишних вычислений
+  readonly mediaItems = computed(() => {
+    const post = this.post();
+    if (post.isLocked) {
       return [];
     }
-    const items: Array<{ type: 'video' | 'image'; url: string; videoId?: string; title?: string; thumbnailUrl?: string | null }> = [];
-    const videos = this.post().videos;
-    const pictureUrls = this.post().pictureUrls;
+    const items: Array<{ type: 'video' | 'image' | 'audio'; url: string; videoId?: string; audioId?: string; title?: string; thumbnailUrl?: string | null }> = [];
+    const videos = post.videos;
+    const audios = post.audios;
+    const pictureUrls = post.pictureUrls;
     
-    // Добавляем видео
+    // Сначала добавляем видео
     if (videos && videos.length > 0) {
       videos.forEach(video => {
-        items.push({
-          type: 'video',
-          url: this.getVideoHlsUrl(video.id),
-          videoId: video.id,
-          title: video.title,
-          thumbnailUrl: video.thumbnailUrl
-        });
+        if (video.status === 'READY') {
+          items.push({
+            type: 'video',
+            url: this.getVideoHlsUrl(video.id),
+            videoId: video.id,
+            title: video.title,
+            thumbnailUrl: video.thumbnailUrl
+          });
+        }
       });
     }
     
-    // Добавляем изображения
+    // Затем добавляем изображения
     if (pictureUrls && pictureUrls.length > 0) {
       pictureUrls.forEach(imageUrl => {
         items.push({
@@ -387,7 +413,85 @@ export class PostCard implements OnDestroy {
       });
     }
     
+    // В конце добавляем аудио (всегда под изображениями и видео)
+    if (audios && audios.length > 0) {
+      audios.forEach(audio => {
+        if (audio.status === 'READY' && audio.processedPath) {
+          // processedPath уже содержит presigned URL от бэкенда
+          // Проверяем, что URL валидный
+          const audioUrl = audio.processedPath;
+          
+          // Проверка на валидность URL - более строгая проверка
+          if (!audioUrl || 
+              typeof audioUrl !== 'string' ||
+              audioUrl.trim() === '' || 
+              audioUrl === '/' || 
+              audioUrl === 'https://localhost:4200/' ||
+              audioUrl === 'http://localhost:4200/' ||
+              audioUrl.startsWith('https://localhost:4200/') ||
+              audioUrl.startsWith('http://localhost:4200/')) {
+            return;
+          }
+          
+          // Убеждаемся, что URL полный (начинается с http:// или https://)
+          if (!audioUrl.startsWith('http://') && !audioUrl.startsWith('https://')) {
+            return;
+          }
+          
+          // Проверяем, что URL не является базовым URL приложения
+          try {
+            const url = new URL(audioUrl);
+            // Если это localhost:4200 без пути или с пустым путем, пропускаем
+            if ((url.hostname === 'localhost' && url.port === '4200') && 
+                (!url.pathname || url.pathname === '/' || url.pathname.trim() === '')) {
+              return;
+            }
+          } catch (e) {
+            // Если не удалось распарсить URL, пропускаем
+            return;
+          }
+          
+          items.push({
+            type: 'audio',
+            url: audioUrl,
+            audioId: audio.id,
+            title: audio.title
+          });
+        }
+      });
+    }
+    
     return items;
+  });
+
+  // Определяет, нужно ли показывать медиа списком (вместо карусели)
+  // Используем computed для кеширования результата
+  readonly shouldShowMediaAsList = computed(() => {
+    const items = this.mediaItems();
+    if (items.length === 0) return false;
+    
+    const audioCount = items.filter(item => item.type === 'audio').length;
+    const imageCount = items.filter(item => item.type === 'image').length;
+    const videoCount = items.filter(item => item.type === 'video').length;
+    
+    // Показываем списком если:
+    // 1. Есть несколько аудио
+    // 2. Есть аудио и другие типы медиа (изображения или видео)
+    // 3. Есть несколько видео
+    // 4. Есть видео и изображения
+    return (audioCount > 1) || 
+           (audioCount > 0 && (imageCount > 0 || videoCount > 0)) ||
+           (videoCount > 1) ||
+           (videoCount > 0 && imageCount > 0);
+  });
+
+  getAudioUrl(processedPath: string | null | undefined): string {
+    if (!processedPath) {
+      return '';
+    }
+    // Формируем URL для аудио через API
+    // processedPath имеет формат: processed/{audioId}/audio.mp3
+    return `/api/Files/audio/url?key=${encodeURIComponent(processedPath)}&ttl=300`;
   }
 }
 

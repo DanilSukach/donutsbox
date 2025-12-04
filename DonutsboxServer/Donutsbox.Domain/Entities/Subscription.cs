@@ -49,8 +49,7 @@ public class Subscription
     /// Ссылка на картинку подписки
     /// </summary>
     [Column("picture_url")]
-    [Required]
-    public required string PictureURL { get; set; }
+    public string? PictureURL { get; set; }
     public List<UserSubscription> UserSubscriptions { get; set; } = [];
     /// <summary>
     /// Длительность подписки (месяц, год и т.д.)
