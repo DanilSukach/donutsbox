@@ -176,15 +176,19 @@ dig donutsbox.ru
 
 ## 🐛 Решение проблем
 
-### Ошибка: "cannot load certificate"
+### Ошибка: "cannot load certificate" или "No such file or directory" для options-ssl-nginx.conf
 
-**Причина:** SSL сертификат не получен или находится не в том месте.
+**Причина:** SSL сертификат не получен или TLS параметры не скачаны в certbot volume.
 
 **Решение:**
-1. Убедитесь, что вы запустили `init-letsencrypt.sh` или `init-letsencrypt.ps1`
-2. Проверьте, что домен указывает на ваш сервер
-3. Проверьте логи: `docker compose --env-file config.env logs certbot`
-4. Попробуйте получить сертификат в staging режиме (измените `staging=1` в скрипте)
+1. Убедитесь, что вы запустили `init-letsencrypt.sh` или `init-letsencrypt.ps1` полностью
+2. Если TLS параметры отсутствуют, скачайте их вручную:
+   ```bash
+   docker compose --env-file config.env run --rm --entrypoint "mkdir -p /etc/letsencrypt && curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf -o /etc/letsencrypt/options-ssl-nginx.conf && curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem -o /etc/letsencrypt/ssl-dhparams.pem" certbot
+   ```
+3. Проверьте, что домен указывает на ваш сервер
+4. Проверьте логи: `docker compose --env-file config.env logs certbot`
+5. Попробуйте получить сертификат в staging режиме (измените `staging=1` в скрипте)
 
 ### Ошибка: "Connection refused" при получении сертификата
 

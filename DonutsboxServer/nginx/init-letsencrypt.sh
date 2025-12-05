@@ -39,15 +39,7 @@ if [ -d "$data_path" ]; then
   fi
 fi
 
-echo "### Скачивание рекомендуемых TLS параметров в certbot volume ..."
-# Скачиваем файлы напрямую в certbot volume через контейнер
-docker compose --env-file ../config.env run --rm --entrypoint "\
-  mkdir -p /etc/letsencrypt && \
-  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf -o /etc/letsencrypt/options-ssl-nginx.conf && \
-  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem -o /etc/letsencrypt/ssl-dhparams.pem && \
-  echo 'TLS параметры скачаны'" certbot
-echo "✓ TLS параметры скачаны в certbot volume"
-echo
+# TLS параметры будут скачаны после получения сертификата
 
 # Создаем временную HTTP-only конфигурацию для получения сертификата
 echo "### Создание временной HTTP-only конфигурации nginx ..."
@@ -135,6 +127,17 @@ docker compose --env-file ../config.env run --rm --entrypoint "\
     --force-renewal" certbot
 echo
 
+echo "### Скачивание рекомендуемых TLS параметров в certbot volume ..."
+# Скачиваем файлы напрямую в certbot volume через контейнер (после получения сертификата)
+docker compose --env-file ../config.env run --rm --entrypoint "\
+  mkdir -p /etc/letsencrypt && \
+  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf -o /etc/letsencrypt/options-ssl-nginx.conf && \
+  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem -o /etc/letsencrypt/ssl-dhparams.pem && \
+  ls -la /etc/letsencrypt/options-ssl-nginx.conf /etc/letsencrypt/ssl-dhparams.pem && \
+  echo 'TLS параметры скачаны'" certbot
+echo "✓ TLS параметры скачаны в certbot volume"
+echo
+
 echo "### Восстановление основной конфигурации nginx ..."
 if [ -f "./conf.d/default.conf.backup" ]; then
   mv ./conf.d/default.conf.backup ./conf.d/default.conf
@@ -145,9 +148,20 @@ fi
 echo
 
 echo "### Перезагрузка nginx с полной конфигурацией ..."
-docker compose --env-file ../config.env exec nginx nginx -s reload
-if [ $? -ne 0 ]; then
-  echo "⚠ Предупреждение: не удалось перезагрузить nginx. Попробуйте перезапустить: docker compose --env-file ../config.env restart nginx"
+# Проверяем конфигурацию перед перезагрузкой
+if docker compose --env-file ../config.env exec nginx nginx -t 2>&1 | grep -q "successful"; then
+  docker compose --env-file ../config.env exec nginx nginx -s reload
+  echo "✓ Nginx перезагружен с полной конфигурацией"
+else
+  echo "⚠ Ошибка в конфигурации nginx. Пробуем перезапустить контейнер..."
+  docker compose --env-file ../config.env restart nginx
+  sleep 3
+  if docker compose --env-file ../config.env ps nginx | grep -q "Up"; then
+    echo "✓ Nginx перезапущен"
+  else
+    echo "❌ Ошибка: nginx не запустился. Проверьте логи: docker compose --env-file ../config.env logs nginx"
+    exit 1
+  fi
 fi
 echo
 
