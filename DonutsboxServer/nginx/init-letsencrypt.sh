@@ -40,7 +40,6 @@ if [ -d "$data_path" ]; then
 fi
 
 # TLS параметры будут скачаны после получения сертификата
-
 # Создаем временную HTTP-only конфигурацию для получения сертификата
 echo "### Создание временной HTTP-only конфигурации nginx ..."
 temp_conf="./conf.d/default-temp.conf"
@@ -125,6 +124,7 @@ docker compose --env-file ../config.env run --rm --entrypoint "\
     --rsa-key-size $rsa_key_size \
     --agree-tos \
     --force-renewal" certbot
+
 echo
 
 echo "### Скачивание рекомендуемых TLS параметров в certbot volume ..."
@@ -135,6 +135,7 @@ docker compose --env-file ../config.env run --rm --entrypoint "\
   curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem -o /etc/letsencrypt/ssl-dhparams.pem && \
   ls -la /etc/letsencrypt/options-ssl-nginx.conf /etc/letsencrypt/ssl-dhparams.pem && \
   echo 'TLS параметры скачаны'" certbot
+
 echo "✓ TLS параметры скачаны в certbot volume"
 echo
 

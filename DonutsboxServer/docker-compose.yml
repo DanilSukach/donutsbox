@@ -123,6 +123,8 @@ services:
       - Cors__AllowedOrigins__1=http://localhost
       - Cors__AllowedOrigins__2=https://${HOST_IP:-192.168.0.13}
       - Cors__AllowedOrigins__3=http://${HOST_IP:-192.168.0.13}
+      - Cors__AllowedOrigins__4=https://${DOMAIN:-donutsbox.ru}
+      - Cors__AllowedOrigins__5=https://www.${DOMAIN:-donutsbox.ru}
     depends_on:
       postgres:
         condition: service_healthy
@@ -163,6 +165,8 @@ services:
       - Cors__AllowedOrigins__1=http://localhost
       - Cors__AllowedOrigins__2=https://${HOST_IP:-192.168.0.13}
       - Cors__AllowedOrigins__3=http://${HOST_IP:-192.168.0.13}
+      - Cors__AllowedOrigins__4=https://${DOMAIN:-donutsbox.ru}
+      - Cors__AllowedOrigins__5=https://www.${DOMAIN:-donutsbox.ru}
     depends_on:
       postgres:
         condition: service_healthy
@@ -206,6 +210,8 @@ services:
       - Cors__AllowedOrigins__1=http://localhost
       - Cors__AllowedOrigins__2=https://${HOST_IP:-192.168.0.13}
       - Cors__AllowedOrigins__3=http://${HOST_IP:-192.168.0.13}
+      - Cors__AllowedOrigins__4=https://${DOMAIN:-donutsbox.ru}
+      - Cors__AllowedOrigins__5=https://www.${DOMAIN:-donutsbox.ru}
     depends_on:
       postgres:
         condition: service_healthy

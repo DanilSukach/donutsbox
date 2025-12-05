@@ -207,8 +207,68 @@ dig donutsbox.ru
 **Решение:**
 1. Проверьте логи: `docker compose --env-file config.env logs nginx`
 2. Проверьте конфигурацию: `docker compose --env-file config.env exec nginx nginx -t`
-3. Убедитесь, что сертификат получен: `docker compose --env-file config.env exec certbot certbot certificates`
+3. Убедитесь, что сертификат получен: `docker compose --env-file config.env run --rm --entrypoint "" certbot certbot certificates`
 4. Если сертификата нет, запустите `init-letsencrypt.sh` снова
+
+### Сайт отклоняет соединение (Connection refused)
+
+**Причина:** Nginx не запущен, ошибка в конфигурации, или отсутствуют необходимые файлы.
+
+**Решение:**
+1. Проверьте статус nginx: 
+   ```bash
+   cd DonutsboxServer
+   docker compose --env-file config.env ps nginx
+   ```
+   Должен быть статус "Up"
+
+2. Если nginx не запущен, проверьте логи:
+   ```bash
+   docker compose --env-file config.env logs nginx
+   ```
+
+3. Проверьте наличие SSL сертификата:
+   ```bash
+   docker compose --env-file config.env run --rm --entrypoint "" certbot certbot certificates
+   ```
+
+4. Проверьте наличие TLS параметров в volume:
+   ```bash
+   docker compose --env-file config.env run --rm --entrypoint "ls -la /etc/letsencrypt/options-ssl-nginx.conf /etc/letsencrypt/ssl-dhparams.pem" certbot
+   ```
+   Если файлы отсутствуют, скопируйте их:
+   ```bash
+   cd DonutsboxServer/nginx
+   mkdir -p ./certbot
+   curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf -o ./certbot/options-ssl-nginx.conf
+   curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem -o ./certbot/ssl-dhparams.pem
+   docker compose --env-file ../config.env run --rm --entrypoint "mkdir -p /etc/letsencrypt && cp /tmp/options-ssl-nginx.conf /etc/letsencrypt/ && cp /tmp/ssl-dhparams.pem /etc/letsencrypt/" -v "$(pwd)/certbot:/tmp:ro" certbot
+   ```
+
+5. Проверьте конфигурацию nginx:
+   ```bash
+   docker compose --env-file config.env exec nginx nginx -t
+   ```
+
+6. Если есть ошибки, перезапустите nginx:
+   ```bash
+   docker compose --env-file config.env restart nginx
+   ```
+
+7. Проверьте, что порты 80 и 443 открыты:
+   ```bash
+   sudo netstat -tlnp | grep -E ':(80|443)'
+   # или
+   sudo ss -tlnp | grep -E ':(80|443)'
+   ```
+
+8. Проверьте файрвол:
+   ```bash
+   sudo ufw status
+   # или для firewalld
+   sudo firewall-cmd --list-all
+   ```
+   Убедитесь, что порты 80 и 443 открыты
 
 ### Сертификат не обновляется автоматически
 
