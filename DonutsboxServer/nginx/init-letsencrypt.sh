@@ -39,34 +39,74 @@ if [ -d "$data_path" ]; then
   fi
 fi
 
-if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/ssl-dhparams.pem" ]; then
-  echo "### Скачивание рекомендуемых TLS параметров ..."
-  mkdir -p "$data_path/conf"
-  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf > "$data_path/conf/options-ssl-nginx.conf"
-  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem > "$data_path/conf/ssl-dhparams.pem"
-  echo "✓ TLS параметры скачаны в $data_path/conf/"
-  echo
+echo "### Скачивание рекомендуемых TLS параметров в certbot volume ..."
+# Скачиваем файлы напрямую в certbot volume через контейнер
+docker compose --env-file ../config.env run --rm --entrypoint "\
+  mkdir -p /etc/letsencrypt && \
+  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf -o /etc/letsencrypt/options-ssl-nginx.conf && \
+  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem -o /etc/letsencrypt/ssl-dhparams.pem && \
+  echo 'TLS параметры скачаны'" certbot
+echo "✓ TLS параметры скачаны в certbot volume"
+echo
+
+# Создаем временную HTTP-only конфигурацию для получения сертификата
+echo "### Создание временной HTTP-only конфигурации nginx ..."
+temp_conf="./conf.d/default-temp.conf"
+cat > "$temp_conf" << 'EOF'
+# Временная HTTP-only конфигурация для получения Let's Encrypt сертификата
+server {
+    listen 80;
+    listen [::]:80;
+    server_name _;
+
+    # Let's Encrypt challenge для получения сертификата
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Health check endpoint
+    location /health {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+
+    # Временный ответ для остальных запросов
+    location / {
+        return 503 "SSL certificate is being obtained. Please wait...\n";
+        add_header Content-Type text/plain;
+    }
+}
+EOF
+echo "✓ Временная конфигурация создана"
+echo
+
+# Переименовываем основную конфигурацию, если она существует
+if [ -f "./conf.d/default.conf" ]; then
+  echo "### Сохранение основной конфигурации ..."
+  mv ./conf.d/default.conf ./conf.d/default.conf.backup
+  echo "✓ Основная конфигурация сохранена как default.conf.backup"
 fi
 
-echo "### Создание фиктивного сертификата для ${domains[*]} ..."
-path="/etc/letsencrypt/live/$domain"
-mkdir -p "$data_path/conf/live/$domain"
-docker compose --env-file ../config.env run --rm --entrypoint "\
-  openssl req -x509 -nodes -newkey rsa:$rsa_key_size -days 1\
-    -keyout '$path/privkey.pem' \
-    -out '$path/fullchain.pem' \
-    -subj '/CN=localhost'" certbot
+# Используем временную конфигурацию
+mv "$temp_conf" ./conf.d/default.conf
+echo "✓ Временная конфигурация активирована"
 echo
 
-echo "### Запуск nginx ..."
-docker compose --env-file ../config.env up --force-recreate -d nginx
+echo "### Запуск nginx с временной конфигурацией ..."
+docker compose --env-file ../config.env up -d nginx
 echo
 
-echo "### Удаление фиктивного сертификата для ${domains[*]} ..."
-docker compose --env-file ../config.env run --rm --entrypoint "\
-  rm -Rf /etc/letsencrypt/live/$domain && \
-  rm -Rf /etc/letsencrypt/archive/$domain && \
-  rm -Rf /etc/letsencrypt/renewal/$domain.conf" certbot
+# Ждем, пока nginx запустится
+echo "### Ожидание запуска nginx ..."
+sleep 5
+
+# Проверяем, что nginx запущен
+if ! docker compose --env-file ../config.env ps nginx | grep -q "Up"; then
+  echo "Ошибка: nginx не запустился. Проверьте логи: docker compose --env-file ../config.env logs nginx" >&2
+  exit 1
+fi
+echo "✓ Nginx запущен"
 echo
 
 echo "### Запрос реального сертификата для ${domains[*]} ..."
@@ -95,5 +135,20 @@ docker compose --env-file ../config.env run --rm --entrypoint "\
     --force-renewal" certbot
 echo
 
-echo "### Перезагрузка nginx ..."
+echo "### Восстановление основной конфигурации nginx ..."
+if [ -f "./conf.d/default.conf.backup" ]; then
+  mv ./conf.d/default.conf.backup ./conf.d/default.conf
+  echo "✓ Основная конфигурация восстановлена"
+else
+  echo "⚠ Предупреждение: файл default.conf.backup не найден. Возможно, конфигурация уже была восстановлена."
+fi
+echo
+
+echo "### Перезагрузка nginx с полной конфигурацией ..."
 docker compose --env-file ../config.env exec nginx nginx -s reload
+if [ $? -ne 0 ]; then
+  echo "⚠ Предупреждение: не удалось перезагрузить nginx. Попробуйте перезапустить: docker compose --env-file ../config.env restart nginx"
+fi
+echo
+
+echo "### Готово! SSL сертификат получен для ${domains[*]}"

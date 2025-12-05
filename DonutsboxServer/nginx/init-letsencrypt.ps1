@@ -34,6 +34,8 @@ $domains = @($domain, "www.$domain")
 $email = if ($LETSENCRYPT_EMAIL) { $LETSENCRYPT_EMAIL } else { "" }
 $hostIp = if ($HOST_IP) { $HOST_IP } else { "" }
 
+$domainsStr = $domains -join ", "
+
 Write-Host "### Конфигурация:" -ForegroundColor Cyan
 Write-Host "  Домен: $domain" -ForegroundColor White
 Write-Host "  Email: $(if ($email) { $email } else { 'не указан' })" -ForegroundColor White
@@ -41,39 +43,79 @@ Write-Host "  IP сервера: $(if ($hostIp) { $hostIp } else { 'не ука�
 Write-Host ""
 
 if (Test-Path $dataPath) {
-    $domainsStr = $domains -join ", "
     $decision = Read-Host "Существующие данные найдены для $domainsStr. Продолжить и заменить существующий сертификат? (y/N)"
     if ($decision -ne "Y" -and $decision -ne "y") {
         exit
     }
 }
 
-if (-not (Test-Path "$dataPath\conf\options-ssl-nginx.conf") -or -not (Test-Path "$dataPath\conf\ssl-dhparams.pem")) {
-    Write-Host "### Скачивание рекомендуемых TLS параметров ..." -ForegroundColor Cyan
-    New-Item -ItemType Directory -Force -Path "$dataPath\conf" | Out-Null
-    
-    # Скачиваем файлы
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf" -OutFile "$dataPath\conf\options-ssl-nginx.conf"
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem" -OutFile "$dataPath\conf\ssl-dhparams.pem"
-    Write-Host "✓ TLS параметры скачаны в $dataPath\conf\" -ForegroundColor Green
-    Write-Host ""
+Write-Host "### Скачивание рекомендуемых TLS параметров в certbot volume ..." -ForegroundColor Cyan
+# Скачиваем файлы напрямую в certbot volume через контейнер
+$downloadCommand = "mkdir -p /etc/letsencrypt && curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf -o /etc/letsencrypt/options-ssl-nginx.conf && curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem -o /etc/letsencrypt/ssl-dhparams.pem && echo 'TLS параметры скачаны'"
+docker compose --env-file ..\config.env run --rm --entrypoint $downloadCommand certbot
+Write-Host "✓ TLS параметры скачаны в certbot volume" -ForegroundColor Green
+Write-Host ""
+
+# Создаем временную HTTP-only конфигурацию для получения сертификата
+Write-Host "### Создание временной HTTP-only конфигурации nginx ..." -ForegroundColor Cyan
+$tempConf = ".\conf.d\default-temp.conf"
+$tempConfContent = @"
+# Временная HTTP-only конфигурация для получения Let's Encrypt сертификата
+server {
+    listen 80;
+    listen [::]:80;
+    server_name _;
+
+    # Let's Encrypt challenge для получения сертификата
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Health check endpoint
+    location /health {
+        access_log off;
+        return 200 "healthy`n";
+        add_header Content-Type text/plain;
+    }
+
+    # Временный ответ для остальных запросов
+    location / {
+        return 503 "SSL certificate is being obtained. Please wait...`n";
+        add_header Content-Type text/plain;
+    }
+}
+"@
+Set-Content -Path $tempConf -Value $tempConfContent
+Write-Host "✓ Временная конфигурация создана" -ForegroundColor Green
+Write-Host ""
+
+# Переименовываем основную конфигурацию, если она существует
+if (Test-Path ".\conf.d\default.conf") {
+    Write-Host "### Сохранение основной конфигурации ..." -ForegroundColor Cyan
+    Move-Item -Path ".\conf.d\default.conf" -Destination ".\conf.d\default.conf.backup" -Force
+    Write-Host "✓ Основная конфигурация сохранена как default.conf.backup" -ForegroundColor Green
 }
 
-$domainsStr = $domains -join ", "
-Write-Host "### Создание фиктивного сертификата для $domainsStr ..." -ForegroundColor Cyan
-$mainDomain = $domains[0]
-$path = "/etc/letsencrypt/live/$mainDomain"
-New-Item -ItemType Directory -Force -Path "$dataPath\conf\live\$mainDomain" | Out-Null
-
-docker compose --env-file ..\config.env run --rm --entrypoint "openssl req -x509 -nodes -newkey rsa:$rsaKeySize -days 1 -keyout '$path/privkey.pem' -out '$path/fullchain.pem' -subj '/CN=localhost'" certbot
+# Используем временную конфигурацию
+Move-Item -Path $tempConf -Destination ".\conf.d\default.conf" -Force
+Write-Host "✓ Временная конфигурация активирована" -ForegroundColor Green
 Write-Host ""
 
-Write-Host "### Запуск nginx ..." -ForegroundColor Cyan
-docker compose --env-file ..\config.env up --force-recreate -d nginx
+Write-Host "### Запуск nginx с временной конфигурацией ..." -ForegroundColor Cyan
+docker compose --env-file ..\config.env up -d nginx
 Write-Host ""
 
-Write-Host "### Удаление фиктивного сертификата для $domainsStr ..." -ForegroundColor Cyan
-docker compose --env-file ..\config.env run --rm --entrypoint "rm -Rf /etc/letsencrypt/live/$mainDomain && rm -Rf /etc/letsencrypt/archive/$mainDomain && rm -Rf /etc/letsencrypt/renewal/$mainDomain.conf" certbot
+# Ждем, пока nginx запустится
+Write-Host "### Ожидание запуска nginx ..." -ForegroundColor Cyan
+Start-Sleep -Seconds 5
+
+# Проверяем, что nginx запущен
+$nginxStatus = docker compose --env-file ..\config.env ps nginx
+if ($nginxStatus -notmatch "Up") {
+    Write-Host "Ошибка: nginx не запустился. Проверьте логи: docker compose --env-file ..\config.env logs nginx" -ForegroundColor Red
+    exit 1
+}
+Write-Host "✓ Nginx запущен" -ForegroundColor Green
 Write-Host ""
 
 Write-Host "### Запрос реального сертификата для $domainsStr ..." -ForegroundColor Cyan
@@ -103,8 +145,20 @@ $certbotCommand = "certbot certonly --webroot -w /var/www/certbot $stagingArg $e
 docker compose --env-file ..\config.env run --rm --entrypoint $certbotCommand certbot
 Write-Host ""
 
-Write-Host "### Перезагрузка nginx ..." -ForegroundColor Cyan
+Write-Host "### Восстановление основной конфигурации nginx ..." -ForegroundColor Cyan
+if (Test-Path ".\conf.d\default.conf.backup") {
+    Move-Item -Path ".\conf.d\default.conf.backup" -Destination ".\conf.d\default.conf" -Force
+    Write-Host "✓ Основная конфигурация восстановлена" -ForegroundColor Green
+} else {
+    Write-Host "⚠ Предупреждение: файл default.conf.backup не найден. Возможно, конфигурация уже была восстановлена." -ForegroundColor Yellow
+}
+Write-Host ""
+
+Write-Host "### Перезагрузка nginx с полной конфигурацией ..." -ForegroundColor Cyan
 docker compose --env-file ..\config.env exec nginx nginx -s reload
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "⚠ Предупреждение: не удалось перезагрузить nginx. Попробуйте перезапустить: docker compose --env-file ..\config.env restart nginx" -ForegroundColor Yellow
+}
 Write-Host ""
 
 Write-Host "### Готово! SSL сертификат получен для $domainsStr" -ForegroundColor Green

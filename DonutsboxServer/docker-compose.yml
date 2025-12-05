@@ -365,7 +365,6 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - certbot_www:/var/www/certbot:ro
       - certbot_conf:/etc/letsencrypt:ro
-      - ./nginx/certbot/conf:/etc/letsencrypt/conf:ro
       - nginx_logs:/var/log/nginx
     depends_on:
       - frontend
