@@ -49,12 +49,7 @@ if (Test-Path $dataPath) {
     }
 }
 
-Write-Host "### Скачивание рекомендуемых TLS параметров в certbot volume ..." -ForegroundColor Cyan
-# Скачиваем файлы напрямую в certbot volume через контейнер
-$downloadCommand = "mkdir -p /etc/letsencrypt && curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf -o /etc/letsencrypt/options-ssl-nginx.conf && curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem -o /etc/letsencrypt/ssl-dhparams.pem && echo 'TLS параметры скачаны'"
-docker compose --env-file ..\config.env run --rm --entrypoint $downloadCommand certbot
-Write-Host "✓ TLS параметры скачаны в certbot volume" -ForegroundColor Green
-Write-Host ""
+# TLS параметры будут скачаны после получения сертификата
 
 # Создаем временную HTTP-only конфигурацию для получения сертификата
 Write-Host "### Создание временной HTTP-only конфигурации nginx ..." -ForegroundColor Cyan
@@ -145,6 +140,13 @@ $certbotCommand = "certbot certonly --webroot -w /var/www/certbot $stagingArg $e
 docker compose --env-file ..\config.env run --rm --entrypoint $certbotCommand certbot
 Write-Host ""
 
+Write-Host "### Скачивание рекомендуемых TLS параметров в certbot volume ..." -ForegroundColor Cyan
+# Скачиваем файлы напрямую в certbot volume через контейнер (после получения сертификата)
+$downloadCommand = "mkdir -p /etc/letsencrypt && curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf -o /etc/letsencrypt/options-ssl-nginx.conf && curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem -o /etc/letsencrypt/ssl-dhparams.pem && ls -la /etc/letsencrypt/options-ssl-nginx.conf /etc/letsencrypt/ssl-dhparams.pem && echo 'TLS параметры скачаны'"
+docker compose --env-file ..\config.env run --rm --entrypoint $downloadCommand certbot
+Write-Host "✓ TLS параметры скачаны в certbot volume" -ForegroundColor Green
+Write-Host ""
+
 Write-Host "### Восстановление основной конфигурации nginx ..." -ForegroundColor Cyan
 if (Test-Path ".\conf.d\default.conf.backup") {
     Move-Item -Path ".\conf.d\default.conf.backup" -Destination ".\conf.d\default.conf" -Force
@@ -155,9 +157,22 @@ if (Test-Path ".\conf.d\default.conf.backup") {
 Write-Host ""
 
 Write-Host "### Перезагрузка nginx с полной конфигурацией ..." -ForegroundColor Cyan
-docker compose --env-file ..\config.env exec nginx nginx -s reload
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "⚠ Предупреждение: не удалось перезагрузить nginx. Попробуйте перезапустить: docker compose --env-file ..\config.env restart nginx" -ForegroundColor Yellow
+# Проверяем конфигурацию перед перезагрузкой
+$testResult = docker compose --env-file ..\config.env exec nginx nginx -t 2>&1
+if ($testResult -match "successful") {
+    docker compose --env-file ..\config.env exec nginx nginx -s reload
+    Write-Host "✓ Nginx перезагружен с полной конфигурацией" -ForegroundColor Green
+} else {
+    Write-Host "⚠ Ошибка в конфигурации nginx. Пробуем перезапустить контейнер..." -ForegroundColor Yellow
+    docker compose --env-file ..\config.env restart nginx
+    Start-Sleep -Seconds 3
+    $nginxStatus = docker compose --env-file ..\config.env ps nginx
+    if ($nginxStatus -match "Up") {
+        Write-Host "✓ Nginx перезапущен" -ForegroundColor Green
+    } else {
+        Write-Host "❌ Ошибка: nginx не запустился. Проверьте логи: docker compose --env-file ..\config.env logs nginx" -ForegroundColor Red
+        exit 1
+    }
 }
 Write-Host ""
 
