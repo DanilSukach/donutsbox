@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthResponseDto, AuthService, LoginRequestDto, RegisterRequestDto } from '@app/api/auth';
-import { map, tap, take, switchMap, catchError, of } from 'rxjs';
+import { map, tap, take, switchMap, catchError, of, delay } from 'rxjs';
 import { SessionService } from '@app/core/services/session.service';
 import { AuthTokenService } from '@app/core/services/auth-token.service';
 
@@ -30,9 +30,15 @@ export class AuthFacade {
       tap((resp: AuthResponseDto) => {
         this.tokenStorage.setRefreshToken(resp.refreshToken ?? null);
       }),
+      // Небольшая задержка, чтобы cookie успели установиться
+      delay(100),
       switchMap((resp: AuthResponseDto) =>
         this.sessionService.refreshSession().pipe(
-          catchError(() => of(null)),
+          catchError((error) => {
+            console.error('Ошибка при обновлении сессии после логина:', error);
+            // Продолжаем даже если refreshSession не удался - используем данные из ответа логина
+            return of(null);
+          }),
           map(() => resp)
         )
       ),

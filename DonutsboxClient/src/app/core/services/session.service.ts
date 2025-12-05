@@ -1,29 +1,18 @@
-import { HttpClient } from '@angular/common/http';
 import { isPlatformServer } from '@angular/common';
 import { inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { Observable, of, shareReplay, catchError, tap, finalize } from 'rxjs';
-
-export interface SessionInfo {
-  userId: string;
-  displayName?: string | null;
-  email?: string | null;
-  role: string;
-  isCreator: boolean;
-  hasCreatorPage: boolean;
-  creatorPageId?: string | null;
-  isFirstLogin?: boolean;
-}
+import { SessionService as ApiSessionService, SessionInfoDto } from '@app/api/donutsbox';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
-  private http = inject(HttpClient);
+  private apiSessionService = inject(ApiSessionService);
   private platformId = inject(PLATFORM_ID);
   private isServer = isPlatformServer(this.platformId);
-  private current = signal<SessionInfo | null>(null);
+  private current = signal<SessionInfoDto | null>(null);
   private loaded = signal(false);
-  private pending$: Observable<SessionInfo | null> | null = null;
+  private pending$: Observable<SessionInfoDto | null> | null = null;
 
-  session(): SessionInfo | null {
+  session(): SessionInfoDto | null {
     return this.current();
   }
 
@@ -39,7 +28,7 @@ export class SessionService {
     return this.current()?.hasCreatorPage ?? false;
   }
 
-  ensureSession(force = false): Observable<SessionInfo | null> {
+  ensureSession(force = false): Observable<SessionInfoDto | null> {
     if (this.isServer) {
       return of(null);
     }
@@ -49,7 +38,7 @@ export class SessionService {
     }
 
     if (!this.pending$ || force) {
-      this.pending$ = this.http.get<SessionInfo>('/api/session/me').pipe(
+      this.pending$ = this.apiSessionService.apiSessionMeGet().pipe(
         catchError((error) => {
           if (error.status === 401) {
             return of(null);
@@ -70,7 +59,7 @@ export class SessionService {
     return this.pending$;
   }
 
-  refreshSession(): Observable<SessionInfo | null> {
+  refreshSession(): Observable<SessionInfoDto | null> {
     this.loaded.set(false);
     return this.ensureSession(true);
   }
