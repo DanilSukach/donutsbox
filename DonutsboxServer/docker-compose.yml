@@ -363,6 +363,9 @@ services:
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_conf:/etc/letsencrypt:ro
+      - ./nginx/certbot/conf:/etc/letsencrypt/conf:ro
       - nginx_logs:/var/log/nginx
     depends_on:
       - frontend
@@ -376,6 +379,15 @@ services:
       retries: 5
       start_period: 30s
 
+  certbot:
+    image: certbot/certbot:latest
+    container_name: certbot
+    restart: "no"
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_conf:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
 volumes:
   postgres_data:
   kafka_data:
@@ -385,3 +397,5 @@ volumes:
   grafana_data:
   file_service_temp:
   nginx_logs:
+  certbot_www:
+  certbot_conf:
