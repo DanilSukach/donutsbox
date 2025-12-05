@@ -1,4 +1,4 @@
-﻿using Auth.Api.Dto;
+using Auth.Api.Dto;
 using Auth.Api.Services;
 using Donutsbox.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
@@ -90,7 +90,9 @@ public class AuthController(IAuthService auth, IConfiguration configuration) : C
     private CookieOptions BuildCookieOptions(DateTimeOffset? expires)
     {
         var isHttps = HttpContext.Request.IsHttps;
-        return new CookieOptions
+        var host = HttpContext.Request.Host.Host;
+        
+        var options = new CookieOptions
         {
             HttpOnly = true,
             Secure = isHttps,
@@ -98,5 +100,26 @@ public class AuthController(IAuthService auth, IConfiguration configuration) : C
             Path = "/",
             Expires = expires
         };
+        
+        // Устанавливаем домен только для production домена (не для localhost)
+        if (isHttps && !host.Contains("localhost") && !host.Contains("127.0.0.1") && !host.Contains("192.168"))
+        {
+            // Извлекаем домен из host (убираем порт если есть)
+            var domain = host;
+            if (domain.Contains(':'))
+            {
+                domain = domain.Split(':')[0];
+            }
+            
+            // Убираем www. префикс для установки cookie на корневой домен
+            if (domain.StartsWith("www."))
+            {
+                domain = domain.Substring(4);
+            }
+            
+            options.Domain = domain;
+        }
+        
+        return options;
     }
 }

@@ -1,3 +1,26 @@
+#!/bin/bash
+
+# Скрипт для восстановления основной конфигурации nginx после получения SSL сертификата
+
+cd "$(dirname "$0")"
+
+echo "### Восстановление конфигурации nginx ..."
+
+# Проверяем, есть ли временная конфигурация
+if grep -q "Temporary LetsEncrypt config" ./conf.d/default.conf 2>/dev/null; then
+  echo "⚠ Обнаружена временная конфигурация"
+  
+  # Проверяем наличие backup
+  if [ -f "./conf.d/default.conf.backup" ]; then
+    echo "✓ Найден backup файл, восстанавливаем..."
+    cp ./conf.d/default.conf.backup ./conf.d/default.conf
+    echo "✓ Конфигурация восстановлена из backup"
+  else
+    echo "⚠ Backup файл не найден"
+    echo "Создаем правильную конфигурацию..."
+    
+    # Создаем правильную конфигурацию
+    cat > ./conf.d/default.conf << 'EOF'
 # HTTP server - для Let's Encrypt валидации и редиректа на HTTPS
 server {
     listen 80;
@@ -28,7 +51,6 @@ server {
 
     # SSL настройки безопасности
     # Используем встроенные настройки для работы без файлов certbot при инициализации
-    # Если файлы certbot существуют, они будут использованы (приоритет выше)
     ssl_session_cache shared:le_nginx_SSL:10m;
     ssl_session_timeout 1440m;
     ssl_session_tickets off;
@@ -174,3 +196,41 @@ server {
         include /etc/nginx/conf.d/proxy-common.conf;
     }
 }
+EOF
+    echo "✓ Правильная конфигурация создана"
+  fi
+else
+  echo "✓ Конфигурация уже правильная"
+fi
+
+echo ""
+echo "### Проверка конфигурации nginx ..."
+cd ..
+if docker compose --env-file config.env exec nginx nginx -t 2>&1 | grep -q "successful"; then
+  echo "✓ Конфигурация nginx валидна"
+else
+  echo "❌ Ошибка в конфигурации nginx:"
+  docker compose --env-file config.env exec nginx nginx -t
+  exit 1
+fi
+
+echo ""
+echo "### Перезагрузка nginx ..."
+docker compose --env-file config.env exec nginx nginx -s reload
+
+if [ $? -eq 0 ]; then
+  echo "✓ Nginx перезагружен"
+else
+  echo "⚠ Не удалось перезагрузить, пробуем перезапустить контейнер..."
+  docker compose --env-file config.env restart nginx
+  sleep 3
+  if docker compose --env-file config.env ps nginx | grep -q "Up"; then
+    echo "✓ Nginx перезапущен"
+  else
+    echo "❌ Ошибка: nginx не запустился"
+    exit 1
+  fi
+fi
+
+echo ""
+echo "### Готово! Конфигурация восстановлена"

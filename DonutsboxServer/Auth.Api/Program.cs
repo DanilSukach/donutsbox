@@ -5,6 +5,7 @@ using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.AuthRepository;
 using Donutsbox.Domain.Repositories.EntityRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -87,6 +88,14 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddHttpContextAccessor();
 
+// Настройка для правильной обработки заголовков от nginx (X-Forwarded-Proto, X-Forwarded-For)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -124,6 +133,9 @@ builder.Services.AddScoped<IAdminInitializationService, AdminInitializationServi
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 
 var app = builder.Build();
+
+// Использование ForwardedHeaders middleware для правильной обработки заголовков от nginx
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {
