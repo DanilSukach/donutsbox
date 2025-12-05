@@ -7,6 +7,7 @@ import { provideApi } from './api/api-config.provider';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { credentialsInterceptor } from '@app/core/interseptors/credentials.interceptor';
 import { authRefreshInterceptor } from '@app/core/interseptors/auth-refresh.interceptor';
+import { notFoundInterceptor } from '@app/core/interseptors/not-found.interceptor';
 import { SessionService } from '@app/core/services/session.service';
 import { catchError, firstValueFrom, of } from 'rxjs';
 
@@ -20,7 +21,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
     provideRouter(routes), provideClientHydration(withEventReplay()),
-    provideHttpClient(withInterceptors([credentialsInterceptor, authRefreshInterceptor]), withFetch()),
+    provideHttpClient(withInterceptors([credentialsInterceptor, authRefreshInterceptor, notFoundInterceptor]), withFetch()),
     provideApi(),
     {
       provide: APP_INITIALIZER,

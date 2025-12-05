@@ -259,42 +259,56 @@ export class ProfilePage implements OnInit, OnDestroy {
       return;
     }
 
-    this.profileFacade.getAuthorById(profileId).subscribe(author => {
-      this.author.set(author);
-      
-      // Загрузка баннера
-      const bannerKey = author?.bannerUrl ?? null;
-      if (!bannerKey) {
-        this.bannerSrc.set(null);
-        this.bannerLoading.set(false);
-      } else {
-        this.bannerLoading.set(true);
-        this.profileFacade.getImageUrl(bannerKey, 300).subscribe({
-          next: (url) => {
-            this.bannerSrc.set(url);
-            this.bannerLoading.set(false);
-          },
-          error: () => {
-            this.bannerSrc.set(null);
-            this.bannerLoading.set(false);
-          }
-        });
-      }
-      
-      // Загрузка аватарки
-      const avatarKey = author?.avatarUrl ?? null;
-      if (!avatarKey) {
-        this.avatarSrc.set(null);
-      } else {
-        this.profileFacade.getImageUrl(avatarKey, 300).subscribe({
-          next: (url) => this.avatarSrc.set(url),
-          error: () => this.avatarSrc.set(null)
-        });
-      }
-      
-      // Проверяем подписку после загрузки автора
-      if (!this.isOwnProfile()) {
-        this.checkSubscriptionStatus();
+    this.profileFacade.getAuthorById(profileId).subscribe({
+      next: (author) => {
+        if (!author) {
+          // Автор не найден - перенаправляем на страницу 404
+          this.router.navigate(['/404']);
+          return;
+        }
+        
+        this.author.set(author);
+        
+        // Загрузка баннера
+        const bannerKey = author?.bannerUrl ?? null;
+        if (!bannerKey) {
+          this.bannerSrc.set(null);
+          this.bannerLoading.set(false);
+        } else {
+          this.bannerLoading.set(true);
+          this.profileFacade.getImageUrl(bannerKey, 300).subscribe({
+            next: (url) => {
+              this.bannerSrc.set(url);
+              this.bannerLoading.set(false);
+            },
+            error: () => {
+              this.bannerSrc.set(null);
+              this.bannerLoading.set(false);
+            }
+          });
+        }
+        
+        // Загрузка аватарки
+        const avatarKey = author?.avatarUrl ?? null;
+        if (!avatarKey) {
+          this.avatarSrc.set(null);
+        } else {
+          this.profileFacade.getImageUrl(avatarKey, 300).subscribe({
+            next: (url) => this.avatarSrc.set(url),
+            error: () => this.avatarSrc.set(null)
+          });
+        }
+        
+        // Проверяем подписку после загрузки автора
+        if (!this.isOwnProfile()) {
+          this.checkSubscriptionStatus();
+        }
+      },
+      error: (error) => {
+        // Если получили 404 ошибку, перенаправляем на страницу 404
+        if (error?.status === 404) {
+          this.router.navigate(['/404']);
+        }
       }
     });
   }
