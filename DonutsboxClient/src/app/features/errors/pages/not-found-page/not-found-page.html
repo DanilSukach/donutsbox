@@ -1,0 +1,59 @@
+<div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-pink-100 via-yellow-100 to-amber-100 px-4">
+  <div class="text-center max-w-2xl mx-auto">
+    <!-- 404 Number -->
+    <div class="mb-8">
+      <h1 class="text-9xl font-extrabold text-amber-900/20 leading-none">404</h1>
+    </div>
+
+    <!-- Icon and Title -->
+    <div class="flex items-center justify-center gap-3 mb-6">
+      <img src="/favicon.ico" alt="Donutsbox" class="h-12 w-12" />
+      <h2 class="text-4xl font-extrabold text-amber-900 tracking-tight">Страница не найдена</h2>
+    </div>
+
+    <!-- Description -->
+    <p class="text-lg text-amber-800 mb-8 max-w-xl mx-auto">
+      К сожалению, запрашиваемая страница не существует. Возможно, она была удалена или перемещена.
+    </p>
+
+    <!-- Action Buttons -->
+    <div class="flex gap-4 justify-center flex-wrap">
+      @if (isAuthenticated()) {
+        <a 
+          routerLink="/feed" 
+          class="px-6 py-3 rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors duration-200 font-medium shadow-md hover:shadow-lg"
+        >
+          Перейти в ленту
+        </a>
+        @if (userId()) {
+          <a 
+            [routerLink]="['/profile', userId()]" 
+            class="px-6 py-3 rounded-md bg-white text-amber-800 border-2 border-amber-300 hover:bg-amber-50 transition-colors duration-200 font-medium shadow-md hover:shadow-lg"
+          >
+            Мой профиль
+          </a>
+        }
+      } @else {
+        <a 
+          routerLink="/auth/login" 
+          class="px-6 py-3 rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors duration-200 font-medium shadow-md hover:shadow-lg"
+        >
+          Войти
+        </a>
+        <a 
+          routerLink="/" 
+          class="px-6 py-3 rounded-md bg-white text-amber-800 border-2 border-amber-300 hover:bg-amber-50 transition-colors duration-200 font-medium shadow-md hover:shadow-lg"
+        >
+          На главную
+        </a>
+      }
+    </div>
+
+    <!-- Decorative Elements -->
+    <div class="mt-12 text-amber-600/30">
+      <svg class="w-64 h-64 mx-auto" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+      </svg>
+    </div>
+  </div>
+</div>

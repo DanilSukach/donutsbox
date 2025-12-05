@@ -13,7 +13,7 @@ import {
   UserService,
 } from '@app/api/donutsbox';
 import { SessionService } from '@app/core/services/session.service';
-import { Observable, catchError, map, of, tap } from 'rxjs';
+import { Observable, catchError, map, of, tap, throwError } from 'rxjs';
 import { HttpErrorResponse, HttpClient } from '@angular/common/http';
 
 @Injectable({
@@ -110,7 +110,16 @@ export class ProfileFacade {
   }
 
   getAuthorById(id: string) {
-    return this.authorsService.apiAuthorsIdGet(id).pipe(catchError(() => of(null)));
+    return this.authorsService.apiAuthorsIdGet(id).pipe(
+      catchError((error) => {
+        // Пробрасываем ошибку 404 дальше для обработки в компоненте
+        if (error?.status === 404) {
+          return throwError(() => error);
+        }
+        // Для других ошибок возвращаем null
+        return of(null);
+      })
+    );
   }
   
   createCreatorPage(creatorData: CreatorPageDataDto): Observable<any> {
