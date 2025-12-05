@@ -1,167 +1,243 @@
-# Настройка Nginx с Self-Signed SSL сертификатом
+# Настройка Nginx с Let's Encrypt SSL сертификатом для donutsbox.ru
 
-Эта конфигурация использует self-signed SSL сертификат для HTTPS без необходимости домена.
+Эта конфигурация использует Let's Encrypt SSL сертификат для домена `donutsbox.ru` и `www.donutsbox.ru`.
 
 ## 🚀 Быстрый старт
 
-### 1. Сгенерируйте SSL сертификат
+### Предварительные требования
+
+1. **Домен должен указывать на ваш сервер**
+   - DNS A-запись для `donutsbox.ru` должна указывать на IP вашего сервера
+   - DNS A-запись для `www.donutsbox.ru` (опционально, но рекомендуется)
+
+2. **Порты 80 и 443 должны быть открыты**
+   - Порт 80 нужен для HTTP-01 challenge Let's Encrypt
+   - Порт 443 для HTTPS трафика
+
+3. **Docker и Docker Compose установлены**
+
+### 1. Настройка конфигурации
+
+Перед получением SSL сертификата настройте переменные в файле `config.env` в корне `DonutsboxServer/`:
+
+```bash
+# Домен для SSL сертификата
+DOMAIN=donutsbox.ru
+
+# Email для уведомлений Let's Encrypt (опционально, но рекомендуется)
+LETSENCRYPT_EMAIL=your-email@example.com
+
+# IP адрес сервера (уже должен быть настроен)
+HOST_IP=31.130.144.104
+```
+
+### 2. Получение SSL сертификата
 
 **Для Linux/Mac/WSL:**
 ```bash
-chmod +x generate-ssl-cert.sh
-./generate-ssl-cert.sh
+cd DonutsboxServer/nginx
+chmod +x init-letsencrypt.sh
+./init-letsencrypt.sh
 ```
 
 **Для Windows (PowerShell):**
 ```powershell
-# Убедитесь, что OpenSSL установлен, или используйте WSL
-# Если OpenSSL установлен:
-mkdir ssl
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ssl\selfsigned.key -out ssl\selfsigned.crt -subj "/C=RU/ST=State/L=City/O=Donutsbox/CN=localhost"
+cd DonutsboxServer\nginx
+.\init-letsencrypt.ps1
 ```
 
-**Вручную (если скрипт не работает):**
-```bash
-mkdir -p ssl
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout ssl/selfsigned.key \
-    -out ssl/selfsigned.crt \
-    -subj "/C=RU/ST=State/L=City/O=Donutsbox/CN=localhost"
-```
+**Важно:** Перед запуском скрипта убедитесь, что:
+- Домен указан в `config.env` (переменная `DOMAIN`) и указывает на IP вашего сервера
+- Порты 80 и 443 открыты в файрволе
+- Docker Compose может запустить контейнеры
+- Email указан в `config.env` (переменная `LETSENCRYPT_EMAIL`) для получения уведомлений от Let's Encrypt
 
-### 2. Запустите контейнеры
+### 3. Запуск сервисов
 
 ```bash
 # Из корневой директории DonutsboxServer
-cd ..
-sudo docker compose up -d
+docker compose --env-file config.env up -d
 ```
 
-### 3. Проверьте работу
+### 4. Проверка работы
 
 ```bash
 # Проверка HTTP редиректа
-curl -I http://localhost/health
+curl -I http://donutsbox.ru/health
 
-# Проверка HTTPS (будет предупреждение о self-signed сертификате)
-curl -k https://localhost/health
+# Проверка HTTPS
+curl https://donutsbox.ru/health
 
 # Проверка API
-curl -k https://localhost/api/auth/health
+curl https://donutsbox.ru/api/auth/health
 ```
 
 ## ⚙️ Конфигурация
 
 ### Структура файлов
 
-- `conf.d/default.conf` - основная конфигурация nginx с HTTPS
-- `ssl/` - директория для SSL сертификатов (не коммитится в git)
-- `generate-ssl-cert.sh` - скрипт генерации сертификата (Linux/Mac)
+- `conf.d/default.conf` - основная конфигурация nginx с HTTPS для donutsbox.ru
+- `certbot/conf/options-ssl-nginx.conf` - рекомендуемые SSL настройки от certbot
+- `init-letsencrypt.sh` / `init-letsencrypt.ps1` - скрипты для первоначального получения сертификата (автоматически читают значения из `../config.env`)
+- `ssl/` - директория для старых self-signed сертификатов (если использовались)
+
+**Примечание:** Скрипты `init-letsencrypt.sh` и `init-letsencrypt.ps1` автоматически читают следующие переменные из `config.env`:
+- `DOMAIN` - домен для SSL сертификата (по умолчанию: `donutsbox.ru`)
+- `LETSENCRYPT_EMAIL` - email для уведомлений Let's Encrypt (опционально)
+- `HOST_IP` - IP адрес сервера (используется для информации)
 
 ### Проксирование
 
 Nginx проксирует запросы на следующие сервисы:
 
 - `/api/auth/` → `http://auth.api:8080/`
-- `/api/` → `http://donutsbox.api:8082/`
+- `/api/main/` → `http://donutsbox.api:8082/`
 - `/api/admin/` → `http://admin.service.api:8084/`
+- `/api/` → `http://donutsbox.api:8082/`
+- `/minio/` → `http://minio:9000/`
+- `/minio-console/` → `http://minio:9001/`
 - `/health` → Health check endpoint
+- `/` → Frontend (http://frontend:4000)
 
 ### SSL Настройки
 
+- **Домен:** donutsbox.ru, www.donutsbox.ru
 - **Протоколы:** TLSv1.2, TLSv1.3
-- **Cipher Suites:** Современные безопасные наборы
+- **Cipher Suites:** Современные безопасные наборы (рекомендации certbot)
 - **HSTS:** Включен (max-age=31536000)
 - **HTTP/2:** Включен
+- **Автообновление:** Certbot автоматически обновляет сертификаты каждые 12 часов
 
-## ⚠️ Важно!
+## 🔄 Обновление сертификата
 
-**Self-signed сертификат** - это только для разработки!
+Certbot автоматически обновляет сертификаты. Контейнер `certbot` запускается в режиме `restart: "no"` и периодически проверяет необходимость обновления.
 
-- Браузер будет показывать предупреждение о безопасности
-- Это нормально для разработки без домена
-- Для продакшена нужен реальный домен и Let's Encrypt сертификат
+Для ручного обновления:
+```bash
+docker compose --env-file config.env run --rm certbot renew
+docker compose --env-file config.env exec nginx nginx -s reload
+```
 
 ## 🔍 Проверка и отладка
 
 ### Проверка конфигурации nginx
 
 ```bash
-sudo docker compose exec nginx nginx -t
+docker compose --env-file config.env exec nginx nginx -t
 ```
 
 ### Перезагрузка nginx
 
 ```bash
-sudo docker compose exec nginx nginx -s reload
+docker compose --env-file config.env exec nginx nginx -s reload
 ```
 
 ### Просмотр логов
 
 ```bash
-sudo docker compose logs nginx
-sudo docker compose logs -f nginx  # в реальном времени
+# Логи nginx
+docker compose --env-file config.env logs nginx
+docker compose --env-file config.env logs -f nginx  # в реальном времени
+
+# Логи certbot
+docker compose --env-file config.env logs certbot
 ```
 
 ### Проверка SSL сертификата
 
 ```bash
-# Проверить наличие файлов
-ls -la ssl/
+# Проверить сертификат через openssl
+openssl s_client -connect donutsbox.ru:443 -servername donutsbox.ru
 
-# Должны быть:
-# - ssl/selfsigned.crt
-# - ssl/selfsigned.key
+# Или через curl
+curl -vI https://donutsbox.ru
+
+# Проверить срок действия сертификата
+docker compose --env-file config.env exec certbot certbot certificates
+```
+
+### Проверка DNS
+
+```bash
+# Проверить, что домен указывает на правильный IP
+nslookup donutsbox.ru
+dig donutsbox.ru
 ```
 
 ## 🐛 Решение проблем
 
 ### Ошибка: "cannot load certificate"
 
-**Причина:** SSL сертификат не создан или находится не в том месте.
+**Причина:** SSL сертификат не получен или находится не в том месте.
 
 **Решение:**
-```bash
-cd nginx
-./generate-ssl-cert.sh
-# Или создайте вручную (см. выше)
-cd ..
-sudo docker compose restart nginx
-```
+1. Убедитесь, что вы запустили `init-letsencrypt.sh` или `init-letsencrypt.ps1`
+2. Проверьте, что домен указывает на ваш сервер
+3. Проверьте логи: `docker compose --env-file config.env logs certbot`
+4. Попробуйте получить сертификат в staging режиме (измените `staging=1` в скрипте)
 
-### Ошибка: "deprecated http2 directive"
+### Ошибка: "Connection refused" при получении сертификата
 
-**Причина:** Использован старый синтаксис.
+**Причина:** Let's Encrypt не может подключиться к вашему серверу для валидации.
 
-**Решение:** Уже исправлено в `default.conf`. Если видите предупреждение, убедитесь, что используете последнюю версию конфигурации.
+**Решение:**
+1. Убедитесь, что порт 80 открыт и доступен из интернета
+2. Проверьте, что nginx запущен: `docker compose --env-file config.env ps nginx`
+3. Проверьте DNS: домен должен указывать на IP вашего сервера
+4. Проверьте файрвол: `sudo ufw status` или `sudo firewall-cmd --list-all`
 
-### Nginx перезапускается постоянно
+### Nginx не запускается
 
 **Причина:** Ошибка в конфигурации или отсутствует SSL сертификат.
 
 **Решение:**
-1. Проверьте логи: `sudo docker compose logs nginx`
-2. Проверьте конфигурацию: `sudo docker compose exec nginx nginx -t`
-3. Убедитесь, что SSL сертификат создан
+1. Проверьте логи: `docker compose --env-file config.env logs nginx`
+2. Проверьте конфигурацию: `docker compose --env-file config.env exec nginx nginx -t`
+3. Убедитесь, что сертификат получен: `docker compose --env-file config.env exec certbot certbot certificates`
+4. Если сертификата нет, запустите `init-letsencrypt.sh` снова
+
+### Сертификат не обновляется автоматически
+
+**Причина:** Контейнер certbot не запущен или не настроен правильно.
+
+**Решение:**
+1. Проверьте, что контейнер certbot существует: `docker compose --env-file config.env ps certbot`
+2. Запустите вручную: `docker compose --env-file config.env up -d certbot`
+3. Проверьте логи: `docker compose --env-file config.env logs certbot`
+
+### Использование staging окружения для тестирования
+
+Если вы хотите протестировать получение сертификата без ограничений Let's Encrypt:
+
+1. Откройте `init-letsencrypt.sh` или `init-letsencrypt.ps1`
+2. Измените `staging=0` на `staging=1`
+3. Запустите скрипт
+4. После успешного теста измените обратно на `staging=0` и получите реальный сертификат
 
 ## 📝 API Endpoints
 
 После запуска доступны через HTTPS:
 
-- `https://localhost/api/auth/` - Auth API
-- `https://localhost/api/` - Donutsbox API  
-- `https://localhost/api/admin/` - Admin Service API
-- `https://localhost/health` - Health check
+- `https://donutsbox.ru/api/auth/` - Auth API
+- `https://donutsbox.ru/api/main/` - Donutsbox API (main)
+- `https://donutsbox.ru/api/` - Donutsbox API (общий)
+- `https://donutsbox.ru/api/admin/` - Admin Service API
+- `https://donutsbox.ru/minio/` - MinIO API
+- `https://donutsbox.ru/minio-console/` - MinIO Console
+- `https://donutsbox.ru/health` - Health check
+- `https://donutsbox.ru/` - Frontend
 
-HTTP (порт 80) автоматически редиректит на HTTPS (порт 443).
+HTTP (порт 80) автоматически редиректит на HTTPS (порт 443), кроме пути `/.well-known/acme-challenge/` для Let's Encrypt валидации.
 
-## 🔄 Обновление сертификата
+## 🔒 Безопасность
 
-Сертификат действителен 365 дней. Для обновления:
+- Используются только современные и безопасные TLS протоколы
+- HSTS включен для защиты от downgrade атак
+- Security headers настроены для защиты от XSS, clickjacking и других атак
+- Сертификаты автоматически обновляются через certbot
 
-```bash
-cd nginx
-./generate-ssl-cert.sh
-cd ..
-sudo docker compose restart nginx
-```
+## 📚 Дополнительные ресурсы
+
+- [Let's Encrypt документация](https://letsencrypt.org/docs/)
+- [Certbot документация](https://eff-certbot.readthedocs.io/)
+- [Nginx SSL настройки](https://nginx.org/en/docs/http/configuring_https_servers.html)
