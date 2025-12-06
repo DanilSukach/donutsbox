@@ -40,6 +40,7 @@ interface Post {
   reactionTypeId?: number; // 0 = нет реакции, 1 = лайк, 2 = дизлайк
   isLocked?: boolean;
   lockedMessage?: string | null;
+  isShadowBanned?: boolean;
 }
 
 @Component({
@@ -54,8 +55,6 @@ export class PostCard implements OnDestroy {
   readonly selectedVideoIndex = signal(0);
   readonly showComments = signal(false);
   readonly isOwner = input<boolean>(false); 
-  readonly showDeleteModal = signal(false);
-  readonly showHideModal = signal(false);
   readonly deleted = output<string>();
   readonly hidden = output<string>(); // Когда пост скрыт (moved to drafts)
   readonly showEditModal = signal(false);
@@ -63,11 +62,15 @@ export class PostCard implements OnDestroy {
   readonly editText = signal<string>('');
   readonly isUpdating = signal(false);
   
-  // CDK Overlay для модалки редактирования
+  // CDK Overlay для модалок
   @ViewChild('editModalTemplate') editModalTemplate!: TemplateRef<unknown>;
+  @ViewChild('deleteModalTemplate') deleteModalTemplate!: TemplateRef<unknown>;
+  @ViewChild('hideModalTemplate') hideModalTemplate!: TemplateRef<unknown>;
   private overlay = inject(Overlay);
   private viewContainerRef = inject(ViewContainerRef);
   private editOverlayRef: OverlayRef | null = null;
+  private deleteOverlayRef: OverlayRef | null = null;
+  private hideOverlayRef: OverlayRef | null = null;
   
   // Локальное состояние для оптимистичного обновления UI
   readonly currentTitle = signal<string | null>(null);
@@ -110,18 +113,18 @@ export class PostCard implements OnDestroy {
     if (this.editOverlayRef) {
       this.editOverlayRef.dispose();
     }
+    if (this.deleteOverlayRef) {
+      this.deleteOverlayRef.dispose();
+    }
+    if (this.hideOverlayRef) {
+      this.hideOverlayRef.dispose();
+    }
   }
 
   private handleDocumentClick = (event: MouseEvent): void => {
     const target = event.target as HTMLElement;
     if (this.showEditModal() && !target.closest('.edit-modal') && !target.closest('button[title="Редактировать пост"]')) {
       this.closeEditModal();
-    }
-    if (this.showDeleteModal() && !target.closest('.delete-modal') && !target.closest('button[title="Удалить пост"]')) {
-      this.closeDeleteModal();
-    }
-    if (this.showHideModal() && !target.closest('.hide-modal') && !target.closest('button[title="Скрыть пост"]')) {
-      this.closeHideModal();
     }
   };
 
@@ -152,11 +155,31 @@ export class PostCard implements OnDestroy {
 
   openDeleteModal(event: Event): void {
     event.stopPropagation();
-    this.showDeleteModal.set(true);
+    
+    // Создаём overlay
+    this.deleteOverlayRef = this.overlay.create({
+      hasBackdrop: true,
+      backdropClass: 'delete-modal-backdrop',
+      panelClass: 'delete-modal-panel',
+      positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
+      scrollStrategy: this.overlay.scrollStrategies.block(),
+      width: '95vw',
+      maxWidth: '400px'
+    });
+    
+    // Подключаем template
+    const portal = new TemplatePortal(this.deleteModalTemplate, this.viewContainerRef);
+    this.deleteOverlayRef.attach(portal);
+    
+    // Закрытие по клику на backdrop
+    this.deleteOverlayRef.backdropClick().subscribe(() => this.closeDeleteModal());
   }
   
   closeDeleteModal(): void {
-    this.showDeleteModal.set(false);
+    if (this.deleteOverlayRef) {
+      this.deleteOverlayRef.dispose();
+      this.deleteOverlayRef = null;
+    }
   }
 
   confirmDelete(): void {
@@ -178,11 +201,31 @@ export class PostCard implements OnDestroy {
 
   openHideModal(event: Event): void {
     event.stopPropagation();
-    this.showHideModal.set(true);
+    
+    // Создаём overlay
+    this.hideOverlayRef = this.overlay.create({
+      hasBackdrop: true,
+      backdropClass: 'hide-modal-backdrop',
+      panelClass: 'hide-modal-panel',
+      positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
+      scrollStrategy: this.overlay.scrollStrategies.block(),
+      width: '95vw',
+      maxWidth: '400px'
+    });
+    
+    // Подключаем template
+    const portal = new TemplatePortal(this.hideModalTemplate, this.viewContainerRef);
+    this.hideOverlayRef.attach(portal);
+    
+    // Закрытие по клику на backdrop
+    this.hideOverlayRef.backdropClick().subscribe(() => this.closeHideModal());
   }
 
   closeHideModal(): void {
-    this.showHideModal.set(false);
+    if (this.hideOverlayRef) {
+      this.hideOverlayRef.dispose();
+      this.hideOverlayRef = null;
+    }
   }
 
   confirmHide(): void {
@@ -392,9 +435,17 @@ export class PostCard implements OnDestroy {
     if (videos && videos.length > 0) {
       videos.forEach(video => {
         if (video.status === 'READY') {
+          // Используем hlsUrl из API, если он есть, иначе генерируем
+          let hlsUrl = video.hlsUrl || this.getVideoHlsUrl(video.id);
+          
+          // Нормализуем URL: исправляем регистр /api/files/ -> /api/Files/
+          if (hlsUrl && hlsUrl.includes('/api/files/')) {
+            hlsUrl = hlsUrl.replace('/api/files/', '/api/Files/');
+          }
+          
           items.push({
             type: 'video',
-            url: this.getVideoHlsUrl(video.id),
+            url: hlsUrl,
             videoId: video.id,
             title: video.title,
             thumbnailUrl: video.thumbnailUrl

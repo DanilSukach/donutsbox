@@ -104,10 +104,14 @@ public class AuthorsController(IAuthorService authorService, ILogger<AuthorsCont
     /// <returns>Информация об авторе</returns>
     /// <response code="200">Информация получена</response>
     /// <response code="401">Не авторизован</response>
+    /// <response code="404">Автор не найден или находится в теневом бане</response>
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<AuthorRequestDto>> GetAuthorById(Guid id)
     {
-        var author = await authorService.GetAuthorByIdAsync(id);
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        Guid? requestingUserId = userIdClaim != null ? Guid.Parse(userIdClaim.Value) : null;
+        
+        var author = await authorService.GetAuthorByIdAsync(id, requestingUserId);
         if (author == null)
             return NotFound();
 
@@ -162,6 +166,7 @@ public class AuthorsController(IAuthorService authorService, ILogger<AuthorsCont
 
         var matched = authors
             .Where(a => !string.IsNullOrEmpty(a.PageName) &&
+                        !a.IsShadowBanned &&
                         a.PageName.Contains(query, StringComparison.OrdinalIgnoreCase))
             .ToList();
 

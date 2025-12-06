@@ -92,4 +92,10 @@ public class ContentPost
     public List<PostReaction> PostReactions { get; set; } = [];
     public List<PostComment> PostComments { get; set; } = [];
     public List<Subscription> Subscriptions { get; set; } = [];
+    /// <summary>
+    /// Флаг теневого бана поста
+    /// </summary>
+    [Column("is_shadow_banned")]
+    [Required]
+    public bool IsShadowBanned { get; set; } = false;
 }

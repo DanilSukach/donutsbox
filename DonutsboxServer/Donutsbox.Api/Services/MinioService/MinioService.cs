@@ -15,11 +15,13 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
     private readonly string _processedBucket = configuration["Minio:BucketProcessed"] ?? "video-processed";
     private readonly string _imagesBucket = configuration["Minio:BucketImages"] ?? "images";
     private readonly string _audioBucket = configuration["Minio:BucketAudio"] ?? "audio-temp";
+    private readonly string _audioProcessedBucket = configuration["Minio:BucketAudioProcessed"] ?? "audio-processed";
 
     public string GetTempBucket() => _tempBucket;
     public string GetProcessedBucket() => _processedBucket;
     public string GetImagesBucket() => _imagesBucket;
     public string GetAudioBucket() => _audioBucket;
+    public string GetAudioProcessedBucket() => _audioProcessedBucket;
 
     public async Task EnsureBucketAsync()
     {
@@ -37,6 +39,7 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
         await ensure(_processedBucket);
         await ensure(_imagesBucket);
         await ensure(_audioBucket);
+        await ensure(_audioProcessedBucket);
     }
 
     public async Task UploadFileAsync(string objectKey, Stream stream, string contentType)

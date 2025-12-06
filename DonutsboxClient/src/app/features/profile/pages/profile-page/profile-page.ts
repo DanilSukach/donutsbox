@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, OnDestroy, ViewChild, HostListener, TemplateRef, ViewContainerRef } from '@angular/core';
+import { Component, inject, OnInit, signal, OnDestroy, ViewChild, HostListener, TemplateRef, ViewContainerRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -11,7 +11,6 @@ import { AvatarUploadModal } from '../../components/avatar-upload-modal/avatar-u
 import { BannerUploadModal } from '../../components/banner-upload-modal/banner-upload-modal';
 import { PostsFeed } from '@app/shared/components/posts-feed/posts-feed';
 import { UserSubscriptions } from '../../components/user-subscriptions/user-subscriptions';
-import { VideoProcessingIndicator } from '../../components/video-processing-indicator/video-processing-indicator';
 import { ProfileFacade } from '../../services/profile-facade';
 import { PostsFacade } from '../../services/posts-facade';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
@@ -25,11 +24,12 @@ import { catchError } from 'rxjs/operators';
 import { ChangePasswordModal } from '@app/shared/components/change-password-modal/change-password-modal';
 import { ChangeEmailModal } from '@app/shared/components/change-email-modal/change-email-modal';
 import { FirstLoginModal } from '../../../auth/components/first-login-modal/first-login-modal';
+import { VideoStatusPollService } from '../../services/video-status-poll.service';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, AuthorSupporters, CreatePostModal, AvatarUploadModal, BannerUploadModal, PostsFeed, UserSubscriptions, VideoProcessingIndicator, ChangePasswordModal, ChangeEmailModal, FirstLoginModal, OverlayModule, PortalModule],
+  imports: [CommonModule, FormsModule, AuthorSupporters, CreatePostModal, AvatarUploadModal, BannerUploadModal, PostsFeed, UserSubscriptions, ChangePasswordModal, ChangeEmailModal, FirstLoginModal, OverlayModule, PortalModule],
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.css'
 })
@@ -48,6 +48,7 @@ export class ProfilePage implements OnInit, OnDestroy {
   private postsRefresh = inject(PostsRefresh);
   private overlay = inject(Overlay);
   private viewContainerRef = inject(ViewContainerRef);
+  private videoStatusPollService = inject(VideoStatusPollService);
 
   readonly isOwnProfile = signal(false);
   readonly profileId = signal<string | null>(null);  
@@ -91,6 +92,12 @@ export class ProfilePage implements OnInit, OnDestroy {
   readonly showChangePasswordModal = signal(false);
   readonly showChangeEmailModal = signal(false);
   
+  // Мобильное меню
+  readonly showMobileMenu = signal(false);
+  readonly showMobileSubscriptions = signal(false);
+  readonly showMobileSupporters = signal(false);
+  readonly showMobileSettings = signal(false);
+  
   // Первый вход
   readonly showFirstLoginModal = signal(false);
   
@@ -109,10 +116,30 @@ export class ProfilePage implements OnInit, OnDestroy {
   
   private subscriptionSuccessSub?: Subscription;
   private subscriptionCreatedSub?: Subscription;
+  private postPublishedSub?: Subscription;
+  private lastRefreshTrigger = 0;
+
+  constructor() {
+    // Подписываемся на обновление постов для обновления черновиков
+    effect(() => {
+      // Отслеживаем изменения refreshTrigger
+      const trigger = this.postsRefresh.refreshTrigger();
+      
+      // Защита от бесконечного цикла - обновляем только если trigger изменился
+      if (trigger > this.lastRefreshTrigger && this.isOwnProfile() && this.isCurrentUserCreator()) {
+        this.lastRefreshTrigger = trigger;
+        console.log('🔄 Обновление черновиков через effect, trigger:', trigger);
+        // Обновляем черновики автоматически при обновлении постов
+        this.loadDrafts();
+      }
+    });
+  }
 
   // Закрываем dropdown при клике вне (но не закрываем если открыта модалка!)
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    
     // Не закрываем dropdown если модалка открыта
     if (this.showChangePasswordModal() || this.showChangeEmailModal()) {
       return;
@@ -121,6 +148,11 @@ export class ProfilePage implements OnInit, OnDestroy {
     if (this.showSettingsDropdown()) {
       console.log('📍 Закрываем dropdown при клике вне');
       this.showSettingsDropdown.set(false);
+    }
+    
+    // Закрываем мобильное меню при клике вне его
+    if (this.showMobileMenu() && !target.closest('.mobile-menu') && !target.closest('button[aria-label="Меню"]')) {
+      this.showMobileMenu.set(false);
     }
   }
 
@@ -163,11 +195,43 @@ export class ProfilePage implements OnInit, OnDestroy {
       // Загружаем аватарку и черновики после проверки сессии
       if (this.isOwnProfile()) {
         this.loadUserAvatar();
-        this.loadDraftsIfCreator();
+        // Загружаем черновики, если пользователь является создателем
+        // Используем session?.isCreator напрямую, так как checkUserRole уже установил isCurrentUserCreator
+        if (session?.isCreator) {
+          this.loadDrafts();
+        }
       }
       // Проверяем, нужно ли показать модальное окно первого входа
       if (session?.isFirstLogin && this.isOwnProfile()) {
         this.showFirstLoginModal.set(true);
+      }
+    });
+
+    // Подписываемся на событие публикации поста через Observable
+    this.postPublishedSub = this.postsRefresh.postPublished.subscribe((postId: string) => {
+      if (this.isOwnProfile() && this.isCurrentUserCreator()) {
+        console.log('🗑️ Получено событие публикации поста:', postId);
+        const currentDrafts = this.drafts();
+        const beforeCount = currentDrafts.length;
+        const normalizedPostId = String(postId).toLowerCase();
+        
+        console.log('🗑️ Текущие черновики:', currentDrafts.map(d => ({ id: d.id, title: d.title })));
+        
+        this.drafts.update(d => {
+          const filtered = d.filter(p => {
+            const draftId = String(p.id || '').toLowerCase();
+            const shouldKeep = draftId !== normalizedPostId;
+            if (!shouldKeep) {
+              console.log('🗑️ Найден пост для удаления:', p.id, '===', postId, 'Title:', p.title);
+            }
+            return shouldKeep;
+          });
+          console.log('🗑️ После фильтрации:', filtered.length, 'из', d.length, 'черновиков');
+          return filtered;
+        });
+        
+        const afterCount = this.drafts().length;
+        console.log('🗑️ Результат удаления:', beforeCount, '->', afterCount, 'черновиков');
       }
     });
     
@@ -190,6 +254,7 @@ export class ProfilePage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.subscriptionSuccessSub?.unsubscribe();
     this.subscriptionCreatedSub?.unsubscribe();
+    this.postPublishedSub?.unsubscribe();
     document.removeEventListener('click', this.handleDocumentClick);
   }
 
@@ -259,15 +324,20 @@ export class ProfilePage implements OnInit, OnDestroy {
       return;
     }
 
-    this.profileFacade.getAuthorById(profileId).subscribe({
+        this.profileFacade.getAuthorById(profileId).subscribe({
       next: (author) => {
         if (!author) {
-          // Автор не найден - перенаправляем на страницу 404
+          // Автор не найден или в теневом бане - перенаправляем на страницу 404
           this.router.navigate(['/404']);
           return;
         }
         
         this.author.set(author);
+        
+        // Загружаем имя пользователя из UserData
+        if (this.isOwnProfile()) {
+          this.loadUserName(profileId);
+        }
         
         // Загрузка баннера
         const bannerKey = author?.bannerUrl ?? null;
@@ -315,6 +385,12 @@ export class ProfilePage implements OnInit, OnDestroy {
 
   onPostPublished(): void {
     this.showCreatePostModal.set(false);
+    // Сразу загружаем черновики и показываем их
+    if (this.isCurrentUserCreator()) {
+      this.loadDrafts();
+      // Раскрываем список черновиков
+      this.showDrafts.set(true);
+    }
   }
 
   private checkProfileOwnership(): void {
@@ -566,24 +642,13 @@ export class ProfilePage implements OnInit, OnDestroy {
           this.profileFacade.updateCreatorPageBanner(key).subscribe({
             next: (success) => {
               if (success) {
-                // 3. Получаем URL для отображения
-                this.profileFacade.getImageUrl(key, 300).subscribe({
-                  next: (url) => {
-                    this.bannerSrc.set(url);
-                    this.bannerLoading.set(true); // Устанавливаем в true, чтобы показать скелетон пока изображение загружается
-                    this.showBannerModal.set(false);
-                    this.bannerModal?.setUploading(false);
-                    // Обновляем данные автора если они есть
-                    const authorData = this.author();
-                    if (authorData) {
-                      this.author.set({ ...authorData, bannerUrl: key });
-                    }
-                  },
-                  error: () => {
-                    this.bannerLoading.set(false);
-                    this.bannerModal?.setError('Не удалось загрузить URL баннера');
-                  }
-                });
+                this.showBannerModal.set(false);
+                this.bannerModal?.setUploading(false);
+                // Перезагружаем данные автора, чтобы получить актуальный URL баннера
+                const profileId = this.profileId();
+                if (profileId) {
+                  this.loadAuthorAndBanner(profileId);
+                }
               } else {
                 this.bannerLoading.set(false);
                 this.bannerModal?.setError('Не удалось сохранить баннер в БД');
@@ -614,27 +679,101 @@ export class ProfilePage implements OnInit, OnDestroy {
   }
 
   toggleDrafts(): void {
-    if (!this.showDrafts()) {
-      this.loadDrafts();
-    }
+    // Черновики уже загружены при инициализации, просто показываем/скрываем
     this.showDrafts.update(v => !v);
   }
 
   loadDrafts(): void {
+    if (!this.isCurrentUserCreator()) {
+      console.log('⚠️ loadDrafts: Пользователь не является создателем');
+      return;
+    }
+    
+    console.log('📝 Загрузка черновиков...');
     this.draftsLoading.set(true);
     this.postsFacade.getMyPosts(1, 50, false).subscribe({
       next: (response) => {
-        this.drafts.set(response.posts || []);
+        const drafts = response.posts || [];
+        console.log('✅ Черновики загружены:', drafts.length, 'постов');
+        this.drafts.set(drafts);
         this.draftsLoading.set(false);
+        
+        // Проверяем, есть ли черновики с уже обработанным медиа, которые должны быть опубликованы
+        this.checkAndPublishReadyDrafts(drafts);
+        
+        // Если есть черновики с обрабатываемым медиа, инициализируем SignalR для отслеживания
+        const hasProcessingMedia = drafts.some(d => this.hasProcessingMedia(d));
+        if (hasProcessingMedia) {
+          console.log('🔄 Найдены черновики с обрабатываемым медиа, инициализирую SignalR...');
+          this.videoStatusPollService.startPollingAfterPublish();
+        }
       },
-      error: () => {
+      error: (err) => {
+        console.error('❌ Ошибка загрузки черновиков:', err);
         this.drafts.set([]);
         this.draftsLoading.set(false);
       }
     });
   }
 
+  private checkAndPublishReadyDrafts(drafts: any[]): void {
+    // Проверяем каждый черновик на готовность к публикации
+    drafts.forEach(draft => {
+      const videos = draft.videos || [];
+      const audios = draft.audios || [];
+      
+      // Проверяем, есть ли медиа
+      const hasMedia = videos.length > 0 || audios.length > 0;
+      
+      if (hasMedia) {
+        // Проверяем, все ли медиа обработано
+        const hasProcessingVideos = videos.some((v: any) => 
+          v.status === 'UPLOADED' || v.status === 'PROCESSING' || v.status === 'UPLOADING');
+        const hasProcessingAudios = audios.some((a: any) => 
+          a.status === 'UPLOADED' || a.status === 'PROCESSING' || a.status === 'UPLOADING');
+        
+        // Если есть медиа, но все уже обработано (READY), значит пост должен был быть опубликован
+        // но по какой-то причине не был (например, SignalR не успел подключиться)
+        if (!hasProcessingVideos && !hasProcessingAudios) {
+          const allReady = videos.every((v: any) => v.status === 'READY') && 
+                          audios.every((a: any) => a.status === 'READY');
+          
+          if (allReady && videos.length + audios.length > 0) {
+            console.log('✅ Найден черновик с готовым медиа, который должен быть опубликован:', draft.id);
+            // Пост должен был быть опубликован автоматически, но не был
+            // Обновляем черновики через небольшую задержку, чтобы получить актуальный статус
+            setTimeout(() => {
+              this.postsRefresh.triggerRefresh();
+            }, 1000);
+          }
+        }
+      }
+    });
+  }
+
+  hasProcessingMedia(draft: any): boolean {
+    const videos = draft.videos || [];
+    const audios = draft.audios || [];
+    
+    const hasProcessingVideos = videos.some((v: any) => 
+      v.status === 'UPLOADED' || v.status === 'PROCESSING' || v.status === 'UPLOADING');
+    const hasProcessingAudios = audios.some((a: any) => 
+      a.status === 'UPLOADED' || a.status === 'PROCESSING' || a.status === 'UPLOADING');
+    
+    return hasProcessingVideos || hasProcessingAudios;
+  }
+
   publishDraft(postId: string): void {
+    // Находим черновик
+    const draft = this.drafts().find(d => d.id === postId);
+    if (!draft) return;
+    
+    // Проверяем, есть ли необработанное медиа
+    if (this.hasProcessingMedia(draft)) {
+      console.log('Нельзя опубликовать пост с необработанным медиа');
+      return;
+    }
+    
     this.postsFacade.publishPost(postId).subscribe({
       next: () => {
         // Убираем из черновиков

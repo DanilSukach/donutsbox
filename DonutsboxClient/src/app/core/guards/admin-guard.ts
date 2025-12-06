@@ -4,7 +4,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { SessionService } from '../services/session.service';
 import { catchError, map, of } from 'rxjs';
 
-export const creatorGuard: CanActivateFn = (route, state) => {
+export const adminGuard: CanActivateFn = (route, state) => {
   const sessionService = inject(SessionService);
   const router = inject(Router);
   const platformId = inject(PLATFORM_ID);
@@ -19,19 +19,20 @@ export const creatorGuard: CanActivateFn = (route, state) => {
         return router.createUrlTree(['/auth/login']);
       }
 
-      // Если админ - редиректим на /management
+      // Проверяем, является ли пользователь администратором
       const isAdmin = session.role === 'Administrator' || session.role === 'Admin';
-      if (isAdmin) {
-        return router.createUrlTree(['/management']);
+      
+      if (!isAdmin) {
+        // Обычные пользователи не должны видеть страницу админа - редирект на 404
+        return router.createUrlTree(['/404']);
       }
 
-      if (session?.isCreator) {
-        return true;
-      }
-      return router.createUrlTree(['/auth/login']);
+      return true;
     }),
-    catchError(() => {
+    catchError((error) => {
+      console.error('Ошибка проверки прав администратора:', error);
       return of(router.createUrlTree(['/auth/login']));
     })
   );
 };
+

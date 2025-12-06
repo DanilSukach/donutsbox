@@ -177,7 +177,7 @@ public class AuthorService(
 
         foreach (var user in users)
         {
-            if (user.CreatorPageData != null)
+            if (user.CreatorPageData != null && !user.CreatorPageData.IsShadowBanned)
             {
                 dtos.Add(new AuthorRequestDto
                 {
@@ -187,7 +187,8 @@ public class AuthorService(
                     BannerUrl = user.CreatorPageData.BannerURL,
                     Description = user.CreatorPageData.Description,
                     SubscribersCount = user.CreatorPageData.SubscribersCount,
-                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(MapSubscription)]
+                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(MapSubscription)],
+                    IsShadowBanned = user.CreatorPageData.IsShadowBanned
                 });
             }
         }
@@ -203,7 +204,7 @@ public class AuthorService(
 
         foreach (var user in users)
         {
-            if (user.CreatorPageData != null)
+            if (user.CreatorPageData != null && !user.CreatorPageData.IsShadowBanned)
             {
                 dtos.Add(new AuthorRequestDto
                 {
@@ -213,7 +214,8 @@ public class AuthorService(
                     BannerUrl = user.CreatorPageData.BannerURL,
                     Description = user.CreatorPageData.Description,
                     SubscribersCount = user.CreatorPageData.SubscribersCount,
-                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(MapSubscription)]
+                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(MapSubscription)],
+                    IsShadowBanned = user.CreatorPageData.IsShadowBanned
                 });
             }
         }
@@ -221,11 +223,15 @@ public class AuthorService(
         return dtos;
     }
 
-    public async Task<AuthorRequestDto?> GetAuthorByIdAsync(Guid id)
+    public async Task<AuthorRequestDto?> GetAuthorByIdAsync(Guid id, Guid? requestingUserId = null)
     {
         var user = await authorRepository.GetByIdAsync(id);
 
         if (user?.CreatorPageData == null)
+            return null;
+
+        // Если автор в теневом бане и запрашивающий пользователь не является владельцем - возвращаем null
+        if (user.CreatorPageData.IsShadowBanned && requestingUserId != user.Id)
             return null;
 
         return new AuthorRequestDto
@@ -236,7 +242,8 @@ public class AuthorService(
             BannerUrl = user.CreatorPageData.BannerURL,
             Description = user.CreatorPageData.Description,
             SubscribersCount = user.CreatorPageData.SubscribersCount,
-            Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(MapSubscription)]
+            Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(MapSubscription)],
+            IsShadowBanned = user.CreatorPageData.IsShadowBanned
         };
     }
 
@@ -258,7 +265,8 @@ public class AuthorService(
                     BannerUrl = user.CreatorPageData.BannerURL,
                     Description = user.CreatorPageData.Description,
                     SubscribersCount = user.CreatorPageData.SubscribersCount,
-                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(MapSubscription)]
+                    Subscriptions = [.. user.CreatorPageData.Subscriptions.Select(MapSubscription)],
+                    IsShadowBanned = user.CreatorPageData.IsShadowBanned
                 });
             }
         }

@@ -80,11 +80,14 @@ export class PostsFacade {
   }
 
   getVideoHlsUrl(videoId: string): string {
-    return `/api/files/${videoId}/hls/index.m3u8`;
+    // Просто возвращаем относительный путь - браузер сам добавит текущий домен
+    // Это работает лучше, чем пытаться использовать basePath, который может быть неправильным
+    return `/api/Files/${videoId}/hls/index.m3u8`;
   }
 
   getVideoThumbnailUrl(videoId: string): string {
-    return `/api/files/${videoId}/thumbnail`;
+    // Просто возвращаем относительный путь - браузер сам добавит текущий домен
+    return `/api/Files/${videoId}/thumbnail`;
   }
 
   getPostImageUrl(imagePath: string): string {

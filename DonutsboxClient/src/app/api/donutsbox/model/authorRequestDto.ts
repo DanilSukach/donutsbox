@@ -39,5 +39,9 @@ export interface AuthorRequestDto {
      * Подписки
      */
     subscriptions: Array<SubscriptionDto> | null;
+    /**
+     * Находится ли автор в теневом бане
+     */
+    isShadowBanned?: boolean;
 }
 

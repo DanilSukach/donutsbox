@@ -1,6 +1,65 @@
 <div class="min-h-screen bg-gradient-to-br from-pink-50 via-yellow-50 to-amber-50">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="flex justify-between items-center mb-8">
+  <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4 lg:py-8">
+    <!-- Мобильный header -->
+    <div class="lg:hidden mb-4">
+      <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
+            <span class="text-white font-bold text-xs sm:text-sm">📰</span>
+          </div>
+          <h1 class="text-lg sm:text-xl font-extrabold text-amber-900 tracking-tight">Лента подписок</h1>
+        </div>
+        <app-user-profile-icon></app-user-profile-icon>
+      </div>
+      
+      <!-- Раскрывающиеся блоки для мобильных -->
+      <!-- Поиск авторов (мобильный) -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-3 overflow-hidden">
+        <button
+          type="button"
+          (click)="showMobileSearch.set(!showMobileSearch())"
+          class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <div class="flex items-center gap-2">
+            <div class="w-5 h-5 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
+              <span class="text-white text-xs">🔍</span>
+            </div>
+            <span class="text-sm font-semibold text-gray-900">Поиск авторов</span>
+          </div>
+          <span class="text-gray-400">{{ showMobileSearch() ? '▼' : '▶' }}</span>
+        </button>
+        @if (showMobileSearch()) {
+          <div class="px-4 pb-4">
+            <app-author-search></app-author-search>
+          </div>
+        }
+      </div>
+      
+      <!-- Топ авторы (мобильный) -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-3 overflow-hidden">
+        <button
+          type="button"
+          (click)="showMobileTopAuthors.set(!showMobileTopAuthors())"
+          class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <div class="flex items-center gap-2">
+            <div class="w-5 h-5 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
+              <span class="text-white text-xs">⭐</span>
+            </div>
+            <span class="text-sm font-semibold text-gray-900">Топ авторы</span>
+          </div>
+          <span class="text-gray-400">{{ showMobileTopAuthors() ? '▼' : '▶' }}</span>
+        </button>
+        @if (showMobileTopAuthors()) {
+          <div class="px-4 pb-4">
+            <app-top-authors></app-top-authors>
+          </div>
+        }
+      </div>
+    </div>
+    
+    <!-- Десктопный header -->
+    <div class="hidden lg:flex justify-between items-center mb-8">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
           <span class="text-white font-bold text-sm">📰</span>
@@ -10,26 +69,28 @@
       <app-user-profile-icon></app-user-profile-icon>
     </div>
 
-      <main class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <aside class="lg:col-span-1 order-1">
-          <div class="lg:sticky lg:top-8">
-            <app-author-search></app-author-search>
-          </div>
-        </aside>
+    <main class="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
+      <!-- Десктоп: Поиск (скрыто на мобильных) -->
+      <aside class="hidden lg:block lg:col-span-1 order-1">
+        <div class="lg:sticky lg:top-8">
+          <app-author-search></app-author-search>
+        </div>
+      </aside>
 
-        <section class="lg:col-span-2 order-2">
-          <app-posts-feed
-            [mode]="'subscriptions'"
-            [loadPostsFunction]="loadFeedPosts"
-            [showAuthorInfo]="true"
-          ></app-posts-feed>
-        </section>
+      <section class="lg:col-span-2 order-2">
+        <app-posts-feed
+          [mode]="'subscriptions'"
+          [loadPostsFunction]="loadFeedPosts"
+          [showAuthorInfo]="true"
+        ></app-posts-feed>
+      </section>
 
-        <aside class="lg:col-span-1 order-3">
-          <div class="lg:sticky lg:top-8">
-            <app-top-authors></app-top-authors>
-          </div>
-        </aside>
-      </main>
+      <!-- Десктоп: Топ авторы (скрыто на мобильных) -->
+      <aside class="hidden lg:block lg:col-span-1 order-3">
+        <div class="lg:sticky lg:top-8">
+          <app-top-authors></app-top-authors>
+        </div>
+      </aside>
+    </main>
   </div>
 </div>

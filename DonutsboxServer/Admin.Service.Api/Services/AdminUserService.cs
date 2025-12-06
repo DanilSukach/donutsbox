@@ -75,7 +75,8 @@ public class AdminUserService(DonutsboxDbContext context,
                 CreatedAt = (DateTime)author.UserAuth.LastAuth!,
                 PostsCount = postsCount,
                 SubscriptionsCount = author.UserSubscriptions?.Count ?? 0,
-                SubscribersCount = author.CreatorPageData.SubscribersCount
+                SubscribersCount = author.CreatorPageData.SubscribersCount,
+                IsShadowBanned = author.CreatorPageData.IsShadowBanned
             });
         }
         return result;
@@ -260,6 +261,74 @@ public class AdminUserService(DonutsboxDbContext context,
 
         result.Message = $"Успешно удалено: {successCount}, Ошибок: {failCount}";
         result.Success = failCount == 0;
+
+        return result;
+    }
+
+    public async Task<AdminActionResponseDto> ShadowBanAuthorAsync(Guid creatorPageId)
+    {
+        var result = new AdminActionResponseDto
+        {
+            Success = false
+        };
+
+        try
+        {
+            var creatorPage = await context.CreatorsPageData
+                .FirstOrDefaultAsync(c => c.Id == creatorPageId);
+
+            if (creatorPage == null)
+            {
+                result.Message = $"Страница создателя с ID {creatorPageId} не найдена";
+                return result;
+            }
+
+            creatorPage.IsShadowBanned = true;
+            await context.SaveChangesAsync();
+
+            result.Success = true;
+            result.Message = "Автор добавлен в теневой бан";
+            logger.LogInformation("Автор {CreatorPageId} добавлен в теневой бан", creatorPageId);
+        }
+        catch (Exception ex)
+        {
+            result.Message = $"Ошибка при добавлении автора в теневой бан: {ex.Message}";
+            logger.LogError(ex, "Ошибка при добавлении автора {CreatorPageId} в теневой бан", creatorPageId);
+        }
+
+        return result;
+    }
+
+    public async Task<AdminActionResponseDto> UnshadowBanAuthorAsync(Guid creatorPageId)
+    {
+        var result = new AdminActionResponseDto
+        {
+            Success = false
+        };
+
+        try
+        {
+            var creatorPage = await context.CreatorsPageData
+                .FirstOrDefaultAsync(c => c.Id == creatorPageId);
+
+            if (creatorPage == null)
+            {
+                result.Message = $"Страница создателя с ID {creatorPageId} не найдена";
+                return result;
+            }
+
+            creatorPage.IsShadowBanned = false;
+            await context.SaveChangesAsync();
+
+            result.Success = true;
+            result.Message = "Теневой бан с автора снят";
+            logger.LogInformation("Теневой бан с автора {CreatorPageId} снят", creatorPageId);
+        }
+        catch (Exception ex)
+        {
+            result.Message = $"Ошибка при снятии теневого бана с автора: {ex.Message}";
+            logger.LogError(ex, "Ошибка при снятии теневого бана с автора {CreatorPageId}", creatorPageId);
+        }
 
         return result;
     }

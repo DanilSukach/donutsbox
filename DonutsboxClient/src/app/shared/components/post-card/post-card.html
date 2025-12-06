@@ -1,6 +1,23 @@
 <div class="post-card-container bg-white rounded-xl shadow-lg border border-gray-200 mb-6 relative">
+  <!-- Плашка о теневом бане (только для владельца) -->
+  @if (isOwner() && post().isShadowBanned) {
+    <div class="bg-orange-50 border-l-4 border-orange-500 p-3 rounded-t-xl">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <span class="text-xl">⚠️</span>
+        </div>
+        <div class="ml-2 flex-1">
+          <h4 class="text-sm font-semibold text-orange-800">Этот пост находится в теневом бане</h4>
+          <p class="mt-1 text-xs text-orange-700">
+            Пост не отображается в лентах и не виден другим пользователям. Вы можете видеть его, но он скрыт от остальных.
+          </p>
+        </div>
+      </div>
+    </div>
+  }
+  
   <!-- Post Header -->
-  <div class="p-4 border-b border-gray-200">
+  <div class="p-4 border-b border-gray-200" [class.rounded-t-xl]="!(isOwner() && post().isShadowBanned)">
     <div class="flex items-start justify-between">
       <div class="flex-1">
         <h3 class="text-xl font-bold text-gray-900 mb-1">{{ displayTitle }}</h3>
@@ -39,46 +56,6 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
               </svg>
             </button>
-
-            <!-- Модальное окно скрытия (под кнопкой) -->
-            @if (showHideModal()) {
-            <div 
-              class="hide-modal absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-2xl border border-gray-200"
-              style="z-index: 99999;"
-            >
-              <div class="p-4">
-                <div class="flex items-center mb-3">
-                  <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
-                  </div>
-                  <h3 class="text-sm font-semibold text-gray-900">Скрыть пост?</h3>
-                </div>
-                
-                <p class="text-xs text-gray-600 mb-4">
-                  Пост переместится в черновики.
-                </p>
-                
-                <div class="flex gap-2">
-                  <button 
-                    type="button"
-                    (click)="closeHideModal()"
-                    class="flex-1 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Отмена
-                  </button>
-                  <button 
-                    type="button"
-                    (click)="confirmHide()"
-                    class="flex-1 px-3 py-2 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
-                  >
-                    Скрыть
-                  </button>
-                </div>
-              </div>
-            </div>
-            }
           </div>
 
           <div class="relative">
@@ -92,46 +69,6 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </button>
-
-            <!-- Модальное окно удаления (под кнопкой) -->
-            @if (showDeleteModal()) {
-            <div 
-              class="delete-modal absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-2xl border border-gray-200"
-              style="z-index: 99999;"
-            >
-              <div class="p-4">
-                <div class="flex items-center mb-3">
-                  <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </div>
-                  <h3 class="text-sm font-semibold text-gray-900">Удалить пост?</h3>
-                </div>
-                
-                <p class="text-xs text-gray-600 mb-4">
-                  Это действие нельзя отменить.
-                </p>
-                
-                <div class="flex gap-2">
-                  <button 
-                    type="button"
-                    (click)="closeDeleteModal()"
-                    class="flex-1 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Отмена
-                  </button>
-                  <button 
-                    type="button"
-                    (click)="confirmDelete()"
-                    class="flex-1 px-3 py-2 text-xs font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    Удалить
-                  </button>
-                </div>
-              </div>
-            </div>
-            }
           </div>
         </div>
       }
@@ -278,6 +215,78 @@
     }
   }
 </div>
+
+<!-- Template для модального окна удаления (рендерится через CDK Overlay) -->
+<ng-template #deleteModalTemplate>
+  <div class="bg-white rounded-2xl shadow-2xl w-full m-4" (click)="$event.stopPropagation()">
+    <div class="p-6">
+      <div class="flex items-start gap-4 mb-6">
+        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </div>
+        <div class="flex-1">
+          <h3 class="text-xl font-bold text-gray-900 mb-2">Удалить пост?</h3>
+          <p class="text-gray-600">Это действие нельзя отменить.</p>
+        </div>
+      </div>
+      
+      <div class="flex gap-3">
+        <button 
+          type="button"
+          (click)="closeDeleteModal()"
+          class="flex-1 px-4 py-3 text-sm font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+        >
+          Отмена
+        </button>
+        <button 
+          type="button"
+          (click)="confirmDelete()"
+          class="flex-1 px-4 py-3 text-sm font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+        >
+          Удалить
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Template для модального окна скрытия (рендерится через CDK Overlay) -->
+<ng-template #hideModalTemplate>
+  <div class="bg-white rounded-2xl shadow-2xl w-full m-4" (click)="$event.stopPropagation()">
+    <div class="p-6">
+      <div class="flex items-start gap-4 mb-6">
+        <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+          </svg>
+        </div>
+        <div class="flex-1">
+          <h3 class="text-xl font-bold text-gray-900 mb-2">Скрыть пост?</h3>
+          <p class="text-gray-600">Пост переместится в черновики.</p>
+        </div>
+      </div>
+      
+      <div class="flex gap-3">
+        <button 
+          type="button"
+          (click)="closeHideModal()"
+          class="flex-1 px-4 py-3 text-sm font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+        >
+          Отмена
+        </button>
+        <button 
+          type="button"
+          (click)="confirmHide()"
+          class="flex-1 px-4 py-3 text-sm font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+        >
+          Скрыть
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-template>
 
 <!-- Template для модального окна редактирования (рендерится через CDK Overlay) -->
 <ng-template #editModalTemplate>

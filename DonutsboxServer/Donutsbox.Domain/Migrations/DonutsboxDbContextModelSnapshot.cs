@@ -116,6 +116,10 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_published");
 
+                    b.Property<bool>("IsShadowBanned")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_shadow_banned");
+
                     b.Property<int>("LikesCount")
                         .HasColumnType("integer")
                         .HasColumnName("likes_count");
@@ -155,6 +159,10 @@ namespace Donutsbox.Domain.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text")
                         .HasColumnName("description");
+
+                    b.Property<bool>("IsShadowBanned")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_shadow_banned");
 
                     b.Property<string>("PageName")
                         .IsRequired()

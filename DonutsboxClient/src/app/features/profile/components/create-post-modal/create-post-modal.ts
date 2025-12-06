@@ -14,6 +14,7 @@ interface UploadedVideo {
   title: string;
   file: File;
   thumbnailUrl?: string;
+  status?: string;
 }
 
 interface UploadedImage {
@@ -63,7 +64,6 @@ export class CreatePostModal implements OnInit, OnDestroy {
   readonly videos = signal<UploadedVideo[]>([]);
   readonly videoTitle = signal('');
   readonly selectedVideoFile = signal<File | null>(null);
-  readonly selectedThumbnail = signal<File | null>(null);
   readonly isVideoFormExpanded = signal(false);
   readonly uploadProgress = signal(0);
   readonly currentUploadingVideoId = signal<string | null>(null);
@@ -176,12 +176,6 @@ export class CreatePostModal implements OnInit, OnDestroy {
     }
   }
 
-  onThumbnailChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      this.selectedThumbnail.set(input.files[0]);
-    }
-  }
 
   onImageFilesChange(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -256,8 +250,8 @@ export class CreatePostModal implements OnInit, OnDestroy {
   }
 
   createDraft(): void {
-    if (!this.postTitle().trim() || !this.postText().trim()) {
-      this.error.set('Заполните заголовок и текст поста');
+    if (!this.postTitle().trim()) {
+      this.error.set('Заполните заголовок поста');
       return;
     }
 
@@ -320,9 +314,6 @@ export class CreatePostModal implements OnInit, OnDestroy {
     formData.append('ContentPostId', postId);
     formData.append('Title', this.videoTitle());
     formData.append('File', file);
-    if (this.selectedThumbnail()) {
-      formData.append('Thumbnail', this.selectedThumbnail()!);
-    }
 
     const xhr = new XMLHttpRequest();
     this.uploadAbortController = new AbortController();
@@ -354,22 +345,23 @@ export class CreatePostModal implements OnInit, OnDestroy {
               title: this.videoTitle(),
               file: file,
               thumbnailUrl: response.thumbnailUrl || undefined,
+              status: response.status || 'UPLOADING',
             },
           ]);
 
           this.videoTitle.set('');
           this.selectedVideoFile.set(null);
-          this.selectedThumbnail.set(null);
           this.uploadProgress.set(0);
           this.currentUploadingVideoId.set(null);
 
           const videoInput = document.getElementById('video-file') as HTMLInputElement;
-          const thumbInput = document.getElementById('thumbnail-file') as HTMLInputElement;
           if (videoInput) videoInput.value = '';
-          if (thumbInput) thumbInput.value = '';
 
           this.isLoading.set(false);
           this.isVideoFormExpanded.set(false);
+          
+          // Обновляем отслеживание медиа после загрузки видео
+          this.videoStatusPollService.startPollingAfterPublish();
         } catch {
           this.error.set('Ошибка обработки ответа сервера');
           this.isLoading.set(false);
@@ -487,24 +479,29 @@ export class CreatePostModal implements OnInit, OnDestroy {
     const hasVideos = this.videos().length > 0;
 
     this.postsFacade.publishPost(postId).subscribe({
-      next: () => {
+      next: (response) => {
         this.currentStep.set('done');
         this.isLoading.set(false);
-        console.log('✅ Пост опубликован');
         
         const hasAudios = this.audios().length > 0;
         const hasVideos = this.videos().length > 0;
         
         if (hasVideos || hasAudios) {
-          // Если есть видео или аудио - ждём обработки, не обновляем сразу
-          // Плашка покажет что контент обрабатывается
-          console.log('🎬 Запускаю polling статуса медиа (видео и/или аудио)...');
+          // Если есть видео или аудио - пост будет опубликован автоматически после обработки
+          // Сразу обновляем черновики и показываем их, затем обновим когда медиа обработается
+          console.log('🎬 Пост будет опубликован автоматически после обработки медиа...');
+          // Триггерим обновление черновиков и постов
+          this.postsRefreshService.triggerRefresh();
+          // Запускаем отслеживание обработки медиа
           this.videoStatusPollService.startPollingAfterPublish();
         } else {
-          // Если только текст/изображения - обновляем сразу
-          console.log('📝 Пост без медиа, обновляем сразу');
+          // Если только текст/изображения - пост опубликован сразу
+          console.log('✅ Пост опубликован');
           this.postsRefreshService.triggerRefresh();
         }
+        
+        // Эмитим событие публикации для родительского компонента
+        this.published.emit();
       },
       error: (err) => {
         this.error.set(err.error?.message || 'Ошибка публикации поста');
@@ -529,7 +526,6 @@ export class CreatePostModal implements OnInit, OnDestroy {
     this.videos.set([]);
     this.videoTitle.set('');
     this.selectedVideoFile.set(null);
-    this.selectedThumbnail.set(null);
     this.isVideoFormExpanded.set(false);
     this.uploadProgress.set(0);
     this.currentUploadingVideoId.set(null);
@@ -629,6 +625,9 @@ export class CreatePostModal implements OnInit, OnDestroy {
             this.isLoading.set(false);
             this.isUploadingAudio.set(false);
             this.isAudioFormExpanded.set(false);
+            
+            // Обновляем отслеживание медиа после загрузки аудио
+            this.videoStatusPollService.startPollingAfterPublish();
           }
         },
         error: (err) => {

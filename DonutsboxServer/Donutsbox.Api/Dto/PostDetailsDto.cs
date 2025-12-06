@@ -21,4 +21,8 @@ public class PostDetailsDto
     public List<Guid> SubscriptionIds { get; set; } = [];
     public bool IsLocked { get; set; }
     public string? LockedMessage { get; set; }
+    /// <summary>
+    /// Находится ли пост в теневом бане
+    /// </summary>
+    public bool IsShadowBanned { get; set; } = false;
 }

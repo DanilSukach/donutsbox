@@ -16,4 +16,5 @@ public class AdminContentPostListDto
     public int DislikesCount { get; set; }
     public int CommentsCount { get; set; }
     public int MediaCount { get; set; }
+    public bool IsShadowBanned { get; set; }
 }

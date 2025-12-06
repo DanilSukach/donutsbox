@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { AuthorPreviewDto, UserDataService, UserInteractionService } from '@app/api/donutsbox';
+import { AuthorPreviewDto, UserDataService, UserInteractionService, UserSubscriptionService, UserSubscriptionDto } from '@app/api/donutsbox';
 import { catchError, Observable, of, tap } from 'rxjs';
 
 @Injectable({
@@ -7,9 +7,11 @@ import { catchError, Observable, of, tap } from 'rxjs';
 })
 export class UserSubscriptionsFacade {
   private readonly userDataService = inject(UserDataService);
-  private readonly userInteraction = inject(UserInteractionService)
+  private readonly userInteraction = inject(UserInteractionService);
+  private readonly userSubscriptionService = inject(UserSubscriptionService);
 
   readonly subscriptions = signal<AuthorPreviewDto[]>([]);
+  readonly userSubscriptions = signal<UserSubscriptionDto[]>([]);
   readonly isLoading = signal(false);
   readonly error = signal<string | null>(null);
 
@@ -62,5 +64,43 @@ export class UserSubscriptionsFacade {
 
   getError(): string | null {
     return this.error();
+  }
+
+  /**
+   * Загружает все подписки пользователя с их subscriptionId
+   */
+  loadUserSubscriptionsWithIds(): Observable<UserSubscriptionDto[]> {
+    return this.userSubscriptionService.apiUserSubscriptionGet().pipe(
+      tap((subscriptions) => {
+        console.log('Подписки пользователя с ID загружены:', subscriptions);
+        // Фильтруем только активные подписки
+        const now = new Date();
+        const activeSubscriptions = subscriptions.filter(sub => {
+          const endDate = new Date(sub.endDate);
+          return sub.status?.toLowerCase() === 'active' && endDate >= now;
+        });
+        this.userSubscriptions.set(activeSubscriptions);
+      }),
+      catchError((error) => {
+        console.error('Ошибка загрузки подписок с ID:', error);
+        this.userSubscriptions.set([]);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Проверяет, подписан ли пользователь на конкретную подписку (subscriptionId)
+   */
+  isSubscribedToSubscription(subscriptionId: string): boolean {
+    const subscriptions = this.userSubscriptions();
+    return subscriptions.some(sub => sub.subscriptionId === subscriptionId);
+  }
+
+  /**
+   * Получает список subscriptionId, на которые подписан пользователь
+   */
+  getSubscribedSubscriptionIds(): string[] {
+    return this.userSubscriptions().map(sub => sub.subscriptionId);
   }
 }

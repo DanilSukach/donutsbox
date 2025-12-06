@@ -106,7 +106,8 @@ namespace Donutsbox.Domain.Migrations
                     avatar_url = table.Column<string>(type: "text", nullable: true),
                     banner_url = table.Column<string>(type: "text", nullable: true),
                     description = table.Column<string>(type: "text", nullable: true),
-                    subscribers_count = table.Column<int>(type: "integer", nullable: false)
+                    subscribers_count = table.Column<int>(type: "integer", nullable: false),
+                    is_shadow_banned = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -157,7 +158,8 @@ namespace Donutsbox.Domain.Migrations
                     comments_count = table.Column<int>(type: "integer", nullable: false),
                     audio_urls = table.Column<List<string>>(type: "text[]", nullable: false),
                     picture_urls = table.Column<List<string>>(type: "text[]", nullable: false),
-                    AudienceType = table.Column<string>(type: "text", nullable: false)
+                    AudienceType = table.Column<string>(type: "text", nullable: false),
+                    is_shadow_banned = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {

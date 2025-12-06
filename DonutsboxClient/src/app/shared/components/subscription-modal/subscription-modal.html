@@ -5,7 +5,7 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <img 
-            [src]="authorAvatarUrl() || (author && author.avatarUrl && author.avatarUrl.startsWith('http') ? author.avatarUrl : defaultAvatar)"
+            [src]="authorAvatarUrl() || defaultAvatar"
             [alt]="(author && author.pageName) || 'Автор'"
             class="w-10 h-10 rounded-full object-cover"
             (error)="onImageError($event)"
@@ -66,22 +66,41 @@
               @if (isPlanExpanded(plan.key)) {
                 <div class="plan-options grid gap-3 mt-5 sm:grid-cols-2">
                   @for (option of plan.options; track option.id) {
-                    <button
-                      type="button"
-                      (click)="subscribeToSubscription(option)"
-                      [disabled]="isSubscribing()"
-                      class="plan-option-button border border-gray-200 rounded-lg p-4 text-left hover:border-amber-400 hover:bg-amber-50 transition-colors disabled:opacity-70"
-                    >
-                      <div class="flex items-center justify-between">
-                        <div>
-                          <p class="text-sm font-semibold text-gray-900">{{ formatDuration(option.subscriptionPeriodMonths) }}</p>
-                        </div>
-                        <div class="text-right">
-                          <p class="text-xl font-bold text-amber-600">{{ formatPrice(option.price) }}</p>
-                          <p class="text-xs text-gray-500">{{ formatMonthlyPrice(option.monthlyPrice) }}</p>
+                    @if (isSubscriptionAlreadyPurchased(option)) {
+                      <div
+                        class="plan-option-button border-2 border-green-300 bg-green-50 rounded-lg p-4 text-left cursor-not-allowed opacity-75"
+                      >
+                        <div class="flex items-center justify-between">
+                          <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                              <p class="text-sm font-semibold text-gray-900">{{ formatDuration(option.subscriptionPeriodMonths) }}</p>
+                              <span class="text-xs bg-green-500 text-white px-2 py-1 rounded-full">Куплено</span>
+                            </div>
+                          </div>
+                          <div class="text-right">
+                            <p class="text-xl font-bold text-green-600">{{ formatPrice(option.price) }}</p>
+                            <p class="text-xs text-gray-500">{{ formatMonthlyPrice(option.monthlyPrice) }}</p>
+                          </div>
                         </div>
                       </div>
-                    </button>
+                    } @else {
+                      <button
+                        type="button"
+                        (click)="subscribeToSubscription(option)"
+                        [disabled]="isSubscribing()"
+                        class="plan-option-button border border-gray-200 rounded-lg p-4 text-left hover:border-amber-400 hover:bg-amber-50 transition-colors disabled:opacity-70"
+                      >
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <p class="text-sm font-semibold text-gray-900">{{ formatDuration(option.subscriptionPeriodMonths) }}</p>
+                          </div>
+                          <div class="text-right">
+                            <p class="text-xl font-bold text-amber-600">{{ formatPrice(option.price) }}</p>
+                            <p class="text-xs text-gray-500">{{ formatMonthlyPrice(option.monthlyPrice) }}</p>
+                          </div>
+                        </div>
+                      </button>
+                    }
                   }
                 </div>
               }

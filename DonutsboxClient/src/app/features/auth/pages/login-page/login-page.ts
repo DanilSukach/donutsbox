@@ -6,6 +6,7 @@ import { LoginRequestDto } from '@app/api/auth';
 import { RouterModule } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { SessionService } from '@app/core/services/session.service';
 
 @Component({
   selector: 'app-login-page',
@@ -18,6 +19,7 @@ export class LoginPage {
   private authFacade = inject(AuthFacade);
   private readonly router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private sessionService = inject(SessionService);
 
   protected serverError: string | null = null;
   protected isLoading = false;
@@ -31,6 +33,16 @@ export class LoginPage {
       next: ({ guid, isNewCreator, isFirstLogin }) => {
         this.isLoading = false;
         this.cdr.detectChanges();
+
+        // Проверяем роль пользователя после логина
+        const session = this.sessionService.session();
+        const isAdmin = session?.role === 'Administrator' || session?.role === 'Admin';
+        
+        // Если админ - всегда редиректим на /management
+        if (isAdmin) {
+          this.router.navigate(['/management']);
+          return;
+        }
 
         // Модальное окно первого входа теперь показывается на странице профиля
         if (isNewCreator) {

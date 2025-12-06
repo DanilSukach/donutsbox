@@ -31,5 +31,9 @@ export interface PostDetailsDto {
     subscriptionIds?: Array<string> | null;
     isLocked?: boolean;
     lockedMessage?: string | null;
+    /**
+     * Находится ли пост в теневом бане
+     */
+    isShadowBanned?: boolean;
 }
 

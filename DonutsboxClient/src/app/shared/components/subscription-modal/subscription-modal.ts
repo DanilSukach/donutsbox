@@ -1,4 +1,4 @@
-import { Component, inject, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, inject, Input, Output, EventEmitter, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthorRequestDto } from '@app/api/donutsbox/model/authorRequestDto';
@@ -7,6 +7,8 @@ import { SubscriptionPaymentsService } from '@app/api/donutsbox/api/subscription
 import { SubscriptionPaymentRequestDto } from '@app/api/donutsbox/model/subscriptionPaymentRequestDto';
 import { SubscriptionPaymentResponseDto } from '@app/api/donutsbox/model/subscriptionPaymentResponseDto';
 import { FilesService } from '@app/api/donutsbox/api/files.service';
+import { UserSubscriptionsFacade } from '@app/features/profile/services/user-subscriptions-facade';
+import { Subscription } from 'rxjs';
 
 type SubscriptionPlan = {
   key: string;
@@ -24,11 +26,13 @@ type SubscriptionPlan = {
   templateUrl: './subscription-modal.html',
   styleUrl: './subscription-modal.css'
 })
-export class SubscriptionModal {
+export class SubscriptionModal implements OnInit, OnDestroy {
   private router = inject(Router);
   private paymentsService = inject(SubscriptionPaymentsService);
   private document = inject(DOCUMENT);
   private filesService = inject(FilesService);
+  private userSubscriptionsFacade = inject(UserSubscriptionsFacade);
+  private subscriptionSub?: Subscription;
 
   private _author: AuthorRequestDto | null = null;
   
@@ -49,22 +53,41 @@ export class SubscriptionModal {
   readonly subscriptionError = signal<string | null>(null);
   readonly expandedPlanKey = signal<string | null>(null);
   readonly authorAvatarUrl = signal<string | null>(null);
+  readonly subscribedSubscriptionIds = signal<Set<string>>(new Set());
 
   readonly defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFOUVDRUYiLz4KPHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeD0iOCIgeT0iOCI+CjxwYXRoIGQ9Ik0xMiAxMkM5Ljc5IDEyIDggMTAuMjEgOCA4UzkuNzkgNCA0IDRTMTYgNS43OSAxNiA4UzE0LjIxIDEyIDEyIDEyWk0xMiAxNEMxNi40MiAxNCAyMCAxNS43OSAyMCAxOFYyMEg0VjE4QzQgMTUuNzkgNy41OCAxNCAxMiAxNFoiIGZpbGw9IiM2Qzc1N0QiLz4KPC9zdmc+Cjwvc3ZnPgo=';
   readonly defaultSubscriptionImage = 'https://via.placeholder.com/300x200?text=Subscription';
 
+  ngOnInit(): void {
+    // Загружаем подписки пользователя при открытии модального окна
+    this.subscriptionSub = this.userSubscriptionsFacade.loadUserSubscriptionsWithIds().subscribe({
+      next: () => {
+        const subscriptionIds = this.userSubscriptionsFacade.getSubscribedSubscriptionIds();
+        this.subscribedSubscriptionIds.set(new Set(subscriptionIds));
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptionSub?.unsubscribe();
+  }
+
   private loadAuthorAvatar(): void {
     const author = this._author;
     if (author?.avatarUrl) {
+      console.log('🖼️ Загрузка аватарки автора:', author.avatarUrl);
       this.filesService.apiFilesImagesUrlGet(author.avatarUrl, 300).subscribe({
         next: (response) => {
+          console.log('✅ Аватарка автора загружена:', response.url);
           this.authorAvatarUrl.set(response.url ?? null);
         },
-        error: () => {
+        error: (error) => {
+          console.error('❌ Ошибка загрузки аватарки автора:', error);
           this.authorAvatarUrl.set(null);
         }
       });
     } else {
+      console.log('⚠️ У автора нет avatarUrl');
       this.authorAvatarUrl.set(null);
     }
   }
@@ -109,8 +132,19 @@ export class SubscriptionModal {
     this.closeModal.emit();
   }
 
+  isSubscriptionAlreadyPurchased(subscription: SubscriptionDto): boolean {
+    if (!subscription.id) return false;
+    return this.subscribedSubscriptionIds().has(subscription.id);
+  }
+
   subscribeToSubscription(subscription: SubscriptionDto): void {
     if (!subscription.id || this.isSubscribing()) return;
+
+    // Проверяем, не подписан ли пользователь уже на эту подписку
+    if (this.isSubscriptionAlreadyPurchased(subscription)) {
+      this.subscriptionError.set('Вы уже подписаны на эту подписку. Вы можете выбрать другую подписку этого автора.');
+      return;
+    }
 
     this.isSubscribing.set(true);
     this.subscriptionError.set(null);
@@ -204,6 +238,9 @@ export class SubscriptionModal {
       this.subscriptionError.set('Не удалось получить ссылку на оплату. Попробуйте позже.');
       return;
     }
+
+    // Обновляем список подписок пользователя после успешной покупки
+    this.userSubscriptionsFacade.loadUserSubscriptionsWithIds().subscribe();
 
     this.subscriptionSuccess.emit();
     this.close();

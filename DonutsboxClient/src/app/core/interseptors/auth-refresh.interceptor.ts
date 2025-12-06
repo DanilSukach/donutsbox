@@ -23,14 +23,18 @@ export const authRefreshInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => error);
       }
 
+      console.log('🔄 Interceptor: 401 detected, attempting token refresh for', req.url);
+
       return refreshService.refreshTokens().pipe(
-        switchMap(() => {
+        switchMap((refreshResponse) => {
+          console.log('✅ Interceptor: Token refreshed successfully, retrying request', req.url);
           const retriedRequest = req.clone({
             context: req.context.set(SKIP_REFRESH, true),
           });
           return next(retriedRequest);
         }),
-        catchError(() => {
+        catchError((refreshError) => {
+          console.error('❌ Interceptor: Token refresh failed, redirecting to login', refreshError);
           refreshService.handleRefreshFailure();
           return throwError(() => error);
         })
