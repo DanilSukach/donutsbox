@@ -42,7 +42,13 @@ export class SubscriptionModal implements OnInit, OnDestroy {
     this.loadAuthorAvatar();
     // Обновляем подписки при изменении автора
     if (value) {
+      // Сначала обновляем список подписок, чтобы иметь доступ к подпискам автора
+      // для вычисления planKeys
       this.refreshSubscriptions();
+    } else {
+      // Очищаем при сбросе автора
+      this.subscribedPlanKeys.set(new Set());
+      this.subscribedSubscriptionIds.set(new Set());
     }
   }
   get author(): AuthorRequestDto | null {
@@ -59,6 +65,7 @@ export class SubscriptionModal implements OnInit, OnDestroy {
   readonly expandedPlanKey = signal<string | null>(null);
   readonly authorAvatarUrl = signal<string | null>(null);
   readonly subscribedSubscriptionIds = signal<Set<string>>(new Set());
+  readonly subscribedPlanKeys = signal<Set<string>>(new Set());
 
   readonly defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFOUVDRUYiLz4KPHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeD0iOCIgeT0iOCI+CjxwYXRoIGQ9Ik0xMiAxMkM5Ljc5IDEyIDggMTAuMjEgOCA4UzkuNzkgNCA0IDRTMTYgNS43OSAxNiA4UzE0LjIxIDEyIDEyIDEyWk0xMiAxNEMxNi40MiAxNCAyMCAxNS43OSAyMCAxOFYyMEg0VjE4QzQgMTUuNzkgNy41OCAxNCAxMiAxNFoiIGZpbGw9IiM2Qzc1N0QiLz4KPC9zdmc+Cjwvc3ZnPgo=';
   readonly defaultSubscriptionImage = 'https://via.placeholder.com/300x200?text=Subscription';
@@ -77,6 +84,22 @@ export class SubscriptionModal implements OnInit, OnDestroy {
       next: () => {
         const subscriptionIds = this.userSubscriptionsFacade.getSubscribedSubscriptionIds();
         this.subscribedSubscriptionIds.set(new Set(subscriptionIds));
+        
+        // Вычисляем planKey для всех купленных подписок пользователя
+        // чтобы определить, подписан ли пользователь на тот же тип подписки
+        const planKeys = new Set<string>();
+        const allSubscriptions = this.author?.subscriptions ?? [];
+        
+        subscriptionIds.forEach(subscriptionId => {
+          // Находим подписку автора по subscriptionId
+          const subscription = allSubscriptions.find(sub => sub.id === subscriptionId);
+          if (subscription) {
+            const planKey = this.getPlanKey(subscription);
+            planKeys.add(planKey);
+          }
+        });
+        
+        this.subscribedPlanKeys.set(planKeys);
       }
     });
   }
@@ -147,8 +170,12 @@ export class SubscriptionModal implements OnInit, OnDestroy {
   }
 
   isSubscriptionAlreadyPurchased(subscription: SubscriptionDto): boolean {
-    // Всегда возвращаем false, чтобы пользователь мог подписаться на любую подписку несколько раз
-    return false;
+    // Проверяем, подписан ли пользователь на тот же тип подписки (независимо от периода)
+    // Используем planKey для определения типа подписки
+    if (!subscription.id) return false;
+    
+    const planKey = this.getPlanKey(subscription);
+    return this.subscribedPlanKeys().has(planKey);
   }
 
   subscribeToSubscription(subscription: SubscriptionDto): void {
@@ -257,6 +284,20 @@ export class SubscriptionModal implements OnInit, OnDestroy {
         // Обновляем список подписанных подписок в компоненте
         const subscriptionIds = this.userSubscriptionsFacade.getSubscribedSubscriptionIds();
         this.subscribedSubscriptionIds.set(new Set(subscriptionIds));
+        
+        // Пересчитываем planKeys для купленных подписок
+        const planKeys = new Set<string>();
+        const allSubscriptions = this.author?.subscriptions ?? [];
+        
+        subscriptionIds.forEach(subscriptionId => {
+          const subscription = allSubscriptions.find(sub => sub.id === subscriptionId);
+          if (subscription) {
+            const planKey = this.getPlanKey(subscription);
+            planKeys.add(planKey);
+          }
+        });
+        
+        this.subscribedPlanKeys.set(planKeys);
       }
     });
 
