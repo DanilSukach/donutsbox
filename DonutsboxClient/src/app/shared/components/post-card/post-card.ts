@@ -435,9 +435,17 @@ export class PostCard implements OnDestroy {
     if (videos && videos.length > 0) {
       videos.forEach(video => {
         if (video.status === 'READY') {
+          // Используем hlsUrl из API, если он есть, иначе генерируем
+          let hlsUrl = video.hlsUrl || this.getVideoHlsUrl(video.id);
+          
+          // Нормализуем URL: исправляем регистр /api/files/ -> /api/Files/
+          if (hlsUrl && hlsUrl.includes('/api/files/')) {
+            hlsUrl = hlsUrl.replace('/api/files/', '/api/Files/');
+          }
+          
           items.push({
             type: 'video',
-            url: this.getVideoHlsUrl(video.id),
+            url: hlsUrl,
             videoId: video.id,
             title: video.title,
             thumbnailUrl: video.thumbnailUrl

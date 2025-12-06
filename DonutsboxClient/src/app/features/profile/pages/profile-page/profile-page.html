@@ -1,6 +1,185 @@
 <div class="min-h-screen bg-gradient-to-br from-pink-50 via-yellow-50 to-amber-50">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="flex justify-between items-center mb-8">
+  <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4 lg:py-8">
+    <!-- Мобильный header -->
+    <div class="lg:hidden mb-4">
+      <div class="flex items-center justify-between mb-4 gap-2">
+        <div class="flex items-center gap-2">
+          <!-- Аватарка -->
+          <div class="relative group">
+            @if (avatarSrc()) {
+              <img 
+                [src]="avatarSrc()" 
+                [alt]="author()?.pageName || 'Аватар'"
+                class="w-10 h-10 rounded-full object-cover border-2 border-amber-300 shadow-sm"
+                [class.cursor-pointer]="isOwnProfile()"
+              />
+            } @else {
+              <div
+                class="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center"
+                [class.cursor-pointer]="isOwnProfile()"
+              >
+                <span class="text-white font-bold text-base">👤</span>
+              </div>
+            }
+            
+            @if (isOwnProfile()) {
+              <button
+                type="button"
+                (click)="openAvatarModal()"
+                class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-active:opacity-100 transition-opacity"
+                title="Изменить аватарку"
+              >
+                <span class="text-white text-sm">📷</span>
+              </button>
+            }
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+          <!-- Кнопка "Перейти к ленте" -->
+          <button
+            type="button"
+            (click)="navigateToFeed()"
+            class="px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium text-sm flex items-center gap-1.5"
+          >
+            <span class="text-base">📰</span>
+            <span class="hidden sm:inline">Лента</span>
+          </button>
+          
+          <!-- Бургер меню -->
+          <button
+            type="button"
+            (click)="showMobileMenu.set(!showMobileMenu())"
+            class="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors"
+            aria-label="Меню"
+          >
+            <span class="text-xl">{{ showMobileMenu() ? '✕' : '☰' }}</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Мобильное меню -->
+      @if (showMobileMenu()) {
+        <div class="mobile-menu bg-white rounded-lg shadow-lg border border-gray-200 mb-4 overflow-hidden">
+          <div class="py-2">
+            <!-- Настройки -->
+            <div>
+              <button
+                type="button"
+                (click)="showMobileSettings.set(!showMobileSettings())"
+                class="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center justify-between"
+              >
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">⚙️</span>
+                  <span class="text-sm font-medium text-gray-700">Настройки</span>
+                </div>
+                <span class="text-gray-400 text-xs">{{ showMobileSettings() ? '▼' : '▶' }}</span>
+              </button>
+              
+              <!-- Подменю настроек -->
+              @if (showMobileSettings()) {
+                <div class="bg-gray-50 border-t border-gray-200">
+                  <button
+                    type="button"
+                    (click)="openChangePasswordModal($event); showMobileMenu.set(false)"
+                    class="w-full text-left px-4 py-3 pl-12 hover:bg-gray-100 transition-colors flex items-center gap-3"
+                  >
+                    <span class="text-lg">🔐</span>
+                    <span class="text-sm font-medium text-gray-700">Сменить пароль</span>
+                  </button>
+                  <button
+                    type="button"
+                    (click)="openChangeEmailModal($event); showMobileMenu.set(false)"
+                    class="w-full text-left px-4 py-3 pl-12 hover:bg-gray-100 transition-colors flex items-center gap-3"
+                  >
+                    <span class="text-lg">📧</span>
+                    <span class="text-sm font-medium text-gray-700">Сменить Email</span>
+                  </button>
+                </div>
+              }
+            </div>
+            
+            <!-- Черновики -->
+            @if (isOwnProfile() && isCurrentUserCreator()) {
+              <button
+                type="button"
+                (click)="toggleDrafts(); showMobileMenu.set(false)"
+                class="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                [class.bg-gray-100]="showDrafts()"
+              >
+                <span class="text-xl">📝</span>
+                <span class="text-sm font-medium text-gray-700">Черновики</span>
+                @if (drafts().length > 0) {
+                  <span class="ml-auto bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">{{ drafts().length }}</span>
+                }
+              </button>
+            }
+            
+            <!-- Выйти -->
+            <button
+              type="button"
+              (click)="onLogout(); showMobileMenu.set(false)"
+              class="w-full text-left px-4 py-3 hover:bg-red-50 transition-colors flex items-center gap-3 text-red-600"
+            >
+              <span class="text-xl">🚪</span>
+              <span class="text-sm font-medium">Выйти</span>
+            </button>
+          </div>
+        </div>
+      }
+      
+      <!-- Раскрывающиеся блоки для мобильных -->
+      @if (isOwnProfile()) {
+        <!-- Мои подписки (мобильный) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-3 overflow-hidden">
+          <button
+            type="button"
+            (click)="showMobileSubscriptions.set(!showMobileSubscriptions())"
+            class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <div class="flex items-center gap-2">
+              <div class="w-5 h-5 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
+                <span class="text-white text-xs">👥</span>
+              </div>
+              <span class="text-sm font-semibold text-gray-900">Мои подписки</span>
+            </div>
+            <span class="text-gray-400">{{ showMobileSubscriptions() ? '▼' : '▶' }}</span>
+          </button>
+          @if (showMobileSubscriptions()) {
+            <div class="px-4 pb-4">
+              <app-user-subscriptions></app-user-subscriptions>
+            </div>
+          }
+        </div>
+        
+        <!-- Подписчики (мобильный, только для авторов) -->
+        @if (isCurrentUserCreator() && profileId()) {
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-3 overflow-hidden">
+            <button
+              type="button"
+              (click)="showMobileSupporters.set(!showMobileSupporters())"
+              class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div class="flex items-center gap-2">
+                <div class="w-5 h-5 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
+                  <span class="text-white text-xs">💎</span>
+                </div>
+                <span class="text-sm font-semibold text-gray-900">Подписчики</span>
+              </div>
+              <span class="text-gray-400">{{ showMobileSupporters() ? '▼' : '▶' }}</span>
+            </button>
+            @if (showMobileSupporters()) {
+              <div class="px-4 pb-4">
+                <app-author-supporters [authorId]="profileId()!" [count]="5"></app-author-supporters>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+    
+    <!-- Десктопный header -->
+    <div class="hidden lg:flex justify-between items-center mb-8">
       <div class="flex items-center gap-3">
         <!-- Аватарка с возможностью загрузки для своего профиля -->
         <div class="flex flex-col items-center gap-1">
@@ -34,14 +213,6 @@
               </button>
             }
           </div>
-          
-        </div>
-        
-        <div>
-          <h1 class="text-2xl font-extrabold text-amber-900 tracking-tight">Профиль пользователя</h1>
-          @if (avatarUploadError()) {
-            <p class="text-xs text-red-500">{{ avatarUploadError() }}</p>
-          }
         </div>
       </div>
       <div class="flex items-center gap-4">
@@ -57,7 +228,7 @@
 
           <!-- Dropdown Menu -->
           @if (showSettingsDropdown()) {
-            <div class="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50">
+            <div class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50">
               <div class="py-1">
                 <button
                   type="button"
@@ -112,8 +283,8 @@
 
     <!-- Черновики -->
     @if (showDrafts() && isOwnProfile()) {
-      <div class="mb-6 bg-gray-50 rounded-xl p-4 border border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">📝 Черновики</h3>
+      <div class="mb-4 sm:mb-6 bg-gray-50 rounded-xl p-3 sm:p-4 border border-gray-200">
+        <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">📝 Черновики</h3>
         
         @if (draftsLoading()) {
           <div class="flex items-center justify-center py-8">
@@ -126,44 +297,45 @@
             <p>Нет черновиков</p>
           </div>
         } @else {
-          <div class="space-y-3">
+          <div class="space-y-2 sm:space-y-3">
             @for (draft of drafts(); track draft.id) {
-              <div class="bg-white rounded-lg p-4 border border-gray-200 flex items-start gap-4">
-                <div class="flex-1 min-w-0">
-                  <h4 class="font-semibold text-gray-900 truncate">{{ draft.title || 'Без названия' }}</h4>
-                  <p class="text-sm text-gray-600 line-clamp-2 mt-1">{{ draft.text || 'Нет описания' }}</p>
-                  <div class="flex items-center gap-3 mt-2 text-xs text-gray-500">
+              <div class="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                <div class="flex-1 min-w-0 w-full sm:w-auto">
+                  <h4 class="text-sm sm:text-base font-semibold text-gray-900 truncate">{{ draft.title || 'Без названия' }}</h4>
+                  <p class="text-xs sm:text-sm text-gray-600 line-clamp-2 mt-1">{{ draft.text || 'Нет описания' }}</p>
+                  <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs text-gray-500">
                     @if (draft.videos?.length) {
                       <span>🎬 {{ draft.videos.length }} видео</span>
                     }
                     @if (draft.pictureUrls?.length) {
                       <span>🖼️ {{ draft.pictureUrls.length }} изображений</span>
                     }
-                    <span>{{ draft.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+                    <span class="hidden sm:inline">{{ draft.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+                    <span class="sm:hidden">{{ draft.createdAt | date:'dd.MM.yyyy' }}</span>
                   </div>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0 relative">
+                <div class="flex items-center gap-2 flex-shrink-0 relative w-full sm:w-auto justify-end sm:justify-start">
                   <button
                     type="button"
                     (click)="openEditDraftModal(draft)"
                     class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                     title="Редактировать черновик"
                   >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                   </button>
                   <button
                     type="button"
                     (click)="publishDraft(draft.id!)"
-                    class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                    class="px-2 sm:px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm font-medium"
                   >
                     Опубликовать
                   </button>
                   <button
                     type="button"
                     (click)="deleteDraft(draft.id!)"
-                    class="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
+                    class="px-2 sm:px-3 py-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors text-xs sm:text-sm font-medium"
                   >
                     Удалить
                   </button>
@@ -220,21 +392,21 @@
 
     <!-- Баннер с кнопкой редактирования (только для авторов) -->
     @if (author()) {
-    <div class="mb-6 relative">
+    <div class="mb-4 sm:mb-6 relative">
       @if (bannerLoading()) {
         <!-- Скелетон для баннера -->
-        <div class="w-full h-40 md:h-56 rounded-xl bg-gray-200 animate-pulse"></div>
+        <div class="w-full h-32 sm:h-40 md:h-56 rounded-xl bg-gray-200 animate-pulse"></div>
       } @else if (bannerSrc()) {
         <img
           [src]="bannerSrc()"
           alt="Баннер автора"
-          class="w-full h-40 md:h-56 rounded-xl object-cover"
+          class="w-full h-32 sm:h-40 md:h-56 rounded-xl object-cover"
           (error)="onBannerError($event)"
           (load)="bannerLoading.set(false)"
         />
       } @else if (isOwnProfile()) {
-        <div class="w-full h-40 md:h-56 rounded-xl bg-gradient-to-r from-amber-100 to-amber-200 flex items-center justify-center">
-          <span class="text-amber-400 text-lg">Добавьте баннер</span>
+        <div class="w-full h-32 sm:h-40 md:h-56 rounded-xl bg-gradient-to-r from-amber-100 to-amber-200 flex items-center justify-center">
+          <span class="text-amber-400 text-sm sm:text-lg">Добавьте баннер</span>
         </div>
       }
       
@@ -242,10 +414,10 @@
         <button
           type="button"
           (click)="openBannerModal()"
-          class="absolute top-3 right-3 w-10 h-10 bg-white hover:bg-gray-100 text-gray-700 rounded-full shadow-lg flex items-center justify-center transition-colors border border-gray-200"
+          class="absolute top-2 right-2 sm:top-3 sm:right-3 w-8 h-8 sm:w-10 sm:h-10 bg-white hover:bg-gray-100 text-gray-700 rounded-full shadow-lg flex items-center justify-center transition-colors border border-gray-200"
           title="Изменить баннер"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
           </svg>
         </button>
@@ -255,21 +427,22 @@
 
     <main class="max-w-7xl mx-auto">
       @if (isOwnProfile()) {
-      <div class="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
-        <div class="xl:col-span-1">
+      <div class="grid grid-cols-1 xl:grid-cols-4 gap-4 lg:gap-6 items-start">
+        <!-- Десктоп: Мои подписки (скрыто на мобильных) -->
+        <div class="hidden xl:block xl:col-span-1">
           <app-user-subscriptions></app-user-subscriptions>
         </div>
 
         @if (!author() && userName()) {
           <!-- Для обычного пользователя (не автора) -->
           <div class="xl:col-span-2">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8">
               <div class="border-b border-gray-200 pb-6 mb-6">
                 @if (!isEditingUserName()) {
                   <div class="flex items-start justify-between gap-3">
                     <div class="flex-1 min-w-0">
-                      <h2 class="text-3xl font-bold text-gray-900 mb-2 break-words">{{ userName() }}</h2>
-                      <p class="text-gray-600">Пользователь платформы</p>
+                      <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 break-words">{{ userName() }}</h2>
+                      <p class="text-sm sm:text-base text-gray-600">Пользователь платформы</p>
                     </div>
                     @if (isOwnProfile()) {
                       <button
@@ -344,14 +517,14 @@
         } @else {
           <!-- Для автора -->
           <div class="xl:col-span-2">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8">
               @if (author()) {
                 <div class="border-b border-gray-200 pb-6 mb-6">
                   <!-- Название страницы -->
                   <div class="mb-4">
                     @if (!isEditingName()) {
                       <div class="flex items-start justify-between gap-3">
-                        <h2 class="text-2xl font-bold text-gray-900 break-words flex-1 min-w-0">{{ author()!.pageName || 'Канал автора' }}</h2>
+                        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 break-words flex-1 min-w-0">{{ author()!.pageName || 'Канал автора' }}</h2>
                         @if (isOwnProfile()) {
                           <button
                             type="button"
@@ -471,22 +644,22 @@
               </div>
             }
             @if (isCurrentUserCreator()) {
-            <div class="flex flex-col sm:flex-row gap-3 mb-6">
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 sm:mb-6">
               <button
                 type="button"
                 (click)="onAddContent()"
-                class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2"
+                class="flex-1 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 text-sm sm:text-base"
               >
-                <span class="text-lg">➕</span>
-                Добавить контент
+                <span class="text-base sm:text-lg">➕</span>
+                <span>Добавить контент</span>
               </button>
               <button
                 type="button"
                 (click)="openCreateSubscriptionModal()"
-                class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center gap-2"
+                class="flex-1 px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center gap-2 text-sm sm:text-base"
               >
-                <span class="text-lg">💎</span>
-                Создать подписку
+                <span class="text-base sm:text-lg">💎</span>
+                <span>Создать подписку</span>
               </button>
             </div>
             }
@@ -503,15 +676,16 @@
         </div>
 
         @if (isCurrentUserCreator()) {
-          <div class="xl:col-span-1">
+          <!-- Десктоп: Имя пользователя и подписчики (скрыто на мобильных) -->
+          <div class="hidden xl:block xl:col-span-1">
             @if (isOwnProfile()) {
               <!-- Имя пользователя с кнопкой "Изменить" (только для владельца) -->
-              <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8 mb-6">
-                <div class="border-b border-gray-200 pb-6 mb-6">
+              <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 lg:p-6 mb-4 lg:mb-6">
+                <div class="border-b border-gray-200 pb-4 lg:pb-6 mb-4 lg:mb-6">
                   @if (!isEditingUserName()) {
                     <div class="flex items-start justify-between gap-3">
                       <div class="flex-1 min-w-0">
-                        <h2 class="text-2xl font-bold text-gray-900 mb-2 break-words">{{ userName() }}</h2>
+                        <h2 class="text-xl lg:text-2xl font-bold text-gray-900 mb-2 break-words">{{ userName() }}</h2>
                       </div>
                       <button
                         type="button"
@@ -529,7 +703,7 @@
                         placeholder="Ваше имя"
                         minlength="3"
                         maxlength="50"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-lg font-semibold"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base lg:text-lg font-semibold"
                       />
                       @if (userNameUpdateError()) {
                         <div class="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
@@ -541,7 +715,7 @@
                           type="button"
                           (click)="saveUserName()"
                           [disabled]="isUpdatingUserName() || !editUserNameValue().trim() || editUserNameValue().trim().length < 3"
-                          class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                         >
                           @if (isUpdatingUserName()) {
                             <span class="flex items-center gap-2">
@@ -556,7 +730,7 @@
                           type="button"
                           (click)="cancelEditingUserName()"
                           [disabled]="isUpdatingUserName()"
-                          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
+                          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50 text-sm"
                         >
                           Отмена
                         </button>

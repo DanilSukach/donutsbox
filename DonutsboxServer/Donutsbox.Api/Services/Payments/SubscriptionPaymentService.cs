@@ -36,6 +36,21 @@ public class SubscriptionPaymentService(
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
             ?? throw new InvalidOperationException("User not found");
 
+        // Проверяем, не подписан ли пользователь уже на ЭТУ КОНКРЕТНУЮ подписку
+        var now = DateTime.UtcNow;
+        var existingSubscription = await dbContext.UsersSubscriptions
+            .FirstOrDefaultAsync(us => 
+                us.UserId == userId && 
+                us.SubscriptionId == request.SubscriptionId &&
+                string.Equals(us.Status, "active", StringComparison.OrdinalIgnoreCase) &&
+                us.EndDate >= now, 
+                cancellationToken);
+
+        if (existingSubscription != null)
+        {
+            throw new InvalidOperationException("User is already subscribed to this subscription");
+        }
+
         var amount = ParsePrice(subscription.Price);
         if (amount <= 0)
         {
@@ -44,7 +59,7 @@ public class SubscriptionPaymentService(
 
         var id = Guid.NewGuid();
         var idempotenceKey = Guid.NewGuid().ToString("N");
-        var now = DateTimeOffset.UtcNow;
+        var nowOffset = DateTimeOffset.UtcNow;
 
         var paymentRecord = new SubscriptionPayment
         {
@@ -58,7 +73,7 @@ public class SubscriptionPaymentService(
             Status = "pending",
             Description = $"Подписка «{subscription.Name}»",
             IdempotenceKey = idempotenceKey,
-            CreatedAt = now
+            CreatedAt = nowOffset
         };
 
         dbContext.SubscriptionPayments.Add(paymentRecord);
@@ -242,10 +257,25 @@ public class SubscriptionPaymentService(
         var becameActive = !hadActive && userSubscription.EndDate >= now && string.Equals(userSubscription.Status, "active", StringComparison.OrdinalIgnoreCase);
         if (becameActive)
         {
-            var creatorPage = await dbContext.CreatorsPageData.FirstOrDefaultAsync(c => c.Id == subscription.CreatorPageDataId, cancellationToken);
-            if (creatorPage != null)
+            // Проверяем, был ли пользователь уже подписан на этого автора (любую подписку)
+            var hasOtherActiveSubscriptions = await dbContext.UsersSubscriptions
+                .Include(us => us.Subscription)
+                .AnyAsync(us => 
+                    us.UserId == paymentRecord.UserId &&
+                    us.Subscription.CreatorPageDataId == subscription.CreatorPageDataId &&
+                    us.Id != userSubscription.Id &&
+                    string.Equals(us.Status, "active", StringComparison.OrdinalIgnoreCase) &&
+                    us.EndDate >= now, 
+                    cancellationToken);
+
+            // Увеличиваем счетчик только если пользователь не был подписан на этого автора
+            if (!hasOtherActiveSubscriptions)
             {
-                creatorPage.SubscribersCount += 1;
+                var creatorPage = await dbContext.CreatorsPageData.FirstOrDefaultAsync(c => c.Id == subscription.CreatorPageDataId, cancellationToken);
+                if (creatorPage != null)
+                {
+                    creatorPage.SubscribersCount += 1;
+                }
             }
         }
 

@@ -36,19 +36,45 @@ public class UserInteractionService(
             throw new InvalidOperationException("No active subscription found for this creator");
         }
 
-        foreach (var subscription in activeSubscriptions)
+        // Группируем подписки по автору (CreatorPageDataId)
+        var subscriptionsByCreator = activeSubscriptions
+            .GroupBy(us => us.Subscription.CreatorPageDataId)
+            .ToList();
+
+        foreach (var creatorGroup in subscriptionsByCreator)
         {
-            subscription.Status = "cancelled";
-            subscription.EndDate = now;
-            subscription.UpdatedAt = DateTimeOffset.UtcNow;
+            var creatorPageId = creatorGroup.Key;
+            var subscriptionsToCancel = creatorGroup.ToList();
 
-            await userSubscriptionRepository.UpdateAsync(subscription, subscription.Id);
+            // Проверяем, есть ли у пользователя другие активные подписки на этого автора
+            // (не только те, которые мы отменяем)
+            var hasOtherActiveSubscriptions = userSubscriptions
+                .Any(us => 
+                    us.UserId == userId &&
+                    us.Subscription.CreatorPageDataId == creatorPageId &&
+                    !subscriptionsToCancel.Any(s => s.Id == us.Id) &&
+                    string.Equals(us.Status, "active", StringComparison.OrdinalIgnoreCase) &&
+                    us.EndDate >= now);
 
-            var creatorPage = await creatorPageRepository.GetByIdAsync(subscription.Subscription.CreatorPageDataId);
-            if (creatorPage != null)
+            // Отменяем все подписки на этого автора
+            foreach (var subscription in subscriptionsToCancel)
             {
-                creatorPage.SubscribersCount = Math.Max(0, creatorPage.SubscribersCount - 1);
-                await creatorPageRepository.UpdateAsync(creatorPage, creatorPage.Id);
+                subscription.Status = "cancelled";
+                subscription.EndDate = now;
+                subscription.UpdatedAt = DateTimeOffset.UtcNow;
+
+                await userSubscriptionRepository.UpdateAsync(subscription, subscription.Id);
+            }
+
+            // Уменьшаем счетчик только если у пользователя нет других активных подписок на этого автора
+            if (!hasOtherActiveSubscriptions)
+            {
+                var creatorPage = await creatorPageRepository.GetByIdAsync(creatorPageId);
+                if (creatorPage != null)
+                {
+                    creatorPage.SubscribersCount = Math.Max(0, creatorPage.SubscribersCount - 1);
+                    await creatorPageRepository.UpdateAsync(creatorPage, creatorPage.Id);
+                }
             }
         }
     }

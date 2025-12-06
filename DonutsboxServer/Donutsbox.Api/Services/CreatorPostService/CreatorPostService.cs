@@ -299,7 +299,7 @@ public class CreatorPostService(
                     Title = v.Title,
                     Status = v.Status,
                     ThumbnailUrl = v.ThumbnailUrl, // Временно сохраняем ключ, потом заменим на presigned URL
-                    HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
+                    HlsUrl = v.ProcessedPath != null ? $"/api/Files/{v.Id}/hls/index.m3u8" : null
                 }).ToList(),
                 Audios = p.Audios.Select(a => new PostAudioDto
                 {
@@ -458,7 +458,7 @@ public class CreatorPostService(
                         Title = v.Title,
                         Status = v.Status,
                         ThumbnailUrl = v.ThumbnailUrl, // Временно сохраняем ключ, потом заменим на presigned URL
-                        HlsUrl = $"/api/files/{v.Id}/hls/index.m3u8"
+                        HlsUrl = $"/api/Files/{v.Id}/hls/index.m3u8"
                     }).ToList()
                     : new List<PostVideoDto>(),
                 Audios = (isOwner || (p.AudienceType ?? AudiencePublic) == AudiencePublic || p.Subscriptions.Any(s => viewerSubscriptionNames.Contains(s.Name)))
@@ -786,7 +786,7 @@ public class CreatorPostService(
                     Title = v.Title,
                     Status = v.Status,
                     ThumbnailUrl = v.ThumbnailUrl,
-                    HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
+                    HlsUrl = v.ProcessedPath != null ? $"/api/Files/{v.Id}/hls/index.m3u8" : null
                 }).ToList(),
                 PictureUrls = new List<string>(), 
                 CreatorPageName = p.CreatorPageData.PageName,

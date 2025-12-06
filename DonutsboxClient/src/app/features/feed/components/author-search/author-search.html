@@ -1,5 +1,6 @@
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 lg:p-6">
-  <div class="mb-6">
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 lg:p-6">
+  <!-- Десктоп: Заголовок -->
+  <div class="hidden lg:block mb-6">
     <div class="flex items-center gap-2 mb-2">
       <div class="w-5 h-5 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center">
         <span class="text-white text-xs">🔍</span>
@@ -18,12 +19,12 @@
         (input)="onSearchInput($event)"
         (keydown)="onSearchKeydown($event)"
         placeholder="Введите название или описание..."
-        class="flex-1 min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+        class="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
       />
       <button
         (click)="onSearch()"
         [disabled]="!searchQuery().trim() || isLoadingSearch()"
-        class="flex-shrink-0 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200 text-sm font-medium whitespace-nowrap"
+        class="flex-shrink-0 px-3 sm:px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200 text-xs sm:text-sm font-medium whitespace-nowrap"
       >
         Найти
       </button>

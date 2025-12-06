@@ -33,20 +33,40 @@ export class VideoPlayer implements AfterViewInit {
     }
 
     effect(() => {
-      console.log('🎬 Player URL:', this.hlsUrl());
-      console.log('🖼️ Poster URL:', this.poster());
+      const url = this.hlsUrl();
+      const poster = this.poster();
+      console.log('🎬 VideoPlayer effect triggered');
+      console.log('🎬 Player URL:', url);
+      console.log('🖼️ Poster URL:', poster);
+      
+      // Проверяем, что URL валидный
+      if (!url || url.trim() === '') {
+        console.error('❌ VideoPlayer: hlsUrl is empty or invalid!');
+      } else if (!url.includes('.m3u8')) {
+        console.warn('⚠️ VideoPlayer: hlsUrl does not contain .m3u8:', url);
+      }
     });
   }
 
   ngAfterViewInit() {
-    if (typeof window === 'undefined' || !this.mediaPlayerRef) {
+    if (typeof window === 'undefined') {
+      console.warn('⚠️ VideoPlayer: window is undefined (SSR)');
+      return;
+    }
+    
+    if (!this.mediaPlayerRef) {
+      console.error('❌ VideoPlayer: mediaPlayerRef is null');
       return;
     }
 
     // Настраиваем HLS.js для предзагрузки сегментов
     setTimeout(() => {
       const player = this.mediaPlayerRef?.nativeElement;
-      if (!player) return;
+      if (!player) {
+        console.error('❌ VideoPlayer: player element not found');
+        return;
+      }
+      
 
       // Получаем доступ к HLS инстансу через vidstack
       const setupHLS = () => {

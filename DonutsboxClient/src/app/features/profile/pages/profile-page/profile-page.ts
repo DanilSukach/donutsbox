@@ -91,6 +91,12 @@ export class ProfilePage implements OnInit, OnDestroy {
   readonly showChangePasswordModal = signal(false);
   readonly showChangeEmailModal = signal(false);
   
+  // Мобильное меню
+  readonly showMobileMenu = signal(false);
+  readonly showMobileSubscriptions = signal(false);
+  readonly showMobileSupporters = signal(false);
+  readonly showMobileSettings = signal(false);
+  
   // Первый вход
   readonly showFirstLoginModal = signal(false);
   
@@ -113,6 +119,8 @@ export class ProfilePage implements OnInit, OnDestroy {
   // Закрываем dropdown при клике вне (но не закрываем если открыта модалка!)
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    
     // Не закрываем dropdown если модалка открыта
     if (this.showChangePasswordModal() || this.showChangeEmailModal()) {
       return;
@@ -121,6 +129,11 @@ export class ProfilePage implements OnInit, OnDestroy {
     if (this.showSettingsDropdown()) {
       console.log('📍 Закрываем dropdown при клике вне');
       this.showSettingsDropdown.set(false);
+    }
+    
+    // Закрываем мобильное меню при клике вне его
+    if (this.showMobileMenu() && !target.closest('.mobile-menu') && !target.closest('button[aria-label="Меню"]')) {
+      this.showMobileMenu.set(false);
     }
   }
 

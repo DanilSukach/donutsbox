@@ -104,7 +104,7 @@ public class FilesService(
                 ThumbnailUrl = v.ThumbnailUrl,
                 ProcessedPath = v.ProcessedPath,
                 ContentPostId = v.ContentPostId,
-                HlsUrl = v.ProcessedPath != null ? $"/api/files/{v.Id}/hls/index.m3u8" : null
+                HlsUrl = v.ProcessedPath != null ? $"/api/Files/{v.Id}/hls/index.m3u8" : null
             })
             .ToListAsync();
 

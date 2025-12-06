@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, OnInit, signal } from '@angular/core';
 import { TopAuthors } from '../../components/top-authors/top-authors';
 import { AuthorSearch } from '../../components/author-search/author-search';
 import { PostsFeed } from '@app/shared/components/posts-feed/posts-feed';
@@ -16,6 +16,10 @@ export class FeedPage implements OnInit {
   
   readonly userGuid = this.feedFacade.userGuid;
   readonly isLoading = this.feedFacade.isLoadingUserData;
+  
+  // Мобильное меню
+  readonly showMobileTopAuthors = signal(false);
+  readonly showMobileSearch = signal(false);
 
   // Функция для загрузки feed постов
   readonly loadFeedPosts = (page: number, pageSize: number) => {
