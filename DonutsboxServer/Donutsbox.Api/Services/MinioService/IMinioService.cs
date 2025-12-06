@@ -15,4 +15,5 @@ public interface IMinioService
     string GetProcessedBucket();
     string GetImagesBucket();
     string GetAudioBucket();
+    string GetAudioProcessedBucket();
 }

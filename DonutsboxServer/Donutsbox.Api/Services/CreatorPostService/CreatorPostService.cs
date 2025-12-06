@@ -214,6 +214,28 @@ public class CreatorPostService(
 
         ValidateAudienceConfiguration(post.AudienceType ?? AudiencePublic, post.Subscriptions);
 
+        // Проверяем, есть ли необработанное медиа
+        var hasProcessingVideos = post.Videos.Any(v => 
+            v.Status == "UPLOADED" || v.Status == "PROCESSING" || v.Status == "UPLOADING");
+        var hasProcessingAudios = post.Audios.Any(a => 
+            a.Status == "UPLOADED" || a.Status == "PROCESSING" || a.Status == "UPLOADING");
+
+        if (hasProcessingVideos || hasProcessingAudios)
+        {
+            // Если есть необработанное медиа, не публикуем пост сразу
+            // Пост будет опубликован автоматически после обработки всего медиа
+            logger.LogInformation("Post {PostId} has processing media, will be published automatically after processing", postId);
+            
+            return new PublishPostResponseDto
+            {
+                PostId = post.Id,
+                IsPublished = false,
+                PublishedAt = DateTimeOffset.UtcNow,
+                Message = "Post will be published automatically after all media is processed."
+            };
+        }
+
+        // Если медиа нет или все обработано - публикуем сразу
         post.IsPublished = true;
         post.CreatedAt = DateTimeOffset.UtcNow;
 
@@ -228,6 +250,74 @@ public class CreatorPostService(
             PublishedAt = (DateTimeOffset)post.CreatedAt,
             Message = "Post published successfully!"
         };
+    }
+
+    /// <summary>
+    /// Проверяет готовность всех медиа в посте и автоматически публикует пост, если все медиа обработано
+    /// </summary>
+    public async Task<bool> TryPublishPostAfterMediaProcessingAsync(Guid postId)
+    {
+        try
+        {
+            var post = await db.ContentPosts
+                .Include(p => p.Videos)
+                .Include(p => p.Audios)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+
+            if (post == null)
+            {
+                logger.LogWarning("Post {PostId} not found for auto-publishing", postId);
+                return false;
+            }
+
+            // Если пост уже опубликован, ничего не делаем
+            if (post.IsPublished)
+            {
+                logger.LogInformation("Post {PostId} is already published", postId);
+                return true;
+            }
+
+            // Проверяем статусы всех медиа
+            var videosStatuses = post.Videos.Select(v => v.Status).ToList();
+            var audiosStatuses = post.Audios.Select(a => a.Status).ToList();
+            
+            logger.LogInformation("Checking post {PostId} media status - Videos: [{Videos}], Audios: [{Audios}]", 
+                postId, 
+                string.Join(", ", videosStatuses), 
+                string.Join(", ", audiosStatuses));
+
+            // Проверяем, есть ли необработанное медиа
+            var hasProcessingVideos = post.Videos.Any(v => 
+                v.Status == "UPLOADED" || v.Status == "PROCESSING" || v.Status == "UPLOADING");
+            var hasProcessingAudios = post.Audios.Any(a => 
+                a.Status == "UPLOADED" || a.Status == "PROCESSING" || a.Status == "UPLOADING");
+
+            // Если есть необработанное медиа, не публикуем
+            if (hasProcessingVideos || hasProcessingAudios)
+            {
+                logger.LogInformation("⏳ Post {PostId} still has processing media - Videos processing: {HasVideos}, Audios processing: {HasAudios}", 
+                    postId, hasProcessingVideos, hasProcessingAudios);
+                return false;
+            }
+
+            // Если все медиа обработано - публикуем пост
+            post.IsPublished = true;
+            if (post.CreatedAt == null)
+            {
+                post.CreatedAt = DateTimeOffset.UtcNow;
+            }
+
+            await db.SaveChangesAsync();
+
+            logger.LogInformation("✅ Post {PostId} automatically published after all media processing completed", postId);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "❌ Error in TryPublishPostAfterMediaProcessingAsync for post {PostId}", postId);
+            throw;
+        }
     }
 
     public async Task<MessageResponseDto> UnpublishPostAsync(Guid postId, ClaimsPrincipal user)
@@ -350,7 +440,7 @@ public class CreatorPostService(
                 {
                     try
                     {
-                        var presignedUrl = await minio.GetPresignedGetUrlAsync(audio.ProcessedPath, minio.GetProcessedBucket(), 300);
+                        var presignedUrl = await minio.GetPresignedGetUrlAsync(audio.ProcessedPath, minio.GetAudioProcessedBucket(), 300);
                         audio.ProcessedPath = presignedUrl; // Заменяем путь на presigned URL
                     }
                     catch (Exception ex)
@@ -548,7 +638,7 @@ public class CreatorPostService(
                 {
                     try
                     {
-                        var presignedUrl = await minio.GetPresignedGetUrlAsync(audio.ProcessedPath, minio.GetProcessedBucket(), 300);
+                        var presignedUrl = await minio.GetPresignedGetUrlAsync(audio.ProcessedPath, minio.GetAudioProcessedBucket(), 300);
                         audio.ProcessedPath = presignedUrl; // Заменяем путь на presigned URL
                     }
                     catch (Exception ex)

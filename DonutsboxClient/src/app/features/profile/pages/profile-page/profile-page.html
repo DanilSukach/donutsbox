@@ -299,38 +299,51 @@
         } @else {
           <div class="space-y-2 sm:space-y-3">
             @for (draft of drafts(); track draft.id) {
-              <div class="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
-                <div class="flex-1 min-w-0 w-full sm:w-auto">
-                  <h4 class="text-sm sm:text-base font-semibold text-gray-900 truncate">{{ draft.title || 'Без названия' }}</h4>
-                  <p class="text-xs sm:text-sm text-gray-600 line-clamp-2 mt-1">{{ draft.text || 'Нет описания' }}</p>
-                  <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs text-gray-500">
-                    @if (draft.videos?.length) {
-                      <span>🎬 {{ draft.videos.length }} видео</span>
-                    }
-                    @if (draft.pictureUrls?.length) {
-                      <span>🖼️ {{ draft.pictureUrls.length }} изображений</span>
-                    }
-                    <span class="hidden sm:inline">{{ draft.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
-                    <span class="sm:hidden">{{ draft.createdAt | date:'dd.MM.yyyy' }}</span>
+              @if (hasProcessingMedia(draft)) {
+                <div class="bg-white rounded-lg p-3 sm:p-4 border-2 border-amber-300 flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                  <div class="flex-1 min-w-0 w-full sm:w-auto">
+                    <div class="flex items-center gap-2 mb-2">
+                      <svg class="animate-spin h-4 w-4 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span class="text-sm font-semibold text-amber-700">⏳ Обрабатывается медиа...</span>
+                    </div>
+                    <h4 class="text-sm sm:text-base font-semibold text-gray-900 truncate">{{ draft.title || 'Без названия' }}</h4>
+                    <p class="text-xs sm:text-sm text-gray-600 line-clamp-2 mt-1">{{ draft.text || 'Нет описания' }}</p>
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs text-gray-500">
+                      @if (draft.videos?.length) {
+                        <span>🎬 {{ draft.videos.length }} видео</span>
+                      }
+                      @if (draft.audios?.length) {
+                        <span>🎵 {{ draft.audios.length }} аудио</span>
+                      }
+                      @if (draft.pictureUrls?.length) {
+                        <span>🖼️ {{ draft.pictureUrls.length }} изображений</span>
+                      }
+                      <span class="hidden sm:inline">{{ draft.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+                      <span class="sm:hidden">{{ draft.createdAt | date:'dd.MM.yyyy' }}</span>
+                    </div>
                   </div>
-                </div>
-                <div class="flex items-center gap-2 flex-shrink-0 relative w-full sm:w-auto justify-end sm:justify-start">
-                  <button
-                    type="button"
-                    (click)="openEditDraftModal(draft)"
-                    class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                    title="Редактировать черновик"
-                  >
-                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    (click)="publishDraft(draft.id!)"
-                    class="px-2 sm:px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm font-medium"
-                  >
-                    Опубликовать
+                  <div class="flex items-center gap-2 flex-shrink-0 relative w-full sm:w-auto justify-end sm:justify-start">
+                    <button
+                      type="button"
+                      (click)="openEditDraftModal(draft)"
+                      class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                      title="Редактировать черновик"
+                    >
+                      <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      (click)="publishDraft(draft.id!)"
+                      disabled
+                      class="px-2 sm:px-3 py-1.5 bg-gray-400 text-white rounded-lg cursor-not-allowed text-xs sm:text-sm font-medium"
+                      title="Дождитесь обработки медиа"
+                    >
+                      Опубликовать
                   </button>
                   <button
                     type="button"
@@ -339,35 +352,89 @@
                   >
                     Удалить
                   </button>
-                  
-                  <!-- Модальное окно подтверждения удаления черновика -->
-                  @if (showDeleteDraftModal() && draftToDelete() === draft.id) {
-                    <div class="delete-draft-modal absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50" (click)="$event.stopPropagation()">
-                      <div class="p-4 space-y-4 text-center">
-                        <h4 class="text-sm font-semibold text-gray-900">Удалить черновик?</h4>
-                        <div class="flex gap-2">
-                          <button 
-                            type="button"
-                            (click)="closeDeleteDraftModal()"
-                            class="flex-1 px-3 py-1.5 text-xs text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
-                          >
-                            Нет
-                          </button>
-                          <button 
-                            type="button"
-                            (click)="confirmDeleteDraft()"
-                            class="flex-1 px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                          >
-                            Да
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  }
                 </div>
               </div>
+              } @else {
+                <!-- Обычный черновик (без обработки медиа) -->
+                <div class="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                  <div class="flex-1 min-w-0 w-full sm:w-auto">
+                    <h4 class="text-sm sm:text-base font-semibold text-gray-900 truncate">{{ draft.title || 'Без названия' }}</h4>
+                    <p class="text-xs sm:text-sm text-gray-600 line-clamp-2 mt-1">{{ draft.text || 'Нет описания' }}</p>
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs text-gray-500">
+                      @if (draft.videos?.length) {
+                        <span>🎬 {{ draft.videos.length }} видео</span>
+                      }
+                      @if (draft.audios?.length) {
+                        <span>🎵 {{ draft.audios.length }} аудио</span>
+                      }
+                      @if (draft.pictureUrls?.length) {
+                        <span>🖼️ {{ draft.pictureUrls.length }} изображений</span>
+                      }
+                      <span class="hidden sm:inline">{{ draft.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+                      <span class="sm:hidden">{{ draft.createdAt | date:'dd.MM.yyyy' }}</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 flex-shrink-0 relative w-full sm:w-auto justify-end sm:justify-start">
+                    <button
+                      type="button"
+                      (click)="openEditDraftModal(draft)"
+                      class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                      title="Редактировать черновик"
+                    >
+                      <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      (click)="publishDraft(draft.id!)"
+                      class="px-2 sm:px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm font-medium"
+                    >
+                      Опубликовать
+                    </button>
+                    <button
+                      type="button"
+                      (click)="deleteDraft(draft.id!)"
+                      class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      title="Удалить черновик"
+                    >
+                      <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              }
             }
           </div>
+          
+          <!-- Модальное окно подтверждения удаления черновика -->
+          @if (showDeleteDraftModal() && draftToDelete()) {
+            <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="closeDeleteDraftModal()">
+              <div class="bg-white rounded-lg shadow-lg border border-gray-200 w-80 m-4" (click)="$event.stopPropagation()">
+                <div class="p-6 space-y-4">
+                  <h4 class="text-lg font-semibold text-gray-900">Удалить черновик?</h4>
+                  <p class="text-sm text-gray-600">Это действие нельзя отменить.</p>
+                  <div class="flex gap-3">
+                    <button 
+                      type="button"
+                      (click)="closeDeleteDraftModal()"
+                      class="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Нет
+                    </button>
+                    <button 
+                      type="button"
+                      (click)="confirmDeleteDraft()"
+                      class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Да, удалить
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
         }
       </div>
     }
@@ -947,7 +1014,6 @@
 </ng-template>
 
 <!-- Индикатор обработки видео -->
-<app-video-processing-indicator></app-video-processing-indicator>
 
 <!-- Модальное окно первого входа -->
 @if (showFirstLoginModal()) {

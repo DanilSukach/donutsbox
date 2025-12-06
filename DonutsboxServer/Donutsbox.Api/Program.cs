@@ -206,8 +206,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
-builder.Services.AddHostedService<VideoProcessedConsumer>();
-builder.Services.AddHostedService<AudioProcessedConsumer>();
+builder.Services.AddHostedService<UnifiedMediaProcessedConsumer>();
 
 
 var app = builder.Build();
@@ -247,5 +246,6 @@ app.UseHttpsRedirection();
 app.MapControllers();
 
 app.MapHub<CommentsHub>("/api/hubs/comments");
+app.MapHub<MediaProcessingHub>("/api/hubs/media-processing");
 
 app.Run();

@@ -21,4 +21,5 @@ public interface ICreatorPostService
     Task<MessageResponseDto> CancelVideoProcessingAsync(Guid videoId, ClaimsPrincipal user);
     Task<MessageResponseDto> DeleteVideoAsync(Guid videoId, ClaimsPrincipal user);
     Task<MessageResponseDto> DeleteImageAsync(string imageKey, ClaimsPrincipal user);
+    Task<bool> TryPublishPostAfterMediaProcessingAsync(Guid postId);
 }

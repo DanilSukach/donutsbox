@@ -12,6 +12,7 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
     private readonly string tempBucket = configuration["Minio:BucketTemp"] ?? "video-temp";
     private readonly string processedBucket = configuration["Minio:BucketProcessed"] ?? "video-processed";
     private readonly string audioBucket = configuration["Minio:BucketAudio"] ?? "audio-temp";
+    private readonly string audioProcessedBucket = configuration["Minio:BucketAudioProcessed"] ?? "audio-processed";
 
     private async Task EnsureBucketAsync(string bucket)
     {
@@ -66,6 +67,15 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
         await EnsureBucketAsync(processedBucket);
         await client.PutObjectAsync(new Minio.DataModel.Args.PutObjectArgs()
             .WithBucket(processedBucket)
+            .WithObject(objectKey)
+            .WithFileName(localFilePath));
+    }
+
+    public async Task UploadProcessedAudioFileAsync(string objectKey, string localFilePath)
+    {
+        await EnsureBucketAsync(audioProcessedBucket);
+        await client.PutObjectAsync(new Minio.DataModel.Args.PutObjectArgs()
+            .WithBucket(audioProcessedBucket)
             .WithObject(objectKey)
             .WithFileName(localFilePath));
     }

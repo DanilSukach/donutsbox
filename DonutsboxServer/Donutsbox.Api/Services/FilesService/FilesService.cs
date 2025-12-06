@@ -418,8 +418,8 @@ public class FilesService(
             }
             if (!string.IsNullOrEmpty(audio.ProcessedPath))
             {
-                var processedBucket = minioService.GetProcessedBucket();
-                await minioService.DeleteObjectAsync(audio.ProcessedPath, processedBucket);
+                var audioProcessedBucket = minioService.GetAudioProcessedBucket();
+                await minioService.DeleteObjectAsync(audio.ProcessedPath, audioProcessedBucket);
             }
         }
         catch (Exception ex)

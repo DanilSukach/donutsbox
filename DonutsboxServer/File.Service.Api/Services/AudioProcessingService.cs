@@ -106,9 +106,9 @@ public class AudioProcessingService(ILogger<AudioProcessingService> logger, Mini
                 throw;
             }
 
-            // Загружаем обработанный файл в MinIO
+            // Загружаем обработанный файл в MinIO (в бакет для обработанного аудио)
             var outputKey = $"processed/{audioId}/audio.mp3";
-            await minio.UploadProcessedFileAsync(outputKey, outputFile);
+            await minio.UploadProcessedAudioFileAsync(outputKey, outputFile);
 
             logger.LogInformation("Processed audio {AudioId}", audioId);
             return outputKey;

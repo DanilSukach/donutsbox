@@ -75,7 +75,7 @@ public class UnifiedKafkaConsumerService(
             .Build();
 
         // Подписываемся на оба топика
-        consumer.Subscribe(new[] { videoTopic, audioTopic });
+        consumer.Subscribe([videoTopic, audioTopic]);
         logger.LogInformation("Unified Kafka consumer subscribed to topics: {VideoTopic}, {AudioTopic}", videoTopic, audioTopic);
 
         while (!stoppingToken.IsCancellationRequested)
