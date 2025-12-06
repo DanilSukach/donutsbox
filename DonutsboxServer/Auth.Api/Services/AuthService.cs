@@ -59,9 +59,7 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         }
 
         // Базовый regex для проверки формата email
-        var emailRegex = new Regex(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", RegexOptions.Compiled);
-        
-        if (!emailRegex.IsMatch(email))
+        if (!EmailRegex.IsMatch(email))
         {
             return false;
         }
@@ -207,55 +205,5 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         await repository.AddAsync(user, "Administrator");
     }
 
-    private static bool IsValidEmail(string email)
-    {
-        if (string.IsNullOrWhiteSpace(email) || email.Length > 254)
-        {
-            return false;
-        }
-
-        // Базовый regex для проверки формата email
-        var emailRegex = new Regex(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", RegexOptions.Compiled);
-        
-        if (!emailRegex.IsMatch(email))
-        {
-            return false;
-        }
-
-        var parts = email.Split('@');
-        if (parts.Length != 2)
-        {
-            return false;
-        }
-
-        var localPart = parts[0];
-        var domain = parts[1];
-
-        // Проверка локальной части
-        if (localPart.Length == 0 || localPart.Length > 64)
-        {
-            return false;
-        }
-
-        // Проверка домена
-        if (domain.Length == 0 || domain.Length > 253)
-        {
-            return false;
-        }
-
-        // Проверка, что домен содержит точку
-        if (!domain.Contains('.'))
-        {
-            return false;
-        }
-
-        // Проверка, что домен не начинается и не заканчивается точкой или дефисом
-        if (domain.StartsWith('.') || domain.EndsWith('.') ||
-            domain.StartsWith('-') || domain.EndsWith('-'))
-        {
-            return false;
-        }
-
-        return true;
-    }
+    private static readonly Regex EmailRegex = new(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", RegexOptions.Compiled);
 }
