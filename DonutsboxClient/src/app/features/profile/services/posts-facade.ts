@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { AddTextRequestDto, AddTextResponseDto, AddVideosRequestDto, AddVideosResponseDto, ContentPostReactionDto, CreateDraftRequestDto, CreatorPostService, CreatorPostsResponseDto, FilesService, MessageResponseDto, MyPostsResponseDto, MyVideoResponseDto, PostDraftResponseDto, PublishPostResponseDto, SubscriptionDto, UploadImagesResponseDto, UserInteractionService, VideoUploadResponseDto } from '@app/api/donutsbox';
+import { AddTextRequestDto, AddTextResponseDto, AddVideosRequestDto, AddVideosResponseDto, ContentPostReactionDto, CreateDraftRequestDto, CreatorPostService, CreatorPostsResponseDto, CreatorSubscriptionsService, FilesService, MessageResponseDto, MyPostsResponseDto, MyVideoResponseDto, PostDraftResponseDto, PublishPostResponseDto, SubscriptionDto, UploadImagesResponseDto, UserInteractionService, VideoUploadResponseDto } from '@app/api/donutsbox';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 import { HttpClient } from '@angular/common/http';
@@ -12,6 +12,7 @@ export class PostsFacade {
   private postsRefresh = inject(PostsRefresh)
   private filesService = inject(FilesService);
   private userInteractionService = inject(UserInteractionService);
+  private creatorSubscriptionsService = inject(CreatorSubscriptionsService);
   private http = inject(HttpClient);
   
   createDraft(request: CreateDraftRequestDto): Observable<PostDraftResponseDto> {
@@ -100,7 +101,7 @@ export class PostsFacade {
   }
 
   getCreatorSubscriptions(): Observable<SubscriptionDto[]> {
-    return this.http.get<SubscriptionDto[]>('/api/creator-subscriptions/my');
+    return this.creatorSubscriptionsService.apiCreatorSubscriptionsMyGet();
   }
 
   deletePost(postId: string): Observable<any> {

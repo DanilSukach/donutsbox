@@ -65,9 +65,9 @@ export class AudioPlayer implements AfterViewInit, OnDestroy {
     // Дополнительная проверка через URL API
     try {
       const urlObj = new URL(trimmedUrl);
-      // Если это localhost:4200 без пути или с пустым путем, это невалидно
-      if ((urlObj.hostname === 'localhost' && urlObj.port === '4200') && 
-          (!urlObj.pathname || urlObj.pathname === '/' || urlObj.pathname.trim() === '')) {
+      // Если это базовый URL без пути или с пустым путем, это невалидно
+      const isBaseUrl = (!urlObj.pathname || urlObj.pathname === '/' || urlObj.pathname.trim() === '');
+      if (isBaseUrl) {
         return false;
       }
       return true;
@@ -103,9 +103,9 @@ export class AudioPlayer implements AfterViewInit, OnDestroy {
     // Проверка через URL API
     try {
       const urlObj = new URL(trimmedUrl);
-      // Если это localhost:4200 без пути или с пустым путем, это невалидно
-      if ((urlObj.hostname === 'localhost' && urlObj.port === '4200') && 
-          (!urlObj.pathname || urlObj.pathname === '/' || urlObj.pathname.trim() === '')) {
+      // Если это базовый URL без пути или с пустым путем, это невалидно
+      const isBaseUrl = (!urlObj.pathname || urlObj.pathname === '/' || urlObj.pathname.trim() === '');
+      if (isBaseUrl) {
         return true;
       }
       return false;
@@ -236,9 +236,25 @@ export class AudioPlayer implements AfterViewInit, OnDestroy {
         return;
       }
       
+      // Дополнительная проверка: если URL является базовым (без пути), не логируем ошибку
+      try {
+        const urlObj = new URL(currentSrc);
+        if (!urlObj.pathname || urlObj.pathname === '/' || urlObj.pathname.trim() === '') {
+          // Базовый URL без пути - не логируем ошибку
+          audioEl.src = '';
+          audioEl.load();
+          return;
+        }
+      } catch (e) {
+        // Невалидный URL - не логируем ошибку
+        audioEl.src = '';
+        audioEl.load();
+        return;
+      }
+      
       const error = audioEl.error;
       if (error) {
-        // Логируем только если URL валидный
+        // Логируем только если URL валидный и не является базовым
         let errorMessage = 'Unknown error';
         switch (error.code) {
           case error.MEDIA_ERR_ABORTED:
