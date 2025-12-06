@@ -40,6 +40,10 @@ export class SubscriptionModal implements OnInit, OnDestroy {
   set author(value: AuthorRequestDto | null) {
     this._author = value;
     this.loadAuthorAvatar();
+    // Обновляем подписки при изменении автора
+    if (value) {
+      this.refreshSubscriptions();
+    }
   }
   get author(): AuthorRequestDto | null {
     return this._author;
@@ -51,6 +55,7 @@ export class SubscriptionModal implements OnInit, OnDestroy {
 
   readonly isSubscribing = signal(false);
   readonly subscriptionError = signal<string | null>(null);
+  readonly subscriptionSuccessMessage = signal<string | null>(null);
   readonly expandedPlanKey = signal<string | null>(null);
   readonly authorAvatarUrl = signal<string | null>(null);
   readonly subscribedSubscriptionIds = signal<Set<string>>(new Set());
@@ -60,6 +65,14 @@ export class SubscriptionModal implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // Загружаем подписки пользователя при открытии модального окна
+    this.refreshSubscriptions();
+  }
+
+  /**
+   * Обновляет список подписок пользователя
+   */
+  refreshSubscriptions(): void {
+    this.subscriptionSub?.unsubscribe();
     this.subscriptionSub = this.userSubscriptionsFacade.loadUserSubscriptionsWithIds().subscribe({
       next: () => {
         const subscriptionIds = this.userSubscriptionsFacade.getSubscribedSubscriptionIds();
@@ -99,10 +112,11 @@ export class SubscriptionModal implements OnInit, OnDestroy {
   });
 
   get subscriptionPlans(): SubscriptionPlan[] {
-    const subscriptions = this.author?.subscriptions ?? [];
+    // Показываем ВСЕ подписки автора, чтобы пользователь мог подписаться на разные
+    const allSubscriptions = this.author?.subscriptions ?? [];
     const groups = new Map<string, SubscriptionPlan>();
 
-    subscriptions.forEach((subscription) => {
+    allSubscriptions.forEach((subscription) => {
       const key = this.getPlanKey(subscription);
       if (!groups.has(key)) {
         groups.set(key, {
@@ -133,21 +147,16 @@ export class SubscriptionModal implements OnInit, OnDestroy {
   }
 
   isSubscriptionAlreadyPurchased(subscription: SubscriptionDto): boolean {
-    if (!subscription.id) return false;
-    return this.subscribedSubscriptionIds().has(subscription.id);
+    // Всегда возвращаем false, чтобы пользователь мог подписаться на любую подписку несколько раз
+    return false;
   }
 
   subscribeToSubscription(subscription: SubscriptionDto): void {
     if (!subscription.id || this.isSubscribing()) return;
 
-    // Проверяем, не подписан ли пользователь уже на эту подписку
-    if (this.isSubscriptionAlreadyPurchased(subscription)) {
-      this.subscriptionError.set('Вы уже подписаны на эту подписку. Вы можете выбрать другую подписку этого автора.');
-      return;
-    }
-
     this.isSubscribing.set(true);
     this.subscriptionError.set(null);
+    this.subscriptionSuccessMessage.set(null);
 
     const request: SubscriptionPaymentRequestDto = {
       subscriptionId: subscription.id,
@@ -239,20 +248,33 @@ export class SubscriptionModal implements OnInit, OnDestroy {
       return;
     }
 
+    // Показываем сообщение об успехе
+    this.subscriptionSuccessMessage.set('Подписка успешно создана! Вы будете перенаправлены на страницу оплаты...');
+    
     // Обновляем список подписок пользователя после успешной покупки
-    this.userSubscriptionsFacade.loadUserSubscriptionsWithIds().subscribe();
+    this.userSubscriptionsFacade.loadUserSubscriptionsWithIds().subscribe({
+      next: () => {
+        // Обновляем список подписанных подписок в компоненте
+        const subscriptionIds = this.userSubscriptionsFacade.getSubscribedSubscriptionIds();
+        this.subscribedSubscriptionIds.set(new Set(subscriptionIds));
+      }
+    });
 
-    this.subscriptionSuccess.emit();
-    this.close();
-
+    // Не закрываем модальное окно автоматически, чтобы пользователь мог подписаться еще раз
+    // Но если есть ссылка на оплату, перенаправляем пользователя
     if (confirmationUrl) {
-      this.document.location.href = confirmationUrl;
+      // Небольшая задержка, чтобы пользователь увидел сообщение об успехе
+      setTimeout(() => {
+        this.document.location.href = confirmationUrl;
+      }, 1500);
       return;
     }
 
     // Если YooKassa не вернула ссылку, перенаправляем на страницу статуса платежа.
-    void this.router.navigate(['/payments/result'], {
-      queryParams: { paymentRequestId }
-    });
+    setTimeout(() => {
+      void this.router.navigate(['/payments/result'], {
+        queryParams: { paymentRequestId }
+      });
+    }, 1500);
   }
 }

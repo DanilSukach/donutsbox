@@ -38,7 +38,8 @@ export class SubscriptionModalService {
     
     this.componentRef.instance.subscriptionSuccess.subscribe(() => {
       this.subscriptionSuccess$.next();
-      this.close();
+      // Не закрываем модальное окно автоматически, чтобы пользователь мог подписаться еще раз
+      // this.close();
     });
 
     // Закрытие при клике на backdrop
