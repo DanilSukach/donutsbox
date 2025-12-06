@@ -92,19 +92,13 @@
                   <span class="sm:hidden">{{ author.subscribersCount || 0 }}</span>
                 </span>
                 
-                @if (isSubscribed(author)) {
-                  <span class="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-amber-50 text-amber-700 border border-amber-200 text-xs font-medium rounded flex items-center gap-1">
-                    <span>✓</span>
-                    <span class="hidden sm:inline">Подписан</span>
-                  </span>
-                } @else {
-                  <button 
-                    (click)="onSubscribeClick(author, $event)" 
-                    class="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors	duration-200 focus:outline-none focus:ring-1 focus:ring-green-500"
-                  >
-                    +
-                  </button>
-                }
+                <button 
+                  (click)="onSubscribeClick(author, $event)" 
+                  class="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-amber-600 text-white text-xs font-medium rounded hover:bg-amber-700 transition-colors	duration-200 focus:outline-none focus:ring-1 focus:ring-amber-500 flex items-center gap-1"
+                >
+                  <span>➕</span>
+                  <span class="hidden sm:inline">Подписаться</span>
+                </button>
               </div>
             </div>
           </div>
