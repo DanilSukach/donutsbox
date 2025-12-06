@@ -42,7 +42,7 @@ public class SubscriptionPaymentService(
             .FirstOrDefaultAsync(us => 
                 us.UserId == userId && 
                 us.SubscriptionId == request.SubscriptionId &&
-                string.Equals(us.Status, "active", StringComparison.OrdinalIgnoreCase) &&
+                EF.Functions.ILike(us.Status, "active") &&
                 us.EndDate >= now, 
                 cancellationToken);
 
@@ -264,7 +264,7 @@ public class SubscriptionPaymentService(
                     us.UserId == paymentRecord.UserId &&
                     us.Subscription.CreatorPageDataId == subscription.CreatorPageDataId &&
                     us.Id != userSubscription.Id &&
-                    string.Equals(us.Status, "active", StringComparison.OrdinalIgnoreCase) &&
+                    EF.Functions.ILike(us.Status, "active") &&
                     us.EndDate >= now, 
                     cancellationToken);
 
