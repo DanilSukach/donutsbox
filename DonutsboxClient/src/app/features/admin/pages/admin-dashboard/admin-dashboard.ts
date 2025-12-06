@@ -21,8 +21,8 @@ import { SessionService } from '@app/core/services/session.service';
       <div class="search-section">
         <input 
           type="text" 
-          [(ngModel)]="searchQuery" 
-          (input)="onSearch()"
+          [value]="searchQuery()" 
+          (input)="onSearchInput($any($event.target).value)"
           [placeholder]="activeTab() === 'posts' ? 'Поиск постов...' : 'Поиск авторов...'"
           class="search-input"
         />
@@ -650,13 +650,46 @@ export class AdminDashboard implements OnInit {
   });
 
   filteredPosts = computed(() => {
-    const query = this.searchQuery().toLowerCase();
-    if (!query) return this.allPosts();
-    return this.allPosts().filter(p => 
-      (p.title || '').toLowerCase().includes(query) ||
-      (p.text || '').toLowerCase().includes(query) ||
-      (p.creatorName || '').toLowerCase().includes(query)
-    );
+    const query = this.searchQuery().trim();
+    const posts = this.allPosts();
+    
+    console.log('🔍 filteredPosts computed:', { 
+      query, 
+      queryLength: query.length,
+      postsCount: posts.length,
+      posts: posts.map(p => ({ id: p.id, title: p.title }))
+    });
+    
+    // Если запрос пустой, возвращаем все посты
+    if (!query) {
+      console.log('✅ No query, returning all posts');
+      return posts;
+    }
+    
+    const queryLower = query.toLowerCase();
+    
+    // Фильтруем посты по названию
+    const result = posts.filter(p => {
+      const title = p.title?.trim() || '';
+      if (!title) {
+        console.log(`  ❌ Post ${p.id}: no title`);
+        return false;
+      }
+      
+      const titleLower = title.toLowerCase();
+      const matches = titleLower.includes(queryLower);
+      console.log(`  ${matches ? '✅' : '❌'} Post "${title}": matches=${matches} (query="${queryLower}")`);
+      return matches;
+    });
+    
+    console.log('📊 Filter result:', { 
+      query, 
+      total: posts.length, 
+      filtered: result.length,
+      result: result.map(p => p.title)
+    });
+    
+    return result;
   });
 
   selectedAuthor = computed(() => {
@@ -685,8 +718,9 @@ export class AdminDashboard implements OnInit {
     this.loadAllData();
   }
 
-  onSearch() {
-    // Поиск происходит через computed свойства
+
+  onSearchInput(value: string): void {
+    this.searchQuery.set(value);
   }
 
   setTab(tab: 'authors' | 'posts') {
@@ -710,6 +744,7 @@ export class AdminDashboard implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
+        console.error('Error loading data:', err);
         this.error.set(err.error?.message || 'Ошибка загрузки данных');
         this.loading.set(false);
       }
