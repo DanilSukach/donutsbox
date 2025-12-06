@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.RegularExpressions;
 using Auth.Api.Dto;
 using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.AuthRepository;
@@ -9,6 +10,20 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
 {
     public async Task RegisterAsync(RegisterRequestDto dto)
     {
+        // Валидация email
+        if (string.IsNullOrWhiteSpace(dto.AuthEmail))
+        {
+            throw new InvalidOperationException("Email is required");
+        }
+
+        var email = dto.AuthEmail.Trim().ToLowerInvariant();
+        
+        // Проверка формата email
+        if (!IsValidEmail(email))
+        {
+            throw new InvalidOperationException("Invalid email format");
+        }
+
         if (dto.Password != dto.RepeatPassword)
         {
             throw new InvalidOperationException("Password doesn't match");
@@ -19,7 +34,7 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
             throw new InvalidOperationException("Administrator role cannot be created through registration");
         }
 
-        if (await repository.EmailExistsAsync(dto.AuthEmail))
+        if (await repository.EmailExistsAsync(email))
         {
             throw new InvalidOperationException("Email exists");
         }
@@ -30,10 +45,62 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         {
             Id = Guid.NewGuid(),
             Password = hash,
-            AuthEmail = dto.AuthEmail,
+            AuthEmail = email,
         };
 
         await repository.AddAsync(user, dto.Role);
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 254)
+        {
+            return false;
+        }
+
+        // Базовый regex для проверки формата email
+        var emailRegex = new Regex(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", RegexOptions.Compiled);
+        
+        if (!emailRegex.IsMatch(email))
+        {
+            return false;
+        }
+
+        var parts = email.Split('@');
+        if (parts.Length != 2)
+        {
+            return false;
+        }
+
+        var localPart = parts[0];
+        var domain = parts[1];
+
+        // Проверка локальной части
+        if (localPart.Length == 0 || localPart.Length > 64)
+        {
+            return false;
+        }
+
+        // Проверка домена
+        if (domain.Length == 0 || domain.Length > 253)
+        {
+            return false;
+        }
+
+        // Проверка, что домен содержит точку
+        if (!domain.Contains('.'))
+        {
+            return false;
+        }
+
+        // Проверка, что домен не начинается и не заканчивается точкой или дефисом
+        if (domain.StartsWith('.') || domain.EndsWith('.') ||
+            domain.StartsWith('-') || domain.EndsWith('-'))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto dto)
@@ -103,12 +170,26 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
 
     public async Task CreateAdminAsync(RegisterRequestDto dto)
     {
+        // Валидация email
+        if (string.IsNullOrWhiteSpace(dto.AuthEmail))
+        {
+            throw new InvalidOperationException("Email is required");
+        }
+
+        var email = dto.AuthEmail.Trim().ToLowerInvariant();
+        
+        // Проверка формата email
+        if (!IsValidEmail(email))
+        {
+            throw new InvalidOperationException("Invalid email format");
+        }
+
         if (dto.Password != dto.RepeatPassword)
         {
             throw new InvalidOperationException("Password doesn't match");
         }
 
-        var emailExists = await repository.EmailExistsAsync(dto.AuthEmail);
+        var emailExists = await repository.EmailExistsAsync(email);
         if (emailExists)
         {
             throw new InvalidOperationException("User with this email already exists");
@@ -120,9 +201,61 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         {
             Id = Guid.NewGuid(),
             Password = hash,
-            AuthEmail = dto.AuthEmail,
+            AuthEmail = email,
         };
 
         await repository.AddAsync(user, "Administrator");
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 254)
+        {
+            return false;
+        }
+
+        // Базовый regex для проверки формата email
+        var emailRegex = new Regex(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", RegexOptions.Compiled);
+        
+        if (!emailRegex.IsMatch(email))
+        {
+            return false;
+        }
+
+        var parts = email.Split('@');
+        if (parts.Length != 2)
+        {
+            return false;
+        }
+
+        var localPart = parts[0];
+        var domain = parts[1];
+
+        // Проверка локальной части
+        if (localPart.Length == 0 || localPart.Length > 64)
+        {
+            return false;
+        }
+
+        // Проверка домена
+        if (domain.Length == 0 || domain.Length > 253)
+        {
+            return false;
+        }
+
+        // Проверка, что домен содержит точку
+        if (!domain.Contains('.'))
+        {
+            return false;
+        }
+
+        // Проверка, что домен не начинается и не заканчивается точкой или дефисом
+        if (domain.StartsWith('.') || domain.EndsWith('.') ||
+            domain.StartsWith('-') || domain.EndsWith('-'))
+        {
+            return false;
+        }
+
+        return true;
     }
 }

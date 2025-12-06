@@ -25,6 +25,8 @@ public class AuthController(IAuthService auth, IConfiguration configuration) : C
         {
             return ex.Message switch
             {
+                "Email is required" => BadRequest(new { message = ex.Message }),
+                "Invalid email format" => BadRequest(new { message = ex.Message }),
                 "Email exists" => Conflict(new { message = ex.Message }),
                 "Password doesn't match" => BadRequest(new { message = ex.Message }),
                 "Administrator role cannot be created through registration" => Forbid(ex.Message),

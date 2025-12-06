@@ -22,6 +22,18 @@ export const serverRoutes: ServerRoute[] = [
     path: 'payments/result',
     renderMode: RenderMode.Client
   },
+  {
+    path: 'management',
+    renderMode: RenderMode.Client
+  },
+  {
+    path: 'auth/login',
+    renderMode: RenderMode.Client
+  },
+  {
+    path: 'auth/register',
+    renderMode: RenderMode.Client
+  },
   // Публичные маршруты - пререндерятся при сборке
   {
     path: '**',
