@@ -479,6 +479,8 @@ export class PostCard implements OnDestroy {
               audioUrl === '/' || 
               audioUrl === 'https://localhost:4200/' ||
               audioUrl === 'http://localhost:4200/' ||
+              audioUrl === 'https://donutsbox.ru/' ||
+              audioUrl === 'http://donutsbox.ru/' ||
               audioUrl.startsWith('https://localhost:4200/') ||
               audioUrl.startsWith('http://localhost:4200/')) {
             return;
@@ -492,9 +494,8 @@ export class PostCard implements OnDestroy {
           // Проверяем, что URL не является базовым URL приложения
           try {
             const url = new URL(audioUrl);
-            // Если это localhost:4200 без пути или с пустым путем, пропускаем
-            if ((url.hostname === 'localhost' && url.port === '4200') && 
-                (!url.pathname || url.pathname === '/' || url.pathname.trim() === '')) {
+            // Если это базовый URL без пути или с пустым путем, пропускаем
+            if (!url.pathname || url.pathname === '/' || url.pathname.trim() === '') {
               return;
             }
           } catch (e) {
