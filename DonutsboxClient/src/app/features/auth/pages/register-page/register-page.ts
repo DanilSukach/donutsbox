@@ -49,6 +49,8 @@ export class RegisterPage {
 
   private getErrorMessage(message: string): string {
     const errorMessages: Record<string, string> = {
+      'Email is required': 'Email обязателен для заполнения',
+      'Invalid email format': 'Некорректный формат email',
       'Email exists': 'Пользователь с таким email уже существует',
       "Password doesn't match": 'Пароли не совпадают',
       'Administrator role cannot be created through registration':

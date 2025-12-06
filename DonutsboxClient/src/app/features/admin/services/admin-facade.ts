@@ -71,7 +71,7 @@ class AdminUserService {
     }
     const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
 
-    return this.httpClient.get<Array<AdminAuthorListDto>>(`${this.basePath}/api/admin/adminuser/authors`, {
+    return this.httpClient.get<Array<AdminAuthorListDto>>(`${this.basePath}/adminuser/authors`, {
       context: localVarHttpContext,
       headers: localVarHeaders,
       observe: observe,
@@ -96,7 +96,7 @@ class AdminUserService {
     }
     const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
 
-    return this.httpClient.post<AdminActionResponseDto>(`${this.basePath}/api/admin/adminuser/authors/${encodeURIComponent(String(creatorPageId))}/shadowban`, null, {
+    return this.httpClient.post<AdminActionResponseDto>(`${this.basePath}/adminuser/authors/${encodeURIComponent(String(creatorPageId))}/shadowban`, null, {
       context: localVarHttpContext,
       headers: localVarHeaders,
       observe: observe,
@@ -121,7 +121,7 @@ class AdminUserService {
     }
     const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
 
-    return this.httpClient.post<AdminActionResponseDto>(`${this.basePath}/api/admin/adminuser/authors/${encodeURIComponent(String(creatorPageId))}/unshadowban`, null, {
+    return this.httpClient.post<AdminActionResponseDto>(`${this.basePath}/adminuser/authors/${encodeURIComponent(String(creatorPageId))}/unshadowban`, null, {
       context: localVarHttpContext,
       headers: localVarHeaders,
       observe: observe,
@@ -153,7 +153,7 @@ class AdminContentService {
     }
     const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
 
-    return this.httpClient.get<Array<AdminContentPostListDto>>(`${this.basePath}/api/admin/admincontent/posts`, {
+    return this.httpClient.get<Array<AdminContentPostListDto>>(`${this.basePath}/admincontent/posts`, {
       context: localVarHttpContext,
       headers: localVarHeaders,
       observe: observe,
@@ -178,7 +178,7 @@ class AdminContentService {
     }
     const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
 
-    return this.httpClient.post<AdminActionResponseDto>(`${this.basePath}/api/admin/admincontent/posts/${encodeURIComponent(String(postId))}/shadowban`, null, {
+    return this.httpClient.post<AdminActionResponseDto>(`${this.basePath}/admincontent/posts/${encodeURIComponent(String(postId))}/shadowban`, null, {
       context: localVarHttpContext,
       headers: localVarHeaders,
       observe: observe,
@@ -203,7 +203,7 @@ class AdminContentService {
     }
     const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
 
-    return this.httpClient.post<AdminActionResponseDto>(`${this.basePath}/api/admin/admincontent/posts/${encodeURIComponent(String(postId))}/unshadowban`, null, {
+    return this.httpClient.post<AdminActionResponseDto>(`${this.basePath}/admincontent/posts/${encodeURIComponent(String(postId))}/unshadowban`, null, {
       context: localVarHttpContext,
       headers: localVarHeaders,
       observe: observe,

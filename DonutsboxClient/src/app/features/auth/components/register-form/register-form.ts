@@ -21,7 +21,7 @@ export class RegisterForm {
   private fb = inject(FormBuilder);
 
   registerForm = this.fb.group({
-    authEmail: ['', [Validators.required, Validators.email]],
+    authEmail: ['', [Validators.required, this.emailValidator]],
     password: ['', [Validators.required, Validators.minLength(6)]],
     repeatPassword: ['', [Validators.required]],
     role: ['User', Validators.required],
@@ -46,6 +46,54 @@ export class RegisterForm {
         emailControl.markAsTouched();
       }
     }
+  }
+
+  private emailValidator(control: AbstractControl): { [key: string]: any } | null {
+    if (!control.value) {
+      return null; // required validator обработает это
+    }
+    
+    const email = control.value.trim().toLowerCase();
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    
+    if (!emailRegex.test(email)) {
+      return { email: true };
+    }
+    
+    // Дополнительные проверки
+    if (email.length > 254) {
+      return { email: true };
+    }
+    
+    const parts = email.split('@');
+    if (parts.length !== 2) {
+      return { email: true };
+    }
+    
+    const [localPart, domain] = parts;
+    
+    // Проверка локальной части
+    if (localPart.length === 0 || localPart.length > 64) {
+      return { email: true };
+    }
+    
+    // Проверка домена
+    if (domain.length === 0 || domain.length > 253) {
+      return { email: true };
+    }
+    
+    // Проверка, что домен содержит точку
+    if (!domain.includes('.')) {
+      return { email: true };
+    }
+    
+    // Проверка, что домен не начинается и не заканчивается точкой или дефисом
+    if (domain.startsWith('.') || domain.endsWith('.') || 
+        domain.startsWith('-') || domain.endsWith('-')) {
+      return { email: true };
+    }
+    
+    return null;
   }
 
   private passwordMatchValidator(form: AbstractControl) {
