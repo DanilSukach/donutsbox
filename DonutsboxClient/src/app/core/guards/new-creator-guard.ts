@@ -19,6 +19,12 @@ export const newCreatorGuard: CanActivateFn = (route, state) => {
         return router.createUrlTree(['/auth/login']);
       }
 
+      // Если админ - редиректим на /management
+      const isAdmin = session.role === 'Administrator' || session.role === 'Admin';
+      if (isAdmin) {
+        return router.createUrlTree(['/management']);
+      }
+
       if (session.isCreator && !session.hasCreatorPage) {
         return true;
       }

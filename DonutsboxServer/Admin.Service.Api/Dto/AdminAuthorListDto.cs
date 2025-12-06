@@ -11,4 +11,5 @@ public class AdminAuthorListDto
     public int PostsCount { get; set; }
     public int SubscriptionsCount { get; set; }
     public int SubscribersCount { get; set; }
+    public bool IsShadowBanned { get; set; }
 }

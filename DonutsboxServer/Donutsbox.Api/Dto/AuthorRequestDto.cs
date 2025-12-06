@@ -36,4 +36,9 @@ public class AuthorRequestDto
     /// Подписки
     /// </summary>
     public required List<SubscriptionDto> Subscriptions { get; set; } = [];
+
+    /// <summary>
+    /// Находится ли автор в теневом бане
+    /// </summary>
+    public bool IsShadowBanned { get; set; } = false;
 }

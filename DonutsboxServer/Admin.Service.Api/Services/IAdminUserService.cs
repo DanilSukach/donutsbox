@@ -30,4 +30,14 @@ public interface IAdminUserService
     /// Массовое удаление пользователей
     /// </summary>
     Task<AdminDeleteResultDto> DeleteUsersAsync(List<Guid> userIds);
+
+    /// <summary>
+    /// Добавить автора в теневой бан
+    /// </summary>
+    Task<AdminActionResponseDto> ShadowBanAuthorAsync(Guid creatorPageId);
+
+    /// <summary>
+    /// Снять теневой бан с автора
+    /// </summary>
+    Task<AdminActionResponseDto> UnshadowBanAuthorAsync(Guid creatorPageId);
 }

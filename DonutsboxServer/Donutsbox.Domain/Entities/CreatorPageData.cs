@@ -52,4 +52,10 @@ public class CreatorPageData
     public required int SubscribersCount { get; set; } = 0;
     public List<ContentPost> ContentPosts { get; set; } = [];
     public List<Subscription> Subscriptions { get; set; } = [];
+    /// <summary>
+    /// Флаг теневого бана автора
+    /// </summary>
+    [Column("is_shadow_banned")]
+    [Required]
+    public bool IsShadowBanned { get; set; } = false;
 }

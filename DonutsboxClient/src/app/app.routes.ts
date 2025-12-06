@@ -33,6 +33,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'management',
+    canActivate: [authGuard],
+    loadChildren: () => import('./features/admin/admin.routes').then((r) => r.ADMIN_ROUTES),
+  },
+  {
     path: 'payments/result',
     canActivate: [authGuard],
     loadComponent: () =>

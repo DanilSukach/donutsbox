@@ -16,6 +16,11 @@ export const guestOnlyGuard: CanActivateFn = (route, state) => {
   return sessionService.ensureSession().pipe(
     map((session) => {
       if (session) {
+        // Если админ - редиректим на /management
+        const isAdmin = session.role === 'Administrator' || session.role === 'Admin';
+        if (isAdmin) {
+          return router.createUrlTree(['/management']);
+        }
         return router.createUrlTree(['/feed']);
       }
       return true;

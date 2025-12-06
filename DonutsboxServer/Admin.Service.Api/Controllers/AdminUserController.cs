@@ -148,4 +148,64 @@ public class AdminUserController(IAdminUserService adminUserService, ILogger<Adm
             return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
         }
     }
+
+    /// <summary>
+    /// Добавить автора в теневой бан
+    /// </summary>
+    /// <param name="creatorPageId">ID страницы создателя (CreatorPageDataId)</param>
+    /// <returns>Результат операции</returns>
+    /// <response code="200">Автор добавлен в теневой бан</response>
+    /// <response code="404">Автор не найден</response>
+    /// <response code="401">Не авторизован</response>
+    /// <response code="403">Недостаточно прав (требуется роль Administrator)</response>
+    [HttpPost("authors/{creatorPageId:guid}/shadowban")]
+    [ProducesResponseType(typeof(AdminActionResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AdminActionResponseDto>> ShadowBanAuthor(Guid creatorPageId)
+    {
+        try
+        {
+            var result = await adminUserService.ShadowBanAuthorAsync(creatorPageId);
+            if (!result.Success)
+            {
+                return NotFound(result);
+            }
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Ошибка при добавлении автора {CreatorPageId} в теневой бан", creatorPageId);
+            return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+        }
+    }
+
+    /// <summary>
+    /// Снять теневой бан с автора
+    /// </summary>
+    /// <param name="creatorPageId">ID страницы создателя (CreatorPageDataId)</param>
+    /// <returns>Результат операции</returns>
+    /// <response code="200">Теневой бан снят</response>
+    /// <response code="404">Автор не найден</response>
+    /// <response code="401">Не авторизован</response>
+    /// <response code="403">Недостаточно прав (требуется роль Administrator)</response>
+    [HttpPost("authors/{creatorPageId:guid}/unshadowban")]
+    [ProducesResponseType(typeof(AdminActionResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AdminActionResponseDto>> UnshadowBanAuthor(Guid creatorPageId)
+    {
+        try
+        {
+            var result = await adminUserService.UnshadowBanAuthorAsync(creatorPageId);
+            if (!result.Success)
+            {
+                return NotFound(result);
+            }
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Ошибка при снятии теневого бана с автора {CreatorPageId}", creatorPageId);
+            return StatusCode(500, new { message = "Внутренняя ошибка сервера" });
+        }
+    }
 }

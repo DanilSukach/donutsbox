@@ -70,3 +70,18 @@
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
+/* Стили для backdrop модальных окон */
+::ng-deep .delete-modal-backdrop,
+::ng-deep .hide-modal-backdrop,
+::ng-deep .edit-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+/* Стили для панелей модальных окон */
+::ng-deep .delete-modal-panel,
+::ng-deep .hide-modal-panel,
+::ng-deep .edit-modal-panel {
+  z-index: 1000;
+}
+

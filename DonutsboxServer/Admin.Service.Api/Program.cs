@@ -1,4 +1,5 @@
 using Admin.Service.Api.Services;
+using Donutsbox.Domain.Constants;
 using Donutsbox.Domain.Context;
 using Donutsbox.Domain.Entities;
 using Donutsbox.Domain.Repositories.EntityRepository;
@@ -74,6 +75,21 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(key),
 
         RoleClaimType = ClaimTypes.Role
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            if (string.IsNullOrEmpty(context.Token) &&
+                context.Request.Cookies.TryGetValue(AuthConstants.JwtCookieName, out var cookieToken) &&
+                !string.IsNullOrEmpty(cookieToken))
+            {
+                context.Token = cookieToken;
+            }
+
+            return Task.CompletedTask;
+        }
     };
 });
 

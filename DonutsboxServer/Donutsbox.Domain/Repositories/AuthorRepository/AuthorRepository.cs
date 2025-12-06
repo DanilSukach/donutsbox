@@ -64,7 +64,7 @@ public class AuthorRepository(DonutsboxDbContext context) : IAuthorRepository
             .Include(u => u.CreatorPageData)
             .ThenInclude(c => c!.Subscriptions)
             .ThenInclude(s => s.SubscriptionPeriod)
-            .Where(u => u.UserTypeId == 2)
+            .Where(u => u.UserTypeId == 2 && !u.CreatorPageData!.IsShadowBanned)
             .OrderByDescending(u => u.CreatorPageData!.SubscribersCount)
             .Take(count)
             .ToListAsync();

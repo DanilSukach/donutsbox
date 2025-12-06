@@ -35,7 +35,8 @@ public class AdminContentService(DonutsboxDbContext context,
             LikesCount = p.LikesCount,
             DislikesCount = p.DislikesCount,
             CommentsCount = p.CommentsCount,
-            MediaCount = p.AudioURLs.Count + p.Videos.Count + p.Images.Count
+            MediaCount = p.AudioURLs.Count + p.Videos.Count + p.Images.Count,
+            IsShadowBanned = p.IsShadowBanned
         });
     }
 
@@ -62,7 +63,8 @@ public class AdminContentService(DonutsboxDbContext context,
             LikesCount = post.LikesCount,
             DislikesCount = post.DislikesCount,
             CommentsCount = post.CommentsCount,
-            MediaCount = post.AudioURLs.Count + post.Videos.Count + post.Images.Count
+            MediaCount = post.AudioURLs.Count + post.Videos.Count + post.Images.Count,
+            IsShadowBanned = post.IsShadowBanned
         };
     }
 
@@ -191,6 +193,74 @@ public class AdminContentService(DonutsboxDbContext context,
         {
             result.Message = $"Ошибка при удалении постов создателя: {ex.Message}";
             logger.LogError(ex, "Ошибка при удалении постов создателя {CreatorPageDataId}", creatorPageDataId);
+        }
+
+        return result;
+    }
+
+    public async Task<AdminActionResponseDto> ShadowBanPostAsync(Guid postId)
+    {
+        var result = new AdminActionResponseDto
+        {
+            Success = false
+        };
+
+        try
+        {
+            var post = await context.ContentPosts
+                .FirstOrDefaultAsync(p => p.Id == postId);
+
+            if (post == null)
+            {
+                result.Message = $"Пост с ID {postId} не найден";
+                return result;
+            }
+
+            post.IsShadowBanned = true;
+            await context.SaveChangesAsync();
+
+            result.Success = true;
+            result.Message = "Пост добавлен в теневой бан";
+            logger.LogInformation("Пост {PostId} добавлен в теневой бан", postId);
+        }
+        catch (Exception ex)
+        {
+            result.Message = $"Ошибка при добавлении поста в теневой бан: {ex.Message}";
+            logger.LogError(ex, "Ошибка при добавлении поста {PostId} в теневой бан", postId);
+        }
+
+        return result;
+    }
+
+    public async Task<AdminActionResponseDto> UnshadowBanPostAsync(Guid postId)
+    {
+        var result = new AdminActionResponseDto
+        {
+            Success = false
+        };
+
+        try
+        {
+            var post = await context.ContentPosts
+                .FirstOrDefaultAsync(p => p.Id == postId);
+
+            if (post == null)
+            {
+                result.Message = $"Пост с ID {postId} не найден";
+                return result;
+            }
+
+            post.IsShadowBanned = false;
+            await context.SaveChangesAsync();
+
+            result.Success = true;
+            result.Message = "Теневой бан с поста снят";
+            logger.LogInformation("Теневой бан с поста {PostId} снят", postId);
+        }
+        catch (Exception ex)
+        {
+            result.Message = $"Ошибка при снятии теневого бана с поста: {ex.Message}";
+            logger.LogError(ex, "Ошибка при снятии теневого бана с поста {PostId}", postId);
         }
 
         return result;

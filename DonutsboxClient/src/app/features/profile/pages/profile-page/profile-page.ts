@@ -259,15 +259,20 @@ export class ProfilePage implements OnInit, OnDestroy {
       return;
     }
 
-    this.profileFacade.getAuthorById(profileId).subscribe({
+        this.profileFacade.getAuthorById(profileId).subscribe({
       next: (author) => {
         if (!author) {
-          // Автор не найден - перенаправляем на страницу 404
+          // Автор не найден или в теневом бане - перенаправляем на страницу 404
           this.router.navigate(['/404']);
           return;
         }
         
         this.author.set(author);
+        
+        // Загружаем имя пользователя из UserData
+        if (this.isOwnProfile()) {
+          this.loadUserName(profileId);
+        }
         
         // Загрузка баннера
         const bannerKey = author?.bannerUrl ?? null;

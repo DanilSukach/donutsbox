@@ -256,8 +256,8 @@ export class CreatePostModal implements OnInit, OnDestroy {
   }
 
   createDraft(): void {
-    if (!this.postTitle().trim() || !this.postText().trim()) {
-      this.error.set('Заполните заголовок и текст поста');
+    if (!this.postTitle().trim()) {
+      this.error.set('Заполните заголовок поста');
       return;
     }
 

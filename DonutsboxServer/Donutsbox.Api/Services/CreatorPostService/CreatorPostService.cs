@@ -312,7 +312,8 @@ public class CreatorPostService(
                 AudienceType = p.AudienceType ?? AudiencePublic,
                 SubscriptionIds = p.Subscriptions.Select(s => s.Id).ToList(),
                 IsLocked = false,
-                LockedMessage = null
+                LockedMessage = null,
+                IsShadowBanned = p.IsShadowBanned
             })
             .ToListAsync();
 
@@ -410,7 +411,9 @@ public class CreatorPostService(
         IQueryable<ContentPost> query = db.ContentPosts
             .Where(p =>
                 p.CreatorPageDataId == creator.CreatorPageData.Id &&
-                p.IsPublished == true);
+                p.IsPublished == true &&
+                // Если не владелец - фильтруем теневые посты и посты от теневых авторов
+                (isOwner || (!p.IsShadowBanned && !p.CreatorPageData.IsShadowBanned)));
 
         query = query
             .Include(p => p.Videos.Where(v => v.Status == "READY"))
@@ -477,7 +480,8 @@ public class CreatorPostService(
                 IsLocked = !(isOwner ||
                              (p.AudienceType ?? AudiencePublic) == AudiencePublic ||
                              p.Subscriptions.Any(s => viewerSubscriptionNames.Contains(s.Name))),
-                LockedMessage = null // Заполним после с названиями подписок
+                LockedMessage = null, // Заполним после с названиями подписок
+                IsShadowBanned = p.IsShadowBanned
             })
             .ToListAsync();
 
@@ -744,7 +748,10 @@ public class CreatorPostService(
             .ToList();
 
         IQueryable<ContentPost> query = db.ContentPosts
-            .Where(p => creatorPageIds.Contains(p.CreatorPageDataId) && p.IsPublished == true);
+            .Where(p => creatorPageIds.Contains(p.CreatorPageDataId) && 
+                       p.IsPublished == true &&
+                       !p.IsShadowBanned && // Фильтруем теневые посты
+                       !p.CreatorPageData.IsShadowBanned); // Фильтруем посты от теневых авторов
 
         query = query
             .Include(p => p.Videos.Where(v => v.Status == "READY"))
@@ -792,7 +799,8 @@ public class CreatorPostService(
                 AudienceType = p.AudienceType ?? AudiencePublic,
                 SubscriptionIds = p.Subscriptions.Select(s => s.Id).ToList(),
                 IsLocked = false,
-                LockedMessage = null
+                LockedMessage = null,
+                IsShadowBanned = p.IsShadowBanned
             })
             .ToListAsync();
 

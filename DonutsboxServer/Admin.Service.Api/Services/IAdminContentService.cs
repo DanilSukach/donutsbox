@@ -31,4 +31,14 @@ public interface IAdminContentService
     /// Удалить все посты автора
     /// </summary>
     Task<AdminDeleteResultDto> DeleteCreatorPostsAsync(Guid creatorPageDataId);
+
+    /// <summary>
+    /// Добавить пост в теневой бан
+    /// </summary>
+    Task<AdminActionResponseDto> ShadowBanPostAsync(Guid postId);
+
+    /// <summary>
+    /// Снять теневой бан с поста
+    /// </summary>
+    Task<AdminActionResponseDto> UnshadowBanPostAsync(Guid postId);
 }
