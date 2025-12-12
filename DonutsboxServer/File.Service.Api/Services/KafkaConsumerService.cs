@@ -31,7 +31,11 @@ public class KafkaConsumerService(
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false,
             SessionTimeoutMs = 30000,
-            MaxPollIntervalMs = 300000
+            MaxPollIntervalMs = 300000,
+            // Оптимизация производительности
+            FetchMinBytes = 1, // Минимальный размер батча для получения
+            FetchWaitMaxMs = 500, // Максимальное время ожидания для накопления батча
+            MaxPartitionFetchBytes = 1048576 // 1MB на партицию
         };
 
         using var consumer = new ConsumerBuilder<Ignore, string>(conf)
@@ -46,10 +50,12 @@ public class KafkaConsumerService(
         {
             try
             {
-                var cr = consumer.Consume(TimeSpan.FromSeconds(5));
+                var cr = consumer.Consume(TimeSpan.FromSeconds(10));
 
                 if (cr == null || cr.IsPartitionEOF)
                 {
+                    // Добавляем небольшую задержку при отсутствии сообщений для снижения нагрузки
+                    await Task.Delay(100, stoppingToken);
                     continue;
                 }
 
@@ -124,6 +130,7 @@ public class KafkaConsumerService(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error processing Kafka message");
+                // Экспоненциальная задержка при ошибках, но не более 10 секунд
                 await Task.Delay(1000, stoppingToken);
             }
         }

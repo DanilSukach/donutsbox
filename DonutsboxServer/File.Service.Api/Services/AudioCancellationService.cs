@@ -1,59 +1,57 @@
+using System.Collections.Concurrent;
+
 namespace File.Service.Api.Services;
 
 public class AudioCancellationService
 {
-    private readonly Dictionary<Guid, CancellationTokenSource> _cancellationTokens = new();
-    private readonly object _lock = new();
+    // Используем ConcurrentDictionary для лучшей производительности при параллельных операциях
+    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _cancellationTokens = new();
+    private readonly ConcurrentDictionary<Guid, bool> _cancelledAudios = new();
 
     public CancellationToken RegisterAudio(Guid audioId)
     {
-        lock (_lock)
+        // Если уже есть токен, отменяем и освобождаем его
+        if (_cancellationTokens.TryRemove(audioId, out var oldCts))
         {
-            if (_cancellationTokens.ContainsKey(audioId))
+            try
             {
-                _cancellationTokens[audioId].Cancel();
-                _cancellationTokens[audioId].Dispose();
+                oldCts.Cancel();
+                oldCts.Dispose();
             }
-
-            var cts = new CancellationTokenSource();
-            _cancellationTokens[audioId] = cts;
-            return cts.Token;
+            catch { /* ignore */ }
         }
+
+        var cts = new CancellationTokenSource();
+        _cancellationTokens[audioId] = cts;
+        return cts.Token;
     }
 
     public void CancelAudio(Guid audioId)
     {
-        lock (_lock)
+        _cancelledAudios[audioId] = true;
+        
+        if (_cancellationTokens.TryGetValue(audioId, out var cts))
         {
-            if (_cancellationTokens.TryGetValue(audioId, out var cts))
-            {
-                cts.Cancel();
-            }
+            cts.Cancel();
         }
     }
 
     public bool IsCancelled(Guid audioId)
     {
-        lock (_lock)
-        {
-            if (_cancellationTokens.TryGetValue(audioId, out var cts))
-            {
-                return cts.Token.IsCancellationRequested;
-            }
-            return false;
-        }
+        return _cancelledAudios.TryGetValue(audioId, out var cancelled) && cancelled;
     }
 
     public void UnregisterAudio(Guid audioId)
     {
-        lock (_lock)
+        if (_cancellationTokens.TryRemove(audioId, out var cts))
         {
-            if (_cancellationTokens.TryGetValue(audioId, out var cts))
+            try
             {
                 cts.Dispose();
-                _cancellationTokens.Remove(audioId);
             }
+            catch { /* ignore */ }
         }
+        _cancelledAudios.TryRemove(audioId, out _);
     }
 }
 

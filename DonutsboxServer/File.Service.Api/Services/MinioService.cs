@@ -1,4 +1,6 @@
 ﻿using Minio;
+using System.Collections.Concurrent;
+using System.Threading;
 
 namespace File.Service.Api.Services;
 
@@ -14,17 +16,45 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
     private readonly string audioBucket = configuration["Minio:BucketAudio"] ?? "audio-temp";
     private readonly string audioProcessedBucket = configuration["Minio:BucketAudioProcessed"] ?? "audio-processed";
 
+    // Кэш для проверенных бакетов, чтобы не проверять каждый раз
+    private readonly ConcurrentDictionary<string, bool> _bucketCache = new();
+    private readonly SemaphoreSlim _bucketCheckSemaphore = new(1, 1);
+
     private async Task EnsureBucketAsync(string bucket)
     {
-        var exists = await client.BucketExistsAsync(
-            new Minio.DataModel.Args.BucketExistsArgs().WithBucket(bucket)
-        );
-        if (!exists)
+        // Если бакет уже проверен, пропускаем проверку
+        if (_bucketCache.ContainsKey(bucket))
         {
-            await client.MakeBucketAsync(
-                new Minio.DataModel.Args.MakeBucketArgs().WithBucket(bucket)
+            return;
+        }
+
+        // Используем семафор для предотвращения одновременных проверок одного бакета
+        await _bucketCheckSemaphore.WaitAsync();
+        try
+        {
+            // Двойная проверка после получения блокировки
+            if (_bucketCache.ContainsKey(bucket))
+            {
+                return;
+            }
+
+            var exists = await client.BucketExistsAsync(
+                new Minio.DataModel.Args.BucketExistsArgs().WithBucket(bucket)
             );
-            logger.LogInformation("Created MinIO bucket {Bucket}", bucket);
+            if (!exists)
+            {
+                await client.MakeBucketAsync(
+                    new Minio.DataModel.Args.MakeBucketArgs().WithBucket(bucket)
+                );
+                logger.LogInformation("Created MinIO bucket {Bucket}", bucket);
+            }
+            
+            // Кэшируем результат
+            _bucketCache[bucket] = true;
+        }
+        finally
+        {
+            _bucketCheckSemaphore.Release();
         }
     }
 
@@ -51,15 +81,29 @@ public class MinioService(IConfiguration configuration, ILogger<MinioService> lo
         await EnsureBucketAsync(processedBucket);
 
         var files = Directory.GetFiles(folderPath, "*", SearchOption.AllDirectories);
-        foreach (var file in files)
+        
+        // Загружаем файлы параллельно для лучшей производительности (но с ограничением)
+        const int maxConcurrency = 5; // Максимум 5 параллельных загрузок
+        using var semaphore = new SemaphoreSlim(maxConcurrency, maxConcurrency);
+        var uploadTasks = files.Select(async file =>
         {
-            var rel = Path.GetRelativePath(folderPath, file).Replace("\\", "/");
-            var key = $"{baseKey}/{rel}";
-            await client.PutObjectAsync(new Minio.DataModel.Args.PutObjectArgs()
-                .WithBucket(processedBucket)
-                .WithObject(key)
-                .WithFileName(file));
-        }
+            await semaphore.WaitAsync();
+            try
+            {
+                var rel = Path.GetRelativePath(folderPath, file).Replace("\\", "/");
+                var key = $"{baseKey}/{rel}";
+                await client.PutObjectAsync(new Minio.DataModel.Args.PutObjectArgs()
+                    .WithBucket(processedBucket)
+                    .WithObject(key)
+                    .WithFileName(file));
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+        
+        await Task.WhenAll(uploadTasks);
     }
 
     public async Task UploadProcessedFileAsync(string objectKey, string localFilePath)

@@ -31,6 +31,10 @@ public class KafkaCancellationConsumerService(
             EnableAutoCommit = true,
             SessionTimeoutMs = 30000,
             AllowAutoCreateTopics = true,
+            // Оптимизация производительности
+            FetchMinBytes = 1,
+            FetchWaitMaxMs = 500,
+            MaxPartitionFetchBytes = 1048576 // 1MB на партицию
         };
 
         using var consumer = new ConsumerBuilder<Ignore, string>(conf)
@@ -45,10 +49,12 @@ public class KafkaCancellationConsumerService(
         {
             try
             {
-                var cr = consumer.Consume(TimeSpan.FromSeconds(1));
+                var cr = consumer.Consume(TimeSpan.FromSeconds(10));
 
                 if (cr == null || cr.IsPartitionEOF)
                 {
+                    // Добавляем небольшую задержку при отсутствии сообщений для снижения нагрузки
+                    await Task.Delay(100, stoppingToken);
                     continue;
                 }
 
@@ -74,7 +80,8 @@ public class KafkaCancellationConsumerService(
                 else
                 {
                     logger.LogError(ex, "Kafka consume error in cancellation consumer: {Reason}", ex.Error.Reason);
-                    await Task.Delay(1000, stoppingToken);
+                    // Небольшая задержка при ошибках потребления
+                    await Task.Delay(2000, stoppingToken);
                 }
             }
             catch (OperationCanceledException)
@@ -84,7 +91,8 @@ public class KafkaCancellationConsumerService(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error processing cancellation message");
-                await Task.Delay(500, stoppingToken);
+                // Небольшая задержка при ошибках обработки
+                await Task.Delay(1000, stoppingToken);
             }
         }
 

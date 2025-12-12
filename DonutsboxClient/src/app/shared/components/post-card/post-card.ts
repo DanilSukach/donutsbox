@@ -66,11 +66,16 @@ export class PostCard implements OnDestroy {
   @ViewChild('editModalTemplate') editModalTemplate!: TemplateRef<unknown>;
   @ViewChild('deleteModalTemplate') deleteModalTemplate!: TemplateRef<unknown>;
   @ViewChild('hideModalTemplate') hideModalTemplate!: TemplateRef<unknown>;
+  @ViewChild('imageModalTemplate') imageModalTemplate!: TemplateRef<unknown>;
   private overlay = inject(Overlay);
   private viewContainerRef = inject(ViewContainerRef);
   private editOverlayRef: OverlayRef | null = null;
   private deleteOverlayRef: OverlayRef | null = null;
   private hideOverlayRef: OverlayRef | null = null;
+  private imageOverlayRef: OverlayRef | null = null;
+  readonly expandedImageUrl = signal<string | null>(null);
+  readonly currentImageIndex = signal<number>(0);
+  readonly imageItems = signal<Array<{ url: string }>>([]);
   
   // Локальное состояние для оптимистичного обновления UI
   readonly currentTitle = signal<string | null>(null);
@@ -118,6 +123,84 @@ export class PostCard implements OnDestroy {
     }
     if (this.hideOverlayRef) {
       this.hideOverlayRef.dispose();
+    }
+    if (this.imageOverlayRef) {
+      this.imageOverlayRef.dispose();
+      this.imageOverlayRef = null;
+    }
+  }
+
+  openImageModal(imageUrl: string): void {
+    // Получаем все изображения из медиа элементов
+    const images = this.mediaItems().filter(item => item.type === 'image');
+    if (images.length === 0) return;
+    
+    // Находим индекс выбранного изображения
+    const imageIndex = images.findIndex(img => img.url === imageUrl);
+    const selectedIndex = imageIndex >= 0 ? imageIndex : 0;
+    
+    this.imageItems.set(images.map(img => ({ url: img.url })));
+    this.currentImageIndex.set(selectedIndex);
+    this.expandedImageUrl.set(imageUrl);
+    
+    // Создаём overlay на весь экран
+    this.imageOverlayRef = this.overlay.create({
+      hasBackdrop: true,
+      backdropClass: 'image-modal-backdrop',
+      panelClass: 'image-modal-panel',
+      positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
+      scrollStrategy: this.overlay.scrollStrategies.block(),
+      width: '100vw',
+      height: '100vh',
+      maxWidth: '100vw',
+      maxHeight: '100vh'
+    });
+    
+    // Подключаем template
+    const portal = new TemplatePortal(this.imageModalTemplate, this.viewContainerRef);
+    this.imageOverlayRef.attach(portal);
+    
+    // Закрытие по клику на backdrop
+    this.imageOverlayRef.backdropClick().subscribe(() => this.closeImageModal());
+    
+    // Закрытие по нажатию Escape
+    this.imageOverlayRef.keydownEvents().subscribe(event => {
+      if (event.key === 'Escape') {
+        this.closeImageModal();
+      } else if (event.key === 'ArrowLeft') {
+        this.previousImage();
+      } else if (event.key === 'ArrowRight') {
+        this.nextImage();
+      }
+    });
+  }
+
+  closeImageModal(): void {
+    if (this.imageOverlayRef) {
+      this.imageOverlayRef.dispose();
+      this.imageOverlayRef = null;
+    }
+    this.expandedImageUrl.set(null);
+    this.currentImageIndex.set(0);
+    this.imageItems.set([]);
+  }
+
+  previousImage(): void {
+    const currentIndex = this.currentImageIndex();
+    if (currentIndex > 0) {
+      const newIndex = currentIndex - 1;
+      this.currentImageIndex.set(newIndex);
+      this.expandedImageUrl.set(this.imageItems()[newIndex].url);
+    }
+  }
+
+  nextImage(): void {
+    const currentIndex = this.currentImageIndex();
+    const items = this.imageItems();
+    if (currentIndex < items.length - 1) {
+      const newIndex = currentIndex + 1;
+      this.currentImageIndex.set(newIndex);
+      this.expandedImageUrl.set(items[newIndex].url);
     }
   }
 

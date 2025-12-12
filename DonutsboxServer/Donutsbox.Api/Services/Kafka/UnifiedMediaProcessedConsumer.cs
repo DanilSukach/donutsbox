@@ -46,7 +46,13 @@ public class UnifiedMediaProcessedConsumer(
             BootstrapServers = bootstrap,
             GroupId = groupId,
             AutoOffsetReset = AutoOffsetReset.Earliest,
-            EnableAutoCommit = false
+            EnableAutoCommit = false,
+            SessionTimeoutMs = 30000,
+            MaxPollIntervalMs = 300000,
+            // Оптимизация производительности
+            FetchMinBytes = 1,
+            FetchWaitMaxMs = 500,
+            MaxPartitionFetchBytes = 1048576 // 1MB на партицию
         };
 
         using var consumer = new ConsumerBuilder<Ignore, string>(consumerConfig)
@@ -61,10 +67,14 @@ public class UnifiedMediaProcessedConsumer(
         {
             try
             {
-                var cr = consumer.Consume(TimeSpan.FromSeconds(1));
+                var cr = consumer.Consume(TimeSpan.FromSeconds(10));
 
                 if (cr == null || cr.IsPartitionEOF)
+                {
+                    // Добавляем небольшую задержку при отсутствии сообщений для снижения нагрузки
+                    await Task.Delay(100, stoppingToken);
                     continue;
+                }
 
                 var topic = cr.Topic;
                 logger.LogInformation("Received message from topic {Topic}: {Message}", topic, cr.Message.Value);
@@ -102,7 +112,8 @@ public class UnifiedMediaProcessedConsumer(
                 else
                 {
                     logger.LogError(ex, "Kafka consume error: {Reason}", ex.Error.Reason);
-                    await Task.Delay(1000, stoppingToken);
+                    // Небольшая задержка при ошибках потребления
+                    await Task.Delay(2000, stoppingToken);
                 }
             }
             catch (OperationCanceledException)
@@ -113,7 +124,8 @@ public class UnifiedMediaProcessedConsumer(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error processing media.processed event");
-                await Task.Delay(1000, stoppingToken);
+                // Небольшая задержка при ошибках обработки
+                await Task.Delay(2000, stoppingToken);
             }
         }
 

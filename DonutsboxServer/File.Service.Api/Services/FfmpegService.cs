@@ -114,7 +114,7 @@ public class FfmpegService(ILogger<FfmpegService> logger, MinioService minio, IC
                 throw;
             }
 
-            // Загружаем результат
+            // Загружаем результат (параллельно для больших файлов)
             await minio.UploadFolderAsync($"processed/{videoId}", outputDir);
 
             logger.LogInformation("Processed video {VideoId}", videoId);

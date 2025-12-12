@@ -96,7 +96,7 @@
               ></app-audio-player>
             </div>
           } @else {
-            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden cursor-pointer" (click)="openImageModal(item.url)">
               <img
                 [src]="item.url"
                 alt="Post image"
@@ -137,7 +137,7 @@
                   ></app-audio-player>
                 </div>
               } @else {
-                  <div class="relative w-full">
+                  <div class="relative w-full cursor-pointer" (click)="openImageModal(item.url)">
                     <img
                       [src]="item.url"
                       alt="Post image"
@@ -286,6 +286,65 @@
           Скрыть
         </button>
       </div>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Template для модального окна просмотра изображения (рендерится через CDK Overlay) -->
+<ng-template #imageModalTemplate>
+  <div class="bg-black bg-opacity-90 w-full h-full flex items-center justify-center relative" (click)="closeImageModal()">
+    <button
+      (click)="closeImageModal(); $event.stopPropagation()"
+      class="absolute top-4 right-4 z-50 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2"
+      type="button"
+      title="Закрыть"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+    
+    @if (imageItems().length > 1) {
+      <button
+        (click)="previousImage(); $event.stopPropagation()"
+        class="absolute left-4 top-1/2 -translate-y-1/2 z-50 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-3"
+        type="button"
+        title="Предыдущее изображение"
+        [disabled]="currentImageIndex() === 0"
+        [class.opacity-50]="currentImageIndex() === 0"
+        [class.cursor-not-allowed]="currentImageIndex() === 0"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      
+      <button
+        (click)="nextImage(); $event.stopPropagation()"
+        class="absolute right-4 top-1/2 -translate-y-1/2 z-50 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-3"
+        type="button"
+        title="Следующее изображение"
+        [disabled]="currentImageIndex() === imageItems().length - 1"
+        [class.opacity-50]="currentImageIndex() === imageItems().length - 1"
+        [class.cursor-not-allowed]="currentImageIndex() === imageItems().length - 1"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      
+      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 text-white bg-black bg-opacity-50 rounded-full px-4 py-2 text-sm">
+        {{ currentImageIndex() + 1 }} / {{ imageItems().length }}
+      </div>
+    }
+    
+    <div class="max-w-[95vw] max-h-[95vh] flex items-center justify-center p-4" (click)="$event.stopPropagation()">
+      <img
+        [src]="expandedImageUrl()"
+        alt="Expanded image"
+        class="max-w-full max-h-[95vh] object-contain"
+        loading="eager"
+      />
     </div>
   </div>
 </ng-template>
