@@ -207,6 +207,7 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddHostedService<UnifiedMediaProcessedConsumer>();
+builder.Services.AddHostedService<MinioCleanupService>();
 
 
 var app = builder.Build();
