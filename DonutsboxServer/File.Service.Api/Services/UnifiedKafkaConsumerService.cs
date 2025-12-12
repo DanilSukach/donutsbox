@@ -57,7 +57,7 @@ public class UnifiedKafkaConsumerService(
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false,
             SessionTimeoutMs = 30000,
-            MaxPollIntervalMs = 300000,
+            MaxPollIntervalMs = 1800000, // 30 минут для длительных операций обработки видео
             // Оптимизация производительности
             FetchMinBytes = 1,
             FetchWaitMaxMs = 500,
@@ -99,26 +99,44 @@ public class UnifiedKafkaConsumerService(
                 logger.LogInformation("Received message from topic {Topic}, partition {Partition}, offset {Offset}: {Message}",
                     topic, cr.Partition, cr.Offset, cr.Message.Value);
 
-                // Определяем тип события по топику
-                bool shouldCommit = false;
+                // Коммитим сообщение сразу, чтобы не блокировать обработку других сообщений
+                // Обработка будет происходить параллельно в фоне
+                consumer.Commit(cr);
+                logger.LogInformation("Message committed immediately for topic {Topic}, offset {Offset}", topic, cr.Offset);
+
+                // Запускаем обработку в фоне без блокировки основного цикла
+                // Это позволяет обрабатывать несколько видео/аудио параллельно
                 if (topic == videoTopic)
                 {
-                    shouldCommit = await ProcessVideoEvent(cr, stoppingToken);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await ProcessVideoEventBackground(cr, stoppingToken);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Error in background video processing for offset {Offset}", cr.Offset);
+                        }
+                    }, stoppingToken);
                 }
                 else if (topic == audioTopic)
                 {
-                    shouldCommit = await ProcessAudioEvent(cr, stoppingToken);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await ProcessAudioEventBackground(cr, stoppingToken);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Error in background audio processing for offset {Offset}", cr.Offset);
+                        }
+                    }, stoppingToken);
                 }
                 else
                 {
                     logger.LogWarning("Unknown topic {Topic}, skipping message", topic);
-                    shouldCommit = true;
-                }
-
-                if (shouldCommit)
-                {
-                    consumer.Commit(cr);
-                    logger.LogInformation("Message committed successfully for topic {Topic}, offset {Offset}", topic, cr.Offset);
                 }
             }
             catch (ConsumeException ex)
@@ -153,7 +171,7 @@ public class UnifiedKafkaConsumerService(
         consumer.Close();
     }
 
-    private async Task<bool> ProcessVideoEvent(ConsumeResult<Ignore, string> cr, CancellationToken stoppingToken)
+    private async Task ProcessVideoEventBackground(ConsumeResult<Ignore, string> cr, CancellationToken stoppingToken)
     {
         try
         {
@@ -162,7 +180,7 @@ public class UnifiedKafkaConsumerService(
             if (evt == null)
             {
                 logger.LogWarning("Failed to deserialize video message, skipping");
-                return true; // Commit even if deserialization failed
+                return;
             }
 
             logger.LogInformation("Processing video.uploaded event for VideoId={VideoId}, ObjectKey={ObjectKey}",
@@ -172,7 +190,7 @@ public class UnifiedKafkaConsumerService(
             if (videoCancellationService.IsCancelled(evt.VideoId))
             {
                 logger.LogInformation("Video {VideoId} was cancelled before processing started, skipping", evt.VideoId);
-                return true; // Commit cancelled messages
+                return;
             }
 
             using var scope = provider.CreateScope();
@@ -191,18 +209,16 @@ public class UnifiedKafkaConsumerService(
                 if (videoCancellationService.IsCancelled(evt.VideoId))
                 {
                     logger.LogInformation("Video {VideoId} was cancelled during processing", evt.VideoId);
-                    return true; // Commit cancelled messages
+                    return;
                 }
 
                 logger.LogInformation("Video processed, publishing result for {VideoId}", evt.VideoId);
                 await producer.PublishProcessedAsync(new VideoProcessedEvent(evt.VideoId, outputPath));
-                return true; // Commit successful processing
             }
             catch (OperationCanceledException ex) when (!stoppingToken.IsCancellationRequested)
             {
                 // Video processing was cancelled by user, not by service shutdown
                 logger.LogInformation("Video processing was cancelled: {Message}", ex.Message);
-                return true; // Commit cancelled messages
             }
             finally
             {
@@ -212,11 +228,11 @@ public class UnifiedKafkaConsumerService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error processing video event");
-            return false; // Don't commit on error, will retry
+            // Не пробрасываем исключение, так как сообщение уже закоммичено
         }
     }
 
-    private async Task<bool> ProcessAudioEvent(ConsumeResult<Ignore, string> cr, CancellationToken stoppingToken)
+    private async Task ProcessAudioEventBackground(ConsumeResult<Ignore, string> cr, CancellationToken stoppingToken)
     {
         try
         {
@@ -225,7 +241,7 @@ public class UnifiedKafkaConsumerService(
             if (evt == null)
             {
                 logger.LogWarning("Failed to deserialize audio message, skipping");
-                return true; // Commit even if deserialization failed
+                return;
             }
 
             logger.LogInformation("Processing audio.uploaded event for AudioId={AudioId}, ObjectKey={ObjectKey}",
@@ -235,7 +251,7 @@ public class UnifiedKafkaConsumerService(
             if (audioCancellationService.IsCancelled(evt.AudioId))
             {
                 logger.LogInformation("Audio {AudioId} was cancelled before processing started, skipping", evt.AudioId);
-                return true; // Commit cancelled messages
+                return;
             }
 
             using var scope = provider.CreateScope();
@@ -254,18 +270,16 @@ public class UnifiedKafkaConsumerService(
                 if (audioCancellationService.IsCancelled(evt.AudioId))
                 {
                     logger.LogInformation("Audio {AudioId} was cancelled during processing", evt.AudioId);
-                    return true; // Commit cancelled messages
+                    return;
                 }
 
                 logger.LogInformation("Audio processed, publishing result for {AudioId}", evt.AudioId);
                 await producer.PublishAudioProcessedAsync(new AudioProcessedEvent(evt.AudioId, outputPath));
-                return true; // Commit successful processing
             }
             catch (OperationCanceledException ex) when (!stoppingToken.IsCancellationRequested)
             {
                 // Audio processing was cancelled by user, not by service shutdown
                 logger.LogInformation("Audio processing was cancelled: {Message}", ex.Message);
-                return true; // Commit cancelled messages
             }
             finally
             {
@@ -275,7 +289,7 @@ public class UnifiedKafkaConsumerService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error processing audio event");
-            return false; // Don't commit on error, will retry
+            // Не пробрасываем исключение, так как сообщение уже закоммичено
         }
     }
 }

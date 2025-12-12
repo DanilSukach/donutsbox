@@ -31,7 +31,7 @@ public class KafkaConsumerService(
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false,
             SessionTimeoutMs = 30000,
-            MaxPollIntervalMs = 300000,
+            MaxPollIntervalMs = 1800000, // 30 минут для длительных операций обработки видео
             // Оптимизация производительности
             FetchMinBytes = 1, // Минимальный размер батча для получения
             FetchWaitMaxMs = 500, // Максимальное время ожидания для накопления батча
