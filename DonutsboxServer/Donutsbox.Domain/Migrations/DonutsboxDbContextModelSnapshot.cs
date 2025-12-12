@@ -112,6 +112,10 @@ namespace Donutsbox.Domain.Migrations
                         .HasColumnType("text[]")
                         .HasColumnName("picture_urls");
 
+                    b.Property<bool>("IsPendingPublish")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_pending_publish");
+
                     b.Property<bool>("IsPublished")
                         .HasColumnType("boolean")
                         .HasColumnName("is_published");

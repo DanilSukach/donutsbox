@@ -41,6 +41,12 @@ public class ContentPost
     [Required]
     public bool IsPublished { get; set; } = false;
     /// <summary>
+    /// Флаг ожидания публикации (устанавливается когда пользователь нажал "Опубликовать", но медиа еще обрабатывается)
+    /// </summary>
+    [Column("is_pending_publish")]
+    [Required]
+    public bool IsPendingPublish { get; set; } = false;
+    /// <summary>
     /// Дата создания поста
     /// </summary>
     [Column("created_at", TypeName = "timestamptz")]

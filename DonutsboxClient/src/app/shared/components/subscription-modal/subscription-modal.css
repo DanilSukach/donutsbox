@@ -6,6 +6,11 @@
 
 .subscription-plan-card {
   background-color: #fff;
+  overflow: hidden;
+}
+
+.plan-header {
+  overflow: hidden;
 }
 
 .plan-option-button {

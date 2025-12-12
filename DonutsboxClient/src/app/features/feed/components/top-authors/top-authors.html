@@ -69,37 +69,38 @@
               <span class="text-white font-bold text-xs">{{ i + 1 }}</span>
             </div>
 
-            <div class="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden mr-2 sm:mr-3 ring-2 ring-gray-200 group-hover:ring-amber-300 transition-all	duration-200">
-              <img
-                [src]="authorAvatarUrlMap()[author.id!] || defaultAvatar"
-                [alt]="author.pageName || 'Автор'"
-                class="w-full h-full object-cover"
-                (error)="onImageError($event)"
-              />
-            </div>
+            <div class="flex-1 min-w-0 overflow-hidden">
+              <div class="flex items-start gap-2 sm:gap-3 mb-2">
+                <div class="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden ring-2 ring-gray-200 group-hover:ring-amber-300 transition-all	duration-200">
+                  <img
+                    [src]="authorAvatarUrlMap()[author.id!] || defaultAvatar"
+                    [alt]="author.pageName || 'Автор'"
+                    class="w-full h-full object-cover"
+                    (error)="onImageError($event)"
+                  />
+                </div>
 
-            <div class="flex-1 min-w-0">
-              <h3 class="text-xs sm:text-sm font-semibold text-gray-900 truncate group-hover:text-amber-900 transition-colors	duration-200 mb-1">
-                {{ author.pageName || 'Без названия' }}
-              </h3>
-              <p class="text-xs text-gray-600 line-clamp-2 mb-2 hidden sm:block">
-                {{ author.description || 'Описание отсутствует' }}
-              </p>
-              <div class="flex items-center justify-between">
-                <span class="inline-flex items-center gap-1 text-xs text-gray-500">
-                  <span class="text-amber-500">👥</span>
-                  <span class="hidden sm:inline">{{ formatSubscribersCount(author.subscribersCount) }}</span>
-                  <span class="sm:hidden">{{ author.subscribersCount || 0 }}</span>
-                </span>
-                
-                <button 
-                  (click)="onSubscribeClick(author, $event)" 
-                  class="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-amber-600 text-white text-xs font-medium rounded hover:bg-amber-700 transition-colors	duration-200 focus:outline-none focus:ring-1 focus:ring-amber-500 flex items-center gap-1"
-                >
-                  <span>➕</span>
-                  <span class="hidden sm:inline">Подписаться</span>
-                </button>
+                <div class="flex-1 min-w-0">
+                  <h3 class="text-xs sm:text-sm font-semibold text-gray-900 truncate group-hover:text-amber-900 transition-colors	duration-200 mb-1">
+                    {{ author.pageName || 'Без названия' }}
+                  </h3>
+                  <p class="text-xs text-gray-600 line-clamp-2 hidden sm:block">
+                    {{ author.description || 'Описание отсутствует' }}
+                  </p>
+                  <span class="inline-flex items-center gap-1 text-xs text-gray-500 mt-1 sm:mt-0">
+                    <span class="text-amber-500">👥</span>
+                    <span class="hidden sm:inline">{{ formatSubscribersCount(author.subscribersCount) }}</span>
+                    <span class="sm:hidden">{{ author.subscribersCount || 0 }}</span>
+                  </span>
+                </div>
               </div>
+              
+              <button 
+                (click)="onSubscribeClick(author, $event)" 
+                class="w-full px-2 py-1 bg-amber-600 text-white text-xs font-medium rounded hover:bg-amber-700 transition-colors	duration-200 focus:outline-none focus:ring-1 focus:ring-amber-500 flex items-center justify-center gap-1 whitespace-nowrap"
+              >
+                Подписаться
+              </button>
             </div>
           </div>
         }

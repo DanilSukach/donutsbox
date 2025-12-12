@@ -222,8 +222,11 @@ public class CreatorPostService(
 
         if (hasProcessingVideos || hasProcessingAudios)
         {
-            // Если есть необработанное медиа, не публикуем пост сразу
+            // Если есть необработанное медиа, устанавливаем флаг ожидания публикации
             // Пост будет опубликован автоматически после обработки всего медиа
+            post.IsPendingPublish = true;
+            await db.SaveChangesAsync();
+            
             logger.LogInformation("Post {PostId} has processing media, will be published automatically after processing", postId);
             
             return new PublishPostResponseDto
@@ -237,6 +240,7 @@ public class CreatorPostService(
 
         // Если медиа нет или все обработано - публикуем сразу
         post.IsPublished = true;
+        post.IsPendingPublish = false; // Сбрасываем флаг, так как публикуем сразу
         post.CreatedAt = DateTimeOffset.UtcNow;
 
         await db.SaveChangesAsync();
@@ -277,6 +281,13 @@ public class CreatorPostService(
                 return true;
             }
 
+            // Если пользователь не запрашивал публикацию, не публикуем автоматически
+            if (!post.IsPendingPublish)
+            {
+                logger.LogInformation("Post {PostId} is not pending publish, skipping auto-publish", postId);
+                return false;
+            }
+
             // Проверяем статусы всех медиа
             var videosStatuses = post.Videos.Select(v => v.Status).ToList();
             var audiosStatuses = post.Audios.Select(a => a.Status).ToList();
@@ -302,6 +313,7 @@ public class CreatorPostService(
 
             // Если все медиа обработано - публикуем пост
             post.IsPublished = true;
+            post.IsPendingPublish = false; // Сбрасываем флаг после публикации
             if (post.CreatedAt == null)
             {
                 post.CreatedAt = DateTimeOffset.UtcNow;

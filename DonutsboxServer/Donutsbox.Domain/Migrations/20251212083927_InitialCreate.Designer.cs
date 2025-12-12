@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Donutsbox.Domain.Migrations
 {
     [DbContext(typeof(DonutsboxDbContext))]
-    [Migration("20251206120902_InitialCreate")]
+    [Migration("20251212083927_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -114,6 +114,10 @@ namespace Donutsbox.Domain.Migrations
                         .IsRequired()
                         .HasColumnType("text[]")
                         .HasColumnName("picture_urls");
+
+                    b.Property<bool>("IsPendingPublish")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_pending_publish");
 
                     b.Property<bool>("IsPublished")
                         .HasColumnType("boolean")
