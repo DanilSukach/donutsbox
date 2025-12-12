@@ -6,17 +6,26 @@
   <!-- Add Comment Form -->
   <div class="mb-6">
     <div class="flex gap-3">
-      <textarea
-        [(ngModel)]="newCommentText"
-        placeholder="Написать комментарий..."
-        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
-        rows="2"
-        [disabled]="isLoading()"
-        (keydown.ctrl.enter)="addComment()"
-      ></textarea>
+      <div class="flex-1">
+        <textarea
+          [(ngModel)]="newCommentText"
+          placeholder="Написать комментарий..."
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
+          rows="2"
+          maxlength="500"
+          [disabled]="isLoading()"
+          (keydown)="onNewCommentKeydown($event)"
+        ></textarea>
+        <p class="text-xs mt-1" [class.text-gray-500]="newCommentText().length < 450" [class.text-amber-600]="newCommentText().length >= 450 && newCommentText().length < 500" [class.text-red-600]="newCommentText().length >= 500">
+          {{ newCommentText().length }} / 500
+          @if (newCommentText().length >= 500) {
+            <span class="font-semibold"> (максимум достигнут)</span>
+          }
+        </p>
+      </div>
       <button
         (click)="addComment()"
-        [disabled]="!newCommentText().trim() || isLoading()"
+        [disabled]="!newCommentText().trim() || isLoading() || newCommentText().length > 500"
         class="px-6 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium h-fit"
       >
         Отправить
@@ -91,27 +100,37 @@
                 [(ngModel)]="editingText"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
                 rows="3"
+                maxlength="500"
                 [disabled]="isLoading()"
+                (keydown)="onEditCommentKeydown($event, comment.id)"
               ></textarea>
-              <div class="flex gap-2">
-                <button
-                  (click)="saveEdit(comment.id)"
-                  [disabled]="!editingText().trim() || isLoading()"
-                  class="px-4 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:bg-gray-300 text-sm transition-colors"
-                >
-                  Сохранить
-                </button>
-                <button
-                  (click)="cancelEdit()"
-                  [disabled]="isLoading()"
-                  class="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm transition-colors"
-                >
-                  Отмена
-                </button>
+              <div class="flex items-center justify-between">
+                <p class="text-xs" [class.text-gray-500]="editingText().length < 450" [class.text-amber-600]="editingText().length >= 450 && editingText().length < 500" [class.text-red-600]="editingText().length >= 500">
+                  {{ editingText().length }} / 500
+                  @if (editingText().length >= 500) {
+                    <span class="font-semibold"> (максимум достигнут)</span>
+                  }
+                </p>
+                <div class="flex gap-2">
+                  <button
+                    (click)="saveEdit(comment.id)"
+                    [disabled]="!editingText().trim() || isLoading() || editingText().length > 500"
+                    class="px-4 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:bg-gray-300 text-sm transition-colors"
+                  >
+                    Сохранить
+                  </button>
+                  <button
+                    (click)="cancelEdit()"
+                    [disabled]="isLoading()"
+                    class="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm transition-colors"
+                  >
+                    Отмена
+                  </button>
+                </div>
               </div>
             </div>
           } @else {
-            <p class="text-gray-800 leading-relaxed whitespace-pre-wrap">{{ comment.text }}</p>
+            <p class="comment-text text-gray-800 leading-normal whitespace-pre-wrap break-words">{{ comment.text }}</p>
           }
         </div>
       }
