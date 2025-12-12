@@ -36,3 +36,12 @@
     transform: translateY(0);
   }
 }
+
+/* Стили для текста комментария */
+.comment-text {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+  max-width: 100%;
+}

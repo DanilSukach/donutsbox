@@ -102,9 +102,23 @@ private subscribeToPost(postId: string): void {
   }
 
   // 🔥 Просто отправляем - ответ приходит через SignalR событие
+  onNewCommentKeydown(event: KeyboardEvent): void {
+    if (event.ctrlKey && event.key === 'Enter') {
+      event.preventDefault();
+      this.addComment();
+    }
+  }
+
+  onEditCommentKeydown(event: KeyboardEvent, commentId: string): void {
+    if (event.ctrlKey && event.key === 'Enter') {
+      event.preventDefault();
+      this.saveEdit(commentId);
+    }
+  }
+
   addComment(): void {
     const text = this.newCommentText().trim();
-    if (!text) return;
+    if (!text || text.length > 500) return;
 
     this.isLoading.set(true);
     this.commentsFacade.addComment(this.postId(), text).subscribe({

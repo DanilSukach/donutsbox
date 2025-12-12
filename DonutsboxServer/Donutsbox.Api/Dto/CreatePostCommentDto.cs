@@ -18,6 +18,6 @@ public class CreatePostCommentDto
     /// </summary>
     [Required]
     [MinLength(1)]
-    [MaxLength(2000)]
+    [MaxLength(500)]
     public required string Text { get; set; }
 }
