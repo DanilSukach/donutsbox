@@ -2,7 +2,6 @@ import { inject, Injectable } from '@angular/core';
 import { AddTextRequestDto, AddTextResponseDto, AddVideosRequestDto, AddVideosResponseDto, ContentPostReactionDto, CreateDraftRequestDto, CreatorPostService, CreatorPostsResponseDto, CreatorSubscriptionsService, FilesService, MessageResponseDto, MyPostsResponseDto, MyVideoResponseDto, PostDraftResponseDto, PublishPostResponseDto, SubscriptionDto, UploadImagesResponseDto, UserInteractionService, VideoUploadResponseDto } from '@app/api/donutsbox';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
-import { HttpClient } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
@@ -13,7 +12,6 @@ export class PostsFacade {
   private filesService = inject(FilesService);
   private userInteractionService = inject(UserInteractionService);
   private creatorSubscriptionsService = inject(CreatorSubscriptionsService);
-  private http = inject(HttpClient);
   
   createDraft(request: CreateDraftRequestDto): Observable<PostDraftResponseDto> {
     return this.creatorPostService.apiCreatorPostDraftPost(request);
@@ -137,8 +135,8 @@ export class PostsFacade {
       text: text
     };
     
-    // Используем PUT запрос напрямую, так как API клиент еще не обновлен
-    return this.http.put<AddTextResponseDto>(`/api/CreatorPost/${postId}/text`, request).pipe(
+    // Используем сгенерированный API клиент
+    return this.creatorPostService.apiCreatorPostPostIdTextPut(postId, request).pipe(
       tap(() => {
         console.log('Пост обновлен успешно');
         // Не обновляем список постов, чтобы избежать перезагрузки страницы

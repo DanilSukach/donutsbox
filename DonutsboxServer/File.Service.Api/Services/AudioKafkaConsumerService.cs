@@ -45,7 +45,7 @@ public class AudioKafkaConsumerService(
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false,
             SessionTimeoutMs = 30000,
-            MaxPollIntervalMs = 300000,
+            MaxPollIntervalMs = 1800000, // 30 минут для длительных операций обработки
             // Оптимизация производительности
             FetchMinBytes = 1,
             FetchWaitMaxMs = 500,
