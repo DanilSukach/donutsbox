@@ -1,0 +1,53 @@
+.edit-subscription-modal {
+  width: 100%;
+  max-width: 640px;
+  padding: 2.5rem;
+}
+
+.modal-header {
+  gap: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 1rem;
+}
+
+.close-button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  line-height: 1;
+}
+
+.close-button:hover {
+  background-color: #f3f4f6;
+}
+
+::ng-deep .edit-subscription-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(2px);
+}
+
+::ng-deep .edit-subscription-modal-panel {
+  max-height: 90vh;
+  overflow-y: auto;
+  width: 90% !important;
+  max-width: 720px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+@media (max-width: 640px) {
+  .edit-subscription-modal {
+    padding: 1.5rem;
+  }
+}
+

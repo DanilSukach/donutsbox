@@ -1,7 +1,7 @@
 <div class="space-y-6">
 @if (posts().length === 0 && initialLoadCompleted() && !isLoading() && !error()) {
     <div class="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center">
-      <span class="text-6xl mb-4 block">📭</span>
+      <lucide-icon name="inbox" class="w-16 h-16 text-gray-400 mb-4" />
       <p class="text-gray-600 text-lg">Постов пока нет</p>
       @if (mode() === 'subscriptions') {
         <p class="text-gray-500 text-sm mt-2">Подпишитесь на авторов, чтобы видеть их контент</p>
@@ -11,7 +11,7 @@
 
 @if (error() && initialLoadCompleted()) {
     <div class="text-center py-12 bg-red-50 rounded-xl border-2 border-red-200">
-      <span class="text-6xl mb-4 block">⚠️</span>
+      <lucide-icon name="alert-triangle" class="w-16 h-16 text-red-600 mb-4" />
       <p class="text-red-600 text-lg mb-4">{{ error() }}</p>
       <button 
         (click)="resetAndLoad()"
@@ -36,7 +36,7 @@
             />
           } @else {
             <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-sm">
-              <span class="text-white font-bold text-lg">👤</span>
+              <lucide-icon name="user" class="w-6 h-6 text-white" />
             </div>
           }
           <div class="flex-1">
@@ -59,7 +59,7 @@
 <!-- Индикатор загрузки при первой загрузке -->
 @if (!initialLoadCompleted()) {
   <div class="text-center py-12 flex flex-col items-center justify-center">
-    <div class="animate-spin text-4xl mb-4">⏳</div>
+    <lucide-icon name="loader" class="w-10 h-10 animate-spin text-gray-600 mb-4" />
     @if (!initialLoadError()) {
       <p class="text-gray-600">Загружаем вашу ленту...</p>
     } @else {
@@ -81,12 +81,12 @@
   <div #sentinel class="h-20 flex items-center justify-center">
     @if (isLoading() && posts().length > 0) {
       <div class="flex items-center gap-2 text-gray-600">
-        <div class="animate-spin text-2xl">⏳</div>
+        <lucide-icon name="loader" class="w-6 h-6 animate-spin text-gray-600" />
         <span>Загрузка...</span>
       </div>
     } @else if (!hasMore() && posts().length > 0) {
       <div class="text-gray-500 text-sm py-4">
-        ✨ Вы просмотрели все посты
+        <lucide-icon name="sparkles" class="w-4 h-4 inline mr-1 text-amber-500" /> Вы просмотрели все посты
       </div>
     }
   </div>

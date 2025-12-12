@@ -1,11 +1,12 @@
 import { Component, inject, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UserProfileFacade } from '@app/core/services/user-profile-facade';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-change-email-modal',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
   templateUrl: './change-email-modal.html',
   styleUrl: './change-email-modal.css'
 })

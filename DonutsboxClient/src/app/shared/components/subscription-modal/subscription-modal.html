@@ -19,9 +19,7 @@
           (click)="close()" 
           class="text-gray-400 hover:text-gray-600 transition-colors"
         >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
+          <lucide-icon name="x" class="w-6 h-6" />
         </button>
       </div>
     </div>
@@ -70,9 +68,7 @@
                       class="px-4 py-2 w-full md:w-auto bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium flex items-center justify-center gap-2 whitespace-nowrap"
                     >
                       <span>{{ isPlanExpanded(plan.key) ? 'Скрыть периоды' : 'Выбрать период' }}</span>
-                      <svg class="w-4 h-4 transition-transform flex-shrink-0" [class.rotate-180]="isPlanExpanded(plan.key)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                      </svg>
+                      <lucide-icon name="chevron-down" class="w-4 h-4 transition-transform flex-shrink-0" [class.rotate-180]="isPlanExpanded(plan.key)" />
                     </button>
                   }
                 </div>
@@ -125,7 +121,7 @@
       } @else {
         <div class="text-center py-8">
           <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span class="text-2xl">💎</span>
+            <lucide-icon name="gem" class="w-8 h-8 text-gray-400" />
           </div>
           <p class="text-gray-600">У этого автора пока нет доступных подписок</p>
         </div>

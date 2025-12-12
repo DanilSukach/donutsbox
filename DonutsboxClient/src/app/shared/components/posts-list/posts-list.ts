@@ -3,10 +3,11 @@ import { PostsFacade } from '../../../features/profile/services/posts-facade';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 import { PostCard } from "@app/shared/components/post-card/post-card";
 import { SessionService } from '@app/core/services/session.service';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-posts-list',
-  imports: [PostCard],
+  imports: [PostCard, LucideAngularModule],
   templateUrl: './posts-list.html',
   styleUrl: './posts-list.css'
 })

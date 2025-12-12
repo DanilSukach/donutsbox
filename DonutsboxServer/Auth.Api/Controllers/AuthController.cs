@@ -23,15 +23,30 @@ public class AuthController(IAuthService auth, IConfiguration configuration) : C
         }
         catch (InvalidOperationException ex)
         {
-            return ex.Message switch
+            // Определяем тип ошибки для правильного HTTP статуса
+            var statusCode = ex.Message switch
             {
-                "Email is required" => BadRequest(new { message = ex.Message }),
-                "Invalid email format" => BadRequest(new { message = ex.Message }),
-                "Email exists" => Conflict(new { message = ex.Message }),
-                "Password doesn't match" => BadRequest(new { message = ex.Message }),
-                "Administrator role cannot be created through registration" => Forbid(ex.Message),
-                _ => BadRequest(new { message = ex.Message })
+                "Email is required" => StatusCodes.Status400BadRequest,
+                "Invalid email format" => StatusCodes.Status400BadRequest,
+                "Email exists" => StatusCodes.Status409Conflict,
+                "Password doesn't match" => StatusCodes.Status400BadRequest,
+                "Password is required" => StatusCodes.Status400BadRequest,
+                "Password must be at least 8 characters long" => StatusCodes.Status400BadRequest,
+                "Password must not exceed 128 characters" => StatusCodes.Status400BadRequest,
+                "Password cannot consist only of digits" => StatusCodes.Status400BadRequest,
+                "Password must contain at least one digit or special character" => StatusCodes.Status400BadRequest,
+                "Password must contain at least one uppercase letter" => StatusCodes.Status400BadRequest,
+                "Password must contain at least one lowercase letter" => StatusCodes.Status400BadRequest,
+                "Password must contain at least one digit" => StatusCodes.Status400BadRequest,
+                "Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)" => StatusCodes.Status400BadRequest,
+                "Administrator role cannot be created through registration" => StatusCodes.Status403Forbidden,
+                _ => StatusCodes.Status400BadRequest
             };
+
+            return StatusCode(statusCode, new { 
+                message = ex.Message,
+                field = GetErrorField(ex.Message) // Добавляем поле для фронтенда
+            });
         }
         catch (Exception)
         {
@@ -123,5 +138,27 @@ public class AuthController(IAuthService auth, IConfiguration configuration) : C
         }
         
         return options;
+    }
+
+    // Вспомогательный метод для определения поля ошибки
+    private static string? GetErrorField(string errorMessage)
+    {
+        return errorMessage switch
+        {
+            "Email is required" => "authEmail",
+            "Invalid email format" => "authEmail",
+            "Email exists" => "authEmail",
+            "Password is required" => "password",
+            "Password must be at least 8 characters long" => "password",
+            "Password must not exceed 128 characters" => "password",
+            "Password cannot consist only of digits" => "password",
+            "Password must contain at least one digit or special character" => "password",
+            "Password must contain at least one uppercase letter" => "password",
+            "Password must contain at least one lowercase letter" => "password",
+            "Password must contain at least one digit" => "password",
+            "Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)" => "password",
+            "Password doesn't match" => "repeatPassword",
+            _ => null
+        };
     }
 }

@@ -10,7 +10,7 @@
     "serve:ssr:DonutsboxClient": "node dist/DonutsboxClient/server/server.mjs",
     "generate:api-auth": "npx @openapitools/openapi-generator-cli generate -i http://localhost:5162/swagger/v1/swagger.json -g typescript-angular -o src/app/api/auth --additional-properties=ngVersion=20.3.0",
     "generate:api-donutsbox": "npx @openapitools/openapi-generator-cli generate -i http://localhost:5029/swagger/v1/swagger.json -g typescript-angular -o src/app/api/donutsbox --additional-properties=ngVersion=20.3.0",
-    "generate:api-admin": "npx @openapitools/openapi-generator-cli generate -i https://localhost:7207/swagger/v1/swagger.json -g typescript-angular -o src/app/api/admin --additional-properties=ngVersion=20.3.0",
+    "generate:api-admin": "npx @openapitools/openapi-generator-cli generate -i http://localhost:5207/swagger/v1/swagger.json -g typescript-angular -o src/app/api/admin --additional-properties=ngVersion=20.3.0",
     "generate:api": "npm run generate:api-auth && npm run generate:api-donutsbox && npm run generate:api-admin"
   },
   "prettier": {
@@ -41,6 +41,7 @@
     "express": "^5.1.0",
     "hls.js": "^1.6.13",
     "jwt-decode": "^4.0.0",
+    "lucide-angular": "^0.561.0",
     "media-icons": "^0.10.0",
     "postcss": "^8.5.6",
     "rxjs": "~7.8.0",

@@ -7,11 +7,12 @@ import { RouterModule } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { SessionService } from '@app/core/services/session.service';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [CommonModule, LoginForm, RouterModule],
+  imports: [CommonModule, LoginForm, RouterModule, LucideAngularModule],
   templateUrl: './login-page.html',
   styleUrl: './login-page.css',
 })

@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthorPreviewDto } from '@app/api/donutsbox/model/authorPreviewDto';
 import { UserSubscriptionsFacade } from '../../services/user-subscriptions-facade';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-user-subscriptions',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './user-subscriptions.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

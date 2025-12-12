@@ -4,6 +4,7 @@ import { AuthorsService, FilesService } from '@app/api/donutsbox';
 import { UserRequestDto } from '@app/api/donutsbox/model/userRequestDto';
 import { forkJoin, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { LucideAngularModule } from 'lucide-angular';
 
 interface SupporterWithAvatar extends UserRequestDto {
   avatarPresignedUrl?: string | null;
@@ -12,7 +13,7 @@ interface SupporterWithAvatar extends UserRequestDto {
 @Component({
   selector: 'app-author-supporters',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './author-supporters.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -4,13 +4,14 @@ import { PostCard } from '@app/shared/components/post-card/post-card';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 import { SessionService } from '@app/core/services/session.service';
 import { Observable } from 'rxjs';
+import { LucideAngularModule } from 'lucide-angular';
 
 export type FeedMode = 'creator' | 'subscriptions';
 
 @Component({
   selector: 'app-posts-feed',
   standalone: true,
-  imports: [PostCard],
+  imports: [PostCard, LucideAngularModule],
   templateUrl: './posts-feed.html',
   styleUrl: './posts-feed.css'
 })

@@ -24,6 +24,13 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
             throw new InvalidOperationException("Invalid email format");
         }
 
+        // Валидация пароля
+        var passwordValidationResult = ValidatePassword(dto.Password);
+        if (!passwordValidationResult.IsValid)
+        {
+            throw new InvalidOperationException(passwordValidationResult.ErrorMessage);
+        }
+
         if (dto.Password != dto.RepeatPassword)
         {
             throw new InvalidOperationException("Password doesn't match");
@@ -182,6 +189,13 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
             throw new InvalidOperationException("Invalid email format");
         }
 
+        // Валидация пароля
+        var passwordValidationResult = ValidatePassword(dto.Password);
+        if (!passwordValidationResult.IsValid)
+        {
+            throw new InvalidOperationException(passwordValidationResult.ErrorMessage);
+        }
+
         if (dto.Password != dto.RepeatPassword)
         {
             throw new InvalidOperationException("Password doesn't match");
@@ -206,4 +220,68 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
     }
 
     private static readonly Regex EmailRegex = new(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Валидирует пароль согласно политике безопасности.
+    /// </summary>
+    /// <param name="password">Пароль для валидации.</param>
+    /// <returns>Результат валидации с сообщением об ошибке, если пароль не соответствует требованиям.</returns>
+    private static (bool IsValid, string ErrorMessage) ValidatePassword(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            return (false, "Password is required");
+        }
+
+        // Минимум 8 символов
+        if (password.Length < 8)
+        {
+            return (false, "Password must be at least 8 characters long");
+        }
+
+        // Максимум 128 символов (разумный лимит)
+        if (password.Length > 128)
+        {
+            return (false, "Password must not exceed 128 characters");
+        }
+
+        // Проверка: не только цифры
+        if (password.All(char.IsDigit))
+        {
+            return (false, "Password cannot consist only of digits");
+        }
+
+        // Проверка: не только буквы
+        if (password.All(char.IsLetter))
+        {
+            return (false, "Password must contain at least one digit or special character");
+        }
+
+        // Проверка: есть заглавные буквы
+        if (!password.Any(char.IsUpper))
+        {
+            return (false, "Password must contain at least one uppercase letter");
+        }
+
+        // Проверка: есть строчные буквы
+        if (!password.Any(char.IsLower))
+        {
+            return (false, "Password must contain at least one lowercase letter");
+        }
+
+        // Проверка: есть цифры
+        if (!password.Any(char.IsDigit))
+        {
+            return (false, "Password must contain at least one digit");
+        }
+
+        // Проверка: есть специальные символы
+        var specialChars = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+        if (!password.Any(c => specialChars.Contains(c)))
+        {
+            return (false, "Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)");
+        }
+
+        return (true, string.Empty);
+    }
 }

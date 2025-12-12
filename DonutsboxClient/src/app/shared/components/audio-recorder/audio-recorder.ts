@@ -1,9 +1,10 @@
 import { Component, output, signal, input, OnDestroy } from '@angular/core';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-audio-recorder',
   standalone: true,
-  imports: [],
+  imports: [LucideAngularModule],
   templateUrl: './audio-recorder.html',
   styleUrl: './audio-recorder.css'
 })

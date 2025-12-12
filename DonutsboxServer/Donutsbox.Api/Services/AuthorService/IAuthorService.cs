@@ -12,6 +12,7 @@ public interface IAuthorService
     Task<IEnumerable<UserRequestDto>> GetTopSupportedUsersAsync(ClaimsPrincipal author, int count);
     Task<CreatorPageDataDto> AddCreatorPageAsync(CreatorPageDataDto dto, ClaimsPrincipal user);
     Task<SubscriptionDto> AddSubscriptionAsync(SubscriptionCreateDto dto, ClaimsPrincipal user);
+    Task<bool> UpdateSubscriptionAsync(Guid subscriptionId, SubscriptionUpdateDto dto, ClaimsPrincipal user);
     Task<bool> UpdateBannerAsync(string bannerKey, ClaimsPrincipal user);
     Task<bool> ChangeAuthorName(AuthorNameDto dto, ClaimsPrincipal user);
     Task<bool> ChangeAuthorDescription(AuthorDescriptionDto dto, ClaimsPrincipal user);

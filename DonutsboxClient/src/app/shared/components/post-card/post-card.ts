@@ -6,6 +6,7 @@ import { VideoPlayer } from '@app/shared/components/video-player/video-player';
 import { AudioPlayer } from '@app/shared/components/audio-player/audio-player';
 import { PostComments } from "@app/shared/components/post-comments/post-comments";
 import { register } from 'swiper/element/bundle';
+import { LucideAngularModule } from 'lucide-angular';
 
 // Регистрируем Swiper элементы
 register();
@@ -45,7 +46,7 @@ interface Post {
 
 @Component({
   selector: 'app-post-card',
-  imports: [VideoPlayer, AudioPlayer, PostComments, OverlayModule, PortalModule],
+  imports: [VideoPlayer, AudioPlayer, PostComments, OverlayModule, PortalModule, LucideAngularModule],
   templateUrl: './post-card.html',
   styleUrls: ['./post-card.css'],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -489,7 +490,7 @@ export class PostCard implements OnDestroy {
   get likeButtonClass(): string {
     const baseClass = 'flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium';
     if (this.currentReaction() === 1) {
-      return `${baseClass} bg-red-50 text-red-600 hover:bg-red-100`;
+      return `${baseClass} !bg-red-500 !text-white hover:!bg-red-600`;
     }
     return `${baseClass} text-gray-500 hover:text-red-600 hover:bg-gray-50`;
   }
@@ -497,7 +498,7 @@ export class PostCard implements OnDestroy {
   get dislikeButtonClass(): string {
     const baseClass = 'flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium';
     if (this.currentReaction() === 2) {
-      return `${baseClass} bg-gray-800 text-white hover:bg-gray-700`;
+      return `${baseClass} !bg-gray-500 !text-white hover:!bg-gray-600`;
     }
     return `${baseClass} text-gray-500 hover:text-gray-700 hover:bg-gray-50`;
   }

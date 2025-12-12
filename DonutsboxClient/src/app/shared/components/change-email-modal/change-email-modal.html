@@ -6,7 +6,7 @@
     <div class="flex items-center justify-between p-6 border-b border-gray-200">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-          <span class="text-2xl">📧</span>
+          <lucide-icon name="mail" class="w-6 h-6 text-amber-600" />
         </div>
         <h2 class="text-xl font-bold text-gray-900">Смена Email</h2>
       </div>
@@ -61,7 +61,7 @@
         >
           @if (isSubmitting()) {
             <span class="flex items-center justify-center gap-2">
-              <span class="animate-spin">⏳</span>
+              <lucide-icon name="loader" class="w-4 h-4 animate-spin" />
               <span>Сохранение...</span>
             </span>
           } @else {

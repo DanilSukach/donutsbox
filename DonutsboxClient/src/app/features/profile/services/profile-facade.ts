@@ -8,6 +8,7 @@ import {
   FilesService,
   SubscriptionCreateDto,
   SubscriptionDto,
+  SubscriptionService,
   UpdateImageKeyDto,
   UserDataService,
   UserService,
@@ -25,11 +26,13 @@ export class ProfileFacade {
   private readonly userService = inject(UserService);
   private readonly filesService = inject(FilesService);
   private readonly sessionService = inject(SessionService);
+  private readonly subscriptionService = inject(SubscriptionService);
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
 
   readonly isCreatingProfile = signal(false);
   readonly isCreatingSubscription = signal(false);
+  readonly isUpdatingSubscription = signal(false);
   readonly profileError = signal<string | null>(null);
   readonly subscriptionError = signal<string | null>(null);
 
@@ -169,6 +172,44 @@ export class ProfileFacade {
 
   skipSubscription(): void {
     this.navigateToProfile();
+  }
+
+  updateSubscription(
+    subscriptionId: string,
+    subscriptionData: { name: string; description: string; price: string }
+  ): Observable<boolean> {
+    this.isUpdatingSubscription.set(true);
+    this.subscriptionError.set(null);
+
+    const updateDto = {
+      name: subscriptionData.name,
+      description: subscriptionData.description,
+      price: subscriptionData.price
+    };
+
+    return this.http.put<{ message?: string }>(
+      `${this.getBaseUrl()}/api/Authors/subscription/${subscriptionId}`,
+      updateDto,
+      { withCredentials: true }
+    ).pipe(
+      map(() => true),
+      tap(() => {
+        this.isUpdatingSubscription.set(false);
+      }),
+      catchError((error) => {
+        this.isUpdatingSubscription.set(false);
+        this.subscriptionError.set(
+          error.error?.message || 'Произошла ошибка при обновлении подписки. Попробуйте снова.'
+        );
+        return of(false);
+      })
+    );
+  }
+
+  private getBaseUrl(): string {
+    // Используем basePath из конфигурации AuthorsService
+    const config = (this.authorsService as any).configuration;
+    return config?.basePath || '';
   }
 
   private navigateToProfile(): void {

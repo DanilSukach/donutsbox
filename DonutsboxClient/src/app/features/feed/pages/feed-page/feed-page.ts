@@ -4,10 +4,11 @@ import { AuthorSearch } from '../../components/author-search/author-search';
 import { PostsFeed } from '@app/shared/components/posts-feed/posts-feed';
 import { FeedFacade } from '../../services/feed-facade';
 import { UserProfileIcon } from '../../../../shared/components/user-profile-icon/user-profile-icon';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-feed-page',
-  imports: [TopAuthors, AuthorSearch, UserProfileIcon, PostsFeed],
+  imports: [TopAuthors, AuthorSearch, UserProfileIcon, PostsFeed, LucideAngularModule],
   templateUrl: './feed-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

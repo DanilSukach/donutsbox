@@ -12,3 +12,27 @@
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-in-out;
 }
+
+/* Стили для выпадающего списка роли */
+select#role {
+  border-radius: 0.5rem !important;
+  overflow: hidden;
+}
+
+/* Закругление для выпадающего списка в некоторых браузерах */
+select#role:focus {
+  border-radius: 0.5rem 0.5rem 0 0 !important;
+}
+
+/* Стили для опций (работает не во всех браузерах) */
+select#role option {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+/* Для WebKit браузеров */
+select#role {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
