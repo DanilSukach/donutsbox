@@ -73,15 +73,28 @@
 /* Стили для backdrop модальных окон */
 ::ng-deep .delete-modal-backdrop,
 ::ng-deep .hide-modal-backdrop,
-::ng-deep .edit-modal-backdrop {
+::ng-deep .edit-modal-backdrop,
+::ng-deep .image-modal-backdrop {
   background-color: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
+}
+
+::ng-deep .image-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(4px);
 }
 
 /* Стили для панелей модальных окон */
 ::ng-deep .delete-modal-panel,
 ::ng-deep .hide-modal-panel,
-::ng-deep .edit-modal-panel {
+::ng-deep .edit-modal-panel,
+::ng-deep .image-modal-panel {
   z-index: 1000;
+}
+
+::ng-deep .image-modal-panel {
+  z-index: 2000;
+  background: transparent;
+  box-shadow: none;
 }
 
