@@ -152,6 +152,7 @@ namespace Donutsbox.Domain.Migrations
                     title = table.Column<string>(type: "text", nullable: false),
                     text = table.Column<string>(type: "text", nullable: false),
                     is_published = table.Column<bool>(type: "boolean", nullable: false),
+                    is_pending_publish = table.Column<bool>(type: "boolean", nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false),
                     likes_count = table.Column<int>(type: "integer", nullable: false),
                     dislikes_count = table.Column<int>(type: "integer", nullable: false),

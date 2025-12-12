@@ -82,23 +82,34 @@ export class SubscriptionModal implements OnInit, OnDestroy {
     this.subscriptionSub?.unsubscribe();
     this.subscriptionSub = this.userSubscriptionsFacade.loadUserSubscriptionsWithIds().subscribe({
       next: () => {
-        const subscriptionIds = this.userSubscriptionsFacade.getSubscribedSubscriptionIds();
-        this.subscribedSubscriptionIds.set(new Set(subscriptionIds));
+        const userSubscriptionIds = this.userSubscriptionsFacade.getSubscribedSubscriptionIds();
+        this.subscribedSubscriptionIds.set(new Set(userSubscriptionIds));
         
-        // Вычисляем planKey для всех купленных подписок пользователя
-        // чтобы определить, подписан ли пользователь на тот же тип подписки
+        // Вычисляем planKey только для определения, показывать ли "Вы подписаны"
+        // НЕ используем planKey для блокировки всех вариантов подписки
+        const authorSubscriptions = this.author?.subscriptions ?? [];
         const planKeys = new Set<string>();
-        const allSubscriptions = this.author?.subscriptions ?? [];
         
-        subscriptionIds.forEach(subscriptionId => {
-          // Находим подписку автора по subscriptionId
-          const subscription = allSubscriptions.find(sub => sub.id === subscriptionId);
+        console.log('🔍 Обновление подписок:');
+        console.log('📋 SubscriptionIds пользователя:', Array.from(userSubscriptionIds));
+        console.log('📋 Подписки автора:', authorSubscriptions.map(s => ({ 
+          id: s.id, 
+          name: s.name, 
+          period: s.subscriptionPeriodMonths 
+        })));
+        
+        userSubscriptionIds.forEach(subscriptionId => {
+          const subscription = authorSubscriptions.find(sub => sub.id === subscriptionId);
           if (subscription) {
             const planKey = this.getPlanKey(subscription);
             planKeys.add(planKey);
+            console.log('✅ Найдена купленная подписка:', subscription.name, subscription.subscriptionPeriodMonths, 'мес., planKey:', planKey);
+          } else {
+            console.log('⚠️ Подписка не найдена у автора:', subscriptionId);
           }
         });
         
+        console.log('🎯 Итоговые planKeys:', Array.from(planKeys));
         this.subscribedPlanKeys.set(planKeys);
       }
     });
@@ -169,13 +180,37 @@ export class SubscriptionModal implements OnInit, OnDestroy {
     this.closeModal.emit();
   }
 
+  /**
+   * Проверяет, купил ли пользователь конкретную подписку (по subscriptionId)
+   */
   isSubscriptionAlreadyPurchased(subscription: SubscriptionDto): boolean {
-    // Проверяем, подписан ли пользователь на тот же тип подписки (независимо от периода)
-    // Используем planKey для определения типа подписки
     if (!subscription.id) return false;
     
-    const planKey = this.getPlanKey(subscription);
-    return this.subscribedPlanKeys().has(planKey);
+    // Проверяем, есть ли у пользователя подписка с таким же subscriptionId
+    const userSubscriptionIds = this.subscribedSubscriptionIds();
+    const isPurchased = userSubscriptionIds.has(subscription.id);
+    
+    if (isPurchased) {
+      console.log('🔒 Подписка куплена:', subscription.name, subscription.subscriptionPeriodMonths, 'мес., subscriptionId:', subscription.id);
+    }
+    
+    return isPurchased;
+  }
+
+  /**
+   * Проверяет, подписан ли пользователь на этот тип подписки (любой период)
+   * Используется для отображения "Вы подписаны" вместо "Выбрать период"
+   * Проверяем, есть ли хотя бы одна купленная подписка этого типа
+   */
+  isPlanTypePurchased(planKey: string): boolean {
+    const authorSubscriptions = this.author?.subscriptions ?? [];
+    const userSubscriptionIds = this.subscribedSubscriptionIds();
+    
+    // Проверяем, есть ли хотя бы одна подписка этого типа, которую купил пользователь
+    return authorSubscriptions.some(sub => {
+      const subPlanKey = this.getPlanKey(sub);
+      return subPlanKey === planKey && userSubscriptionIds.has(sub.id);
+    });
   }
 
   subscribeToSubscription(subscription: SubscriptionDto): void {
@@ -285,12 +320,12 @@ export class SubscriptionModal implements OnInit, OnDestroy {
         const subscriptionIds = this.userSubscriptionsFacade.getSubscribedSubscriptionIds();
         this.subscribedSubscriptionIds.set(new Set(subscriptionIds));
         
-        // Пересчитываем planKeys для купленных подписок
+        // Пересчитываем planKeys только для определения, показывать ли "Вы подписаны"
         const planKeys = new Set<string>();
-        const allSubscriptions = this.author?.subscriptions ?? [];
+        const authorSubscriptions = this.author?.subscriptions ?? [];
         
         subscriptionIds.forEach(subscriptionId => {
-          const subscription = allSubscriptions.find(sub => sub.id === subscriptionId);
+          const subscription = authorSubscriptions.find(sub => sub.id === subscriptionId);
           if (subscription) {
             const planKey = this.getPlanKey(subscription);
             planKeys.add(planKey);

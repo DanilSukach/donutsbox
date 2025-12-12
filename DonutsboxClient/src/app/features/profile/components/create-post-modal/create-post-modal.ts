@@ -360,8 +360,7 @@ export class CreatePostModal implements OnInit, OnDestroy {
           this.isLoading.set(false);
           this.isVideoFormExpanded.set(false);
           
-          // Обновляем отслеживание медиа после загрузки видео
-          this.videoStatusPollService.startPollingAfterPublish();
+          // Обработка видео начнется только после публикации поста
         } catch {
           this.error.set('Ошибка обработки ответа сервера');
           this.isLoading.set(false);
@@ -626,8 +625,7 @@ export class CreatePostModal implements OnInit, OnDestroy {
             this.isUploadingAudio.set(false);
             this.isAudioFormExpanded.set(false);
             
-            // Обновляем отслеживание медиа после загрузки аудио
-            this.videoStatusPollService.startPollingAfterPublish();
+            // Обработка аудио начнется только после публикации поста
           }
         },
         error: (err) => {

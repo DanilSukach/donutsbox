@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { AuthorPreviewDto, UserDataService, UserInteractionService, UserSubscriptionService, UserSubscriptionDto } from '@app/api/donutsbox';
-import { catchError, Observable, of, tap } from 'rxjs';
+import { catchError, Observable, of, tap, switchMap } from 'rxjs';
+import { SessionService } from '@app/core/services/session.service';
 
 @Injectable({
   providedIn: 'root'
@@ -9,6 +10,7 @@ export class UserSubscriptionsFacade {
   private readonly userDataService = inject(UserDataService);
   private readonly userInteraction = inject(UserInteractionService);
   private readonly userSubscriptionService = inject(UserSubscriptionService);
+  private readonly sessionService = inject(SessionService);
 
   readonly subscriptions = signal<AuthorPreviewDto[]>([]);
   readonly userSubscriptions = signal<UserSubscriptionDto[]>([]);
@@ -68,21 +70,51 @@ export class UserSubscriptionsFacade {
 
   /**
    * Загружает все подписки пользователя с их subscriptionId
+   * Фильтрует только подписки текущего пользователя
    */
   loadUserSubscriptionsWithIds(): Observable<UserSubscriptionDto[]> {
-    return this.userSubscriptionService.apiUserSubscriptionGet().pipe(
-      tap((subscriptions) => {
-        console.log('Подписки пользователя с ID загружены:', subscriptions);
-        // Фильтруем только активные подписки
-        const now = new Date();
-        const activeSubscriptions = subscriptions.filter(sub => {
-          const endDate = new Date(sub.endDate);
-          return sub.status?.toLowerCase() === 'active' && endDate >= now;
-        });
-        this.userSubscriptions.set(activeSubscriptions);
+    return this.sessionService.ensureSession().pipe(
+      switchMap(() => {
+        const currentUserId = this.sessionService.userId();
+        if (!currentUserId) {
+          console.warn('Пользователь не авторизован');
+          this.userSubscriptions.set([]);
+          return of([]);
+        }
+
+        return this.userSubscriptionService.apiUserSubscriptionGet().pipe(
+          tap((subscriptions) => {
+            console.log('Все подписки загружены:', subscriptions.length);
+            console.log('Текущий userId:', currentUserId);
+            
+            // Фильтруем только подписки текущего пользователя
+            const userSubscriptions = subscriptions.filter(sub => {
+              // Проверяем, что userId подписки совпадает с текущим пользователем
+              const matchesUser = sub.userId === currentUserId;
+              return matchesUser;
+            });
+            
+            console.log('Подписки текущего пользователя:', userSubscriptions.length);
+            
+            // Фильтруем только активные подписки
+            const now = new Date();
+            const activeSubscriptions = userSubscriptions.filter(sub => {
+              const endDate = new Date(sub.endDate);
+              return sub.status?.toLowerCase() === 'active' && endDate >= now;
+            });
+            
+            console.log('Активные подписки текущего пользователя:', activeSubscriptions.length);
+            this.userSubscriptions.set(activeSubscriptions);
+          }),
+          catchError((error) => {
+            console.error('Ошибка загрузки подписок с ID:', error);
+            this.userSubscriptions.set([]);
+            return of([]);
+          })
+        );
       }),
       catchError((error) => {
-        console.error('Ошибка загрузки подписок с ID:', error);
+        console.error('Ошибка получения сессии:', error);
         this.userSubscriptions.set([]);
         return of([]);
       })
