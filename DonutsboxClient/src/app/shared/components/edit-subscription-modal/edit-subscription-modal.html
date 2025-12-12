@@ -1,0 +1,101 @@
+<div class="edit-subscription-modal bg-white rounded-2xl shadow-2xl border border-gray-200">
+  <div class="modal-header flex items-start justify-between mb-6">
+    <div>
+      <p class="text-sm uppercase tracking-wide text-purple-500 font-semibold">Тарифы</p>
+      <h2 class="text-2xl font-bold text-gray-900 mt-1">Редактировать подписку</h2>
+      <p class="text-gray-600 mt-1">
+        Измените название, описание и стоимость подписки.
+      </p>
+    </div>
+    <button
+      type="button"
+      (click)="onClose()"
+      class="close-button text-gray-500 hover:text-gray-900 transition-colors text-2xl leading-none"
+      aria-label="Закрыть"
+    >
+      &times;
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+    <div>
+      <label for="name" class="block text-sm font-medium text-gray-700">Название подписки</label>
+      <input
+        id="name"
+        type="text"
+        formControlName="name"
+        placeholder="Например: Базовая подписка"
+        class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 transition-colors"
+        required
+      />
+      @if (form.get('name')?.invalid && form.get('name')?.touched) {
+        <div class="text-red-500 text-sm mt-1">Название подписки обязательно.</div>
+      }
+    </div>
+
+    <div>
+      <label for="description" class="block text-sm font-medium text-gray-700">Описание *</label>
+      <textarea
+        id="description"
+        formControlName="description"
+        rows="3"
+        placeholder="Что получат подписчики..."
+        class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 transition-colors"
+        required
+      ></textarea>
+      @if (form.get('description')?.invalid && form.get('description')?.touched) {
+        <div class="text-red-500 text-sm mt-1">Описание обязательно.</div>
+      }
+    </div>
+
+    <div>
+      <label for="monthlyPrice" class="block text-sm font-medium text-gray-700">Месячная цена (₽)</label>
+      <input
+        id="monthlyPrice"
+        type="number"
+        formControlName="monthlyPrice"
+        min="0.01"
+        step="0.01"
+        placeholder="99.00"
+        class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 transition-colors"
+        required
+      />
+      @if (form.get('monthlyPrice')?.invalid && form.get('monthlyPrice')?.touched) {
+        <div class="text-red-500 text-sm mt-1">Укажите корректную цену.</div>
+      }
+    </div>
+
+    @if (errorMessage()) {
+      <div class="mt-2 text-red-500 text-center">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <div class="flex gap-3 mt-6 justify-end">
+      <button
+        type="button"
+        (click)="onClose()"
+        [disabled]="isUpdating()"
+        class="px-4 py-2 font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:bg-gray-300 transition-colors"
+      >
+        Отмена
+      </button>
+
+      <button
+        type="submit"
+        [disabled]="form.invalid || isUpdating()"
+        class="px-4 py-2 font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:bg-gray-400 transition-colors"
+      >
+        @if (isUpdating()) {
+          <span class="flex items-center justify-center gap-2">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            Сохранение...
+          </span>
+        } @else {
+          Сохранить изменения
+        }
+      </button>
+    </div>
+  </form>
+</div>
+

@@ -4,7 +4,7 @@
     <div class="bg-orange-50 border-l-4 border-orange-500 p-3 rounded-t-xl">
       <div class="flex items-start">
         <div class="flex-shrink-0">
-          <span class="text-xl">⚠️</span>
+          <lucide-icon name="alert-triangle" class="w-5 h-5 text-orange-500" />
         </div>
         <div class="ml-2 flex-1">
           <h4 class="text-sm font-semibold text-orange-800">Этот пост находится в теневом бане</h4>
@@ -22,7 +22,10 @@
       <div class="flex-1">
         <h3 class="text-xl font-bold text-gray-900 mb-1">{{ displayTitle }}</h3>
         @if (post().isLocked) {
-          <p class="text-amber-800 font-medium">{{ post().lockedMessage || '🔒 Контент доступен только для подписчиков' }}</p>
+          <p class="text-amber-800 font-medium flex items-center gap-1">
+            <lucide-icon name="lock" class="w-4 h-4" />
+            {{ post().lockedMessage || 'Контент доступен только для подписчиков' }}
+          </p>
         } @else {
           <p class="text-gray-600">{{ displayText }}</p>
         }
@@ -38,9 +41,7 @@
               class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
               title="Редактировать пост"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
+              <lucide-icon name="pencil" class="w-5 h-5" />
             </button>
 
           </div>
@@ -52,9 +53,7 @@
               class="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
               title="Скрыть пост"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-              </svg>
+              <lucide-icon name="eye-off" class="w-5 h-5" />
             </button>
           </div>
 
@@ -65,9 +64,7 @@
               class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
               title="Удалить пост"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
+              <lucide-icon name="trash-2" class="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -161,38 +158,32 @@
             (click)="handleReaction(1)"
             [disabled]="isReacting()"
             [class]="likeButtonClass"
+            [attr.style]="currentReaction() === 1 ? 'background-color: #ef4444 !important; color: #ffffff !important;' : ''"
             type="button"
             title="Лайк"
           >
             @if (currentReaction() === 1) {
-              <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
-                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.834a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
-              </svg>
+              <lucide-icon name="thumbs-up" class="w-5 h-5" style="color: #ffffff; fill: #ffffff;" />
             } @else {
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-              </svg>
+              <lucide-icon name="thumbs-up" class="w-5 h-5" />
             }
-            <span class="font-semibold">{{ currentLikesCount() }}</span>
+            <span class="font-semibold" [style.color]="currentReaction() === 1 ? '#ffffff' : 'inherit'">{{ currentLikesCount() }}</span>
           </button>
 
           <button
             (click)="handleReaction(2)"
             [disabled]="isReacting()"
             [class]="dislikeButtonClass"
+            [attr.style]="currentReaction() === 2 ? 'background-color: #6b7280 !important; color: #ffffff !important;' : ''"
             type="button"
             title="Дизлайк"
           >
             @if (currentReaction() === 2) {
-              <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
-                <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.834a2 2 0 00-1.106-1.79l-.05-.025A4 4 0 0011.057 2H5.64a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4L11.4 9.734a4 4 0 00.8-2.4z" />
-              </svg>
+              <lucide-icon name="thumbs-down" class="w-5 h-5" style="color: #ffffff; fill: #ffffff;" />
             } @else {
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
-              </svg>
+              <lucide-icon name="thumbs-down" class="w-5 h-5" />
             }
-            <span class="font-semibold">{{ currentDislikesCount() }}</span>
+            <span class="font-semibold" [style.color]="currentReaction() === 2 ? '#ffffff' : 'inherit'">{{ currentDislikesCount() }}</span>
           </button>
         </div>
 
@@ -224,9 +215,7 @@
     <div class="p-6">
       <div class="flex items-start gap-4 mb-6">
         <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
+          <lucide-icon name="trash-2" class="w-6 h-6 text-red-600" />
         </div>
         <div class="flex-1">
           <h3 class="text-xl font-bold text-gray-900 mb-2">Удалить пост?</h3>
@@ -260,9 +249,7 @@
     <div class="p-6">
       <div class="flex items-start gap-4 mb-6">
         <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-          </svg>
+          <lucide-icon name="eye-off" class="w-6 h-6 text-amber-600" />
         </div>
         <div class="flex-1">
           <h3 class="text-xl font-bold text-gray-900 mb-2">Скрыть пост?</h3>
@@ -299,9 +286,7 @@
       type="button"
       title="Закрыть"
     >
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-      </svg>
+      <lucide-icon name="x" class="w-6 h-6" />
     </button>
     
     @if (imageItems().length > 1) {
@@ -314,9 +299,7 @@
         [class.opacity-50]="currentImageIndex() === 0"
         [class.cursor-not-allowed]="currentImageIndex() === 0"
       >
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
+        <lucide-icon name="chevron-left" class="w-6 h-6" />
       </button>
       
       <button
@@ -328,9 +311,7 @@
         [class.opacity-50]="currentImageIndex() === imageItems().length - 1"
         [class.cursor-not-allowed]="currentImageIndex() === imageItems().length - 1"
       >
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
+        <lucide-icon name="chevron-right" class="w-6 h-6" />
       </button>
       
       <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 text-white bg-black bg-opacity-50 rounded-full px-4 py-2 text-sm">
@@ -355,12 +336,12 @@
     <!-- Header -->
     <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 flex justify-between items-center rounded-t-2xl">
       <h2 class="text-xl font-bold text-white flex items-center gap-2">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-        </svg>
+        <lucide-icon name="pencil" class="w-6 h-6" />
         Редактировать пост
       </h2>
-      <button (click)="closeEditModal()" class="text-white hover:text-blue-100 text-3xl font-bold leading-none" type="button">×</button>
+      <button (click)="closeEditModal()" class="text-white hover:text-blue-100" type="button">
+        <lucide-icon name="x" class="w-6 h-6" />
+      </button>
     </div>
 
     <!-- Content -->
@@ -405,7 +386,7 @@
         class="flex-1 px-4 py-3 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         @if (isUpdating()) {
-          ⏳ Сохранение...
+          <lucide-icon name="loader" class="w-4 h-4 inline animate-spin mr-1" /> Сохранение...
         } @else {
           Сохранить
         }

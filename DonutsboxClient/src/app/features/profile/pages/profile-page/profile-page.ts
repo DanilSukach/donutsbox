@@ -11,6 +11,7 @@ import { AvatarUploadModal } from '../../components/avatar-upload-modal/avatar-u
 import { BannerUploadModal } from '../../components/banner-upload-modal/banner-upload-modal';
 import { PostsFeed } from '@app/shared/components/posts-feed/posts-feed';
 import { UserSubscriptions } from '../../components/user-subscriptions/user-subscriptions';
+import { CreatorSubscriptions } from '../../components/creator-subscriptions/creator-subscriptions';
 import { ProfileFacade } from '../../services/profile-facade';
 import { PostsFacade } from '../../services/posts-facade';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
@@ -25,11 +26,28 @@ import { ChangePasswordModal } from '@app/shared/components/change-password-moda
 import { ChangeEmailModal } from '@app/shared/components/change-email-modal/change-email-modal';
 import { FirstLoginModal } from '../../../auth/components/first-login-modal/first-login-modal';
 import { VideoStatusPollService } from '../../services/video-status-poll.service';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, AuthorSupporters, CreatePostModal, AvatarUploadModal, BannerUploadModal, PostsFeed, UserSubscriptions, ChangePasswordModal, ChangeEmailModal, FirstLoginModal, OverlayModule, PortalModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    AuthorSupporters,
+    CreatePostModal,
+    AvatarUploadModal,
+    BannerUploadModal,
+    PostsFeed,
+    UserSubscriptions,
+    CreatorSubscriptions,
+    ChangePasswordModal,
+    ChangeEmailModal,
+    FirstLoginModal,
+    OverlayModule,
+    PortalModule,
+    LucideAngularModule
+  ],
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.css'
 })
@@ -177,6 +195,8 @@ export class ProfilePage implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
       const profileId = params.get('id');
+      // Используем queueMicrotask для безопасного обновления после проверки изменений
+      queueMicrotask(() => {
       this.profileId.set(profileId);
       this.checkProfileOwnership();
       this.loadAuthorAndBanner(profileId);
@@ -187,6 +207,7 @@ export class ProfilePage implements OnInit, OnDestroy {
       if (this.isOwnProfile()) {
         this.loadUserAvatar();
       }
+      });
     });
     
     this.sessionService.ensureSession().subscribe((session) => {

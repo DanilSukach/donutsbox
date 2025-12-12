@@ -97,6 +97,32 @@ public class AuthorsController(IAuthorService authorService, ILogger<AuthorsCont
         }
     }
 
+    /// <summary>
+    /// Обновление подписки автора
+    /// </summary>
+    /// <param name="subscriptionId">Идентификатор подписки</param>
+    /// <param name="dto">Данные для обновления</param>
+    /// <returns>Результат обновления</returns>
+    /// <response code="200">Подписка успешно обновлена</response>
+    /// <response code="400">Ошибка валидации или доступа</response>
+    /// <response code="404">Подписка не найдена</response>
+    [HttpPut("subscription/{subscriptionId:guid}")]
+    [Authorize(Roles = "Creator")]
+    public async Task<IActionResult> UpdateSubscriptionAsync(Guid subscriptionId, [FromBody] SubscriptionUpdateDto dto)
+    {
+        try
+        {
+            var result = await authorService.UpdateSubscriptionAsync(subscriptionId, dto, User);
+            if (result)
+                return Ok(new { message = "Подписка успешно обновлена" });
+            return NotFound(new { message = "Подписка не найдена" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
 
     /// <summary>
     /// Получает информацию об авторе

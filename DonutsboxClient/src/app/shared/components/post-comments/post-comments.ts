@@ -4,10 +4,11 @@ import { PostCommentDto } from '@app/api/donutsbox';
 import { CommentsFacade } from '@app/core/services/comments-facade';
 import { SessionService } from '@app/core/services/session.service';
 import { Subscription } from 'rxjs';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-post-comments',
-  imports: [FormsModule],
+  imports: [FormsModule, LucideAngularModule],
   templateUrl: './post-comments.html',
   styleUrl: './post-comments.css'
 })

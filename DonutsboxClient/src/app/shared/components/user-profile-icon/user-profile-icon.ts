@@ -5,11 +5,12 @@ import { SessionService } from '@app/core/services/session.service';
 import { UserDataService, FilesService } from '@app/api/donutsbox';
 import { catchError, switchMap } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-user-profile-icon',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   template: `
     <button 
       (click)="navigateToProfile()" 
@@ -24,7 +25,7 @@ import { of } from 'rxjs';
           class="w-full h-full object-cover"
         />
       } @else {
-        <span class="text-white font-bold">👤</span>
+        <lucide-icon name="user" class="w-6 h-6 text-white" />
       }
     </button>
   `

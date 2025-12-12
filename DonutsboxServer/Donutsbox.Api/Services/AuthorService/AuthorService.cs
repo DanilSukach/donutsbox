@@ -98,6 +98,59 @@ public class AuthorService(
         };
     }
 
+    public async Task<bool> UpdateSubscriptionAsync(Guid subscriptionId, SubscriptionUpdateDto dto, ClaimsPrincipal user)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");
+        var userId = Guid.Parse(userIdClaim.Value);
+        
+        var userEntity = await db.Users
+            .Include(u => u.UserType)
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+            
+        if (userEntity == null)
+            throw new InvalidOperationException("User not found");
+        
+        if (!string.Equals(userEntity.UserType.Name, "Creator", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only creators can update subscriptions");
+        
+        if (userEntity.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
+
+        // Получаем подписку с проверкой, что она принадлежит этому создателю
+        var subscription = await db.Subscriptions
+            .Include(s => s.SubscriptionPeriod)
+            .FirstOrDefaultAsync(s => s.Id == subscriptionId && s.CreatorPageDataId == userEntity.CreatorPageData.Id);
+        
+        if (subscription == null)
+            throw new InvalidOperationException("Subscription not found or doesn't belong to you");
+
+        // Обновляем все подписки с таким же именем (так как при создании создаются подписки для всех периодов)
+        var subscriptionsToUpdate = await db.Subscriptions
+            .Include(s => s.SubscriptionPeriod)
+            .Where(s => s.CreatorPageDataId == userEntity.CreatorPageData.Id && s.Name == subscription.Name)
+            .ToListAsync();
+
+        var periods = await subscriptionPeriodRepository.GetAllAsync();
+        
+        foreach (var subToUpdate in subscriptionsToUpdate)
+        {
+            // Обновляем название и описание для всех подписок с таким же именем
+            subToUpdate.Name = dto.Name;
+            subToUpdate.Description = dto.Description;
+            
+            // Пересчитываем цену для каждого периода
+            var period = periods.FirstOrDefault(p => p.Id == subToUpdate.SubscriptionPeriodId);
+            if (period != null)
+            {
+                subToUpdate.Price = CalculatePrice(period.Months, dto.Price);
+            }
+        }
+
+        await db.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<bool> ChangeAuthorName(AuthorNameDto dto, ClaimsPrincipal user)
     {
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User ID claim not found");

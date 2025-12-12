@@ -1,12 +1,12 @@
  <div class="space-y-6">
       @if (isLoading()) {
         <div class="text-center py-12">
-          <div class="animate-spin text-4xl mb-4">⏳</div>
+          <lucide-icon name="loader" class="w-10 h-10 animate-spin text-gray-600 mb-4" />
           <p class="text-gray-600">Загрузка постов...</p>
         </div>
       } @else if (posts().length === 0) {
         <div class="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-300">
-          <span class="text-6xl mb-4 block">📭</span>
+          <lucide-icon name="inbox" class="w-16 h-16 text-gray-400 mb-4" />
           <p class="text-gray-600 text-lg">Постов пока нет</p>
         </div>
       } @else {

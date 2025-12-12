@@ -4,11 +4,12 @@ import { AuthorRequestDto } from '@app/api/donutsbox/model/authorRequestDto';
 import { FeedFacade } from '../../services/feed-facade';
 import { SubscriptionModalService } from '@app/shared/services/subscription-modal.service';
 import { Subscription } from 'rxjs';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-top-authors',
   standalone: true,
-  imports: [],
+  imports: [LucideAngularModule],
   templateUrl: './top-authors.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

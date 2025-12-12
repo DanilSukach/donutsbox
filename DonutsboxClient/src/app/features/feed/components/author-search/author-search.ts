@@ -5,11 +5,12 @@ import { AuthorRequestDto } from '@app/api/donutsbox/model/authorRequestDto';
 import { FeedFacade } from '../../services/feed-facade';
 import { SubscriptionModalService } from '@app/shared/services/subscription-modal.service';
 import { Subscription } from 'rxjs';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-author-search',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule],
   templateUrl: './author-search.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

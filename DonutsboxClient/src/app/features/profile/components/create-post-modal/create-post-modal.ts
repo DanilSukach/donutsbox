@@ -31,9 +31,11 @@ interface UploadedAudio {
   status: string;
 }
 
+import { LucideAngularModule } from 'lucide-angular';
+
 @Component({
   selector: 'app-create-post-modal',
-  imports: [AudioRecorder],
+  imports: [AudioRecorder, LucideAngularModule],
   templateUrl: './create-post-modal.html',
   styleUrl: './create-post-modal.css',
 })

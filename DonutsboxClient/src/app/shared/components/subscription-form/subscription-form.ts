@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, input, output } from '@angular/core';
+import { Component, inject, input, output, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SubscriptionCreateDto } from '@app/api/donutsbox';
 
@@ -10,7 +10,7 @@ import { SubscriptionCreateDto } from '@app/api/donutsbox';
   templateUrl: './subscription-form.html',
   styleUrl: './subscription-form.css'
 })
-export class SubscriptionForm {
+export class SubscriptionForm implements OnInit {
   private fb = inject(FormBuilder);
 
   readonly isSubmitting = input(false);
@@ -18,6 +18,9 @@ export class SubscriptionForm {
   readonly showSkip = input(false);
   readonly submitLabel = input('Создать подписку');
   readonly skipLabel = input('Пропустить');
+  readonly initialName = input<string | null>(null);
+  readonly initialDescription = input<string | null>(null);
+  readonly initialPrice = input<string | null>(null);
 
   readonly submitted = output<SubscriptionCreateDto>();
   readonly skipped = output<void>();
@@ -27,6 +30,17 @@ export class SubscriptionForm {
     description: ['', [Validators.required]],
     monthlyPrice: ['', [Validators.required, Validators.min(1)]]
   });
+
+  ngOnInit(): void {
+    // Заполняем форму начальными значениями, если они переданы
+    if (this.initialName() || this.initialDescription() || this.initialPrice()) {
+      this.form.patchValue({
+        name: this.initialName() || '',
+        description: this.initialDescription() || '',
+        monthlyPrice: this.initialPrice() || ''
+      });
+    }
+  }
 
   onSubmit(): void {
     if (this.form.invalid) {

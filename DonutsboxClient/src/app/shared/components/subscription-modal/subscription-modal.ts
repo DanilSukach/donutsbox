@@ -9,6 +9,7 @@ import { SubscriptionPaymentResponseDto } from '@app/api/donutsbox/model/subscri
 import { FilesService } from '@app/api/donutsbox/api/files.service';
 import { UserSubscriptionsFacade } from '@app/features/profile/services/user-subscriptions-facade';
 import { Subscription } from 'rxjs';
+import { LucideAngularModule } from 'lucide-angular';
 
 type SubscriptionPlan = {
   key: string;
@@ -22,7 +23,7 @@ type SubscriptionPlan = {
 @Component({
   selector: 'app-subscription-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './subscription-modal.html',
   styleUrl: './subscription-modal.css'
 })
