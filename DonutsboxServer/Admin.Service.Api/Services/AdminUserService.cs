@@ -41,7 +41,7 @@ public class AdminUserService(DonutsboxDbContext context,
                 Name = user.Name,
                 Email = user.UserAuth.AuthEmail,
                 UserType = user.UserType.Name,
-                CreatedAt = (DateTime)user.UserAuth.LastAuth!,
+                CreatedAt = user.UserAuth.LastAuth ?? DateTime.UtcNow, // Используем текущую дату, если LastAuth null
                 HasCreatorPage = user.CreatorPageData != null,
                 PostsCount = postsCount,
                 SubscriptionsCount = user.UserSubscriptions?.Count ?? 0
@@ -53,33 +53,72 @@ public class AdminUserService(DonutsboxDbContext context,
 
     public async Task<IEnumerable<AdminAuthorListDto>> GetAllAuthors()
     {
-        var authors = await context.Users
-            .Include(u => u.UserAuth)
-            .Include(u => u.UserType)
-            .Include(u => u.CreatorPageData)
-            .Include(u => u.UserSubscriptions)
-            .Where(u => u.CreatorPageData != null)
-            .ToListAsync();
-        var result = new List<AdminAuthorListDto>();
-        foreach (var author in authors)
+        try
         {
-            var postsCount = await context.ContentPosts
-                .CountAsync(p => p.CreatorPageDataId == author.CreatorPageData!.Id);
-            result.Add(new AdminAuthorListDto
+            var authors = await context.Users
+                .Include(u => u.UserAuth)
+                .Include(u => u.UserType)
+                .Include(u => u.CreatorPageData)
+                .Include(u => u.UserSubscriptions)
+                .Where(u => u.CreatorPageData != null)
+                .ToListAsync();
+            
+            var result = new List<AdminAuthorListDto>();
+            
+            foreach (var author in authors)
             {
-                Id = author.Id,
-                CreatorPageId = author.CreatorPageData!.Id,
-                Name = author.Name,
-                Email = author.UserAuth.AuthEmail,
-                UserType = author.UserType.Name,
-                CreatedAt = (DateTime)author.UserAuth.LastAuth!,
-                PostsCount = postsCount,
-                SubscriptionsCount = author.UserSubscriptions?.Count ?? 0,
-                SubscribersCount = author.CreatorPageData.SubscribersCount,
-                IsShadowBanned = author.CreatorPageData.IsShadowBanned
-            });
+                try
+                {
+                    // Дополнительная проверка на null (EF Core может вернуть null после фильтрации)
+                    if (author.CreatorPageData == null)
+                    {
+                        logger.LogWarning("Пропущен автор {AuthorId}: CreatorPageData равен null после фильтрации", author.Id);
+                        continue;
+                    }
+
+                    if (author.UserAuth == null)
+                    {
+                        logger.LogWarning("Пропущен автор {AuthorId}: UserAuth равен null", author.Id);
+                        continue;
+                    }
+
+                    if (author.UserType == null)
+                    {
+                        logger.LogWarning("Пропущен автор {AuthorId}: UserType равен null", author.Id);
+                        continue;
+                    }
+
+                    var postsCount = await context.ContentPosts
+                        .CountAsync(p => p.CreatorPageDataId == author.CreatorPageData.Id);
+                    
+                    result.Add(new AdminAuthorListDto
+                    {
+                        Id = author.Id,
+                        CreatorPageId = author.CreatorPageData.Id,
+                        Name = author.Name,
+                        Email = author.UserAuth.AuthEmail,
+                        UserType = author.UserType.Name,
+                        CreatedAt = author.UserAuth.LastAuth ?? DateTime.UtcNow,
+                        PostsCount = postsCount,
+                        SubscriptionsCount = author.UserSubscriptions?.Count ?? 0,
+                        SubscribersCount = author.CreatorPageData.SubscribersCount,
+                        IsShadowBanned = author.CreatorPageData.IsShadowBanned
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Ошибка при обработке автора {AuthorId}: {Message}", author.Id, ex.Message);
+                    // Продолжаем обработку остальных авторов
+                }
+            }
+            
+            return result;
         }
-        return result;
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Ошибка при получении списка авторов: {Message}", ex.Message);
+            throw;
+        }
     }
 
     public async Task<AdminUserListDto?> GetUserByIdAsync(Guid userId)
@@ -107,7 +146,7 @@ public class AdminUserService(DonutsboxDbContext context,
             Name = user.Name,
             Email = user.UserAuth.AuthEmail,
             UserType = user.UserType.Name,
-            CreatedAt = (DateTime)user.UserAuth.LastAuth!,
+            CreatedAt = user.UserAuth.LastAuth ?? DateTime.UtcNow, // Используем текущую дату, если LastAuth null
             HasCreatorPage = user.CreatorPageData != null,
             PostsCount = postsCount,
             SubscriptionsCount = user.UserSubscriptions?.Count ?? 0

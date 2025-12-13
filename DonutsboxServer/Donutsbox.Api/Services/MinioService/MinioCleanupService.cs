@@ -95,7 +95,7 @@ public class MinioCleanupService : BackgroundService
                 .WithBucket(bucket)
                 .WithRecursive(true);
 
-            await foreach (var item in _minioClient.ListObjectsEnumAsync(listArgs).WithCancellation(cancellationToken))
+            await foreach (var item in _minioClient.ListObjectsEnumAsync(listArgs, cancellationToken).WithCancellation(cancellationToken))
             {
                 if (cancellationToken.IsCancellationRequested)
                     break;
@@ -106,7 +106,7 @@ public class MinioCleanupService : BackgroundService
                         .WithBucket(bucket)
                         .WithObject(item.Key);
 
-                    var objectStat = await _minioClient.StatObjectAsync(statArgs);
+                    var objectStat = await _minioClient.StatObjectAsync(statArgs, cancellationToken);
                     var lastModified = objectStat.LastModified;
 
                     if (lastModified < cutoffTime)

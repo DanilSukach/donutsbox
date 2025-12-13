@@ -60,7 +60,7 @@ public class UnifiedMediaProcessedConsumer(
             .Build();
 
         // Подписываемся на оба топика
-        consumer.Subscribe(new[] { videoTopic, audioTopic });
+        consumer.Subscribe([videoTopic, audioTopic]);
         logger.LogInformation("Subscribed to topics: {VideoTopic}, {AudioTopic}", videoTopic, audioTopic);
 
         while (!stoppingToken.IsCancellationRequested)
@@ -210,7 +210,7 @@ public class UnifiedMediaProcessedConsumer(
                     videoId = evt.VideoId,
                     status = "READY",
                     processedPath = evt.OutputPath,
-                    postId = postId
+                    postId
                 }, stoppingToken);
                 logger.LogInformation("✅ Sent SignalR notification for video {VideoId} to user {UserId}", evt.VideoId, video.UserId);
             }
@@ -293,7 +293,7 @@ public class UnifiedMediaProcessedConsumer(
                     audioId = evt.AudioId,
                     status = "READY",
                     processedPath = evt.OutputPath,
-                    postId = postId
+                    postId
                 }, stoppingToken);
                 logger.LogInformation("✅ Sent SignalR notification for audio {AudioId} to user {UserId}", evt.AudioId, audio.UserId);
             }

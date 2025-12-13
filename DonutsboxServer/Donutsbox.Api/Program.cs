@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Prometheus;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
@@ -244,6 +245,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseHttpsRedirection();
+
+app.UseHttpMetrics();
+app.MapMetrics();
+
 app.MapControllers();
 
 app.MapHub<CommentsHub>("/api/hubs/comments");

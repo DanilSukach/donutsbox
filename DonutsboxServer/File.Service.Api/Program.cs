@@ -1,4 +1,5 @@
 using File.Service.Api.Services;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,8 @@ builder.Logging.AddConsole();
 
 var app = builder.Build();
 
+app.UseHttpMetrics();
+app.MapMetrics();
 
 
 app.Run();

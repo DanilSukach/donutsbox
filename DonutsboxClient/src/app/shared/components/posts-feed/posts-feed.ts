@@ -1,5 +1,6 @@
 import { Component, effect, inject, input, output, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy, untracked, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { Router } from '@angular/router';
 import { PostCard } from '@app/shared/components/post-card/post-card';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 import { SessionService } from '@app/core/services/session.service';
@@ -27,6 +28,7 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
   
   private postsRefreshService = inject(PostsRefresh);
   private sessionService = inject(SessionService);
+  private router = inject(Router);
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId);
 
@@ -267,6 +269,12 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
     this.posts.update(posts => posts.filter(p => p.id !== postId));
     if (post) {
       this.postHidden.emit(post); // Передаём весь объект поста
+    }
+  }
+
+  navigateToCreatorProfile(post: any): void {
+    if (post.creatorId) {
+      this.router.navigate(['/profile', post.creatorId]);
     }
   }
 }

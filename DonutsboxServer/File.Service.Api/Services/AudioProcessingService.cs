@@ -70,8 +70,8 @@ public class AudioProcessingService(ILogger<AudioProcessingService> logger, Mini
                 cancellationToken.ThrowIfCancellationRequested();
 
                 using var process = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start ffmpeg process.");
-                var stdOutTask = process.StandardOutput.ReadToEndAsync();
-                var stdErrTask = process.StandardError.ReadToEndAsync();
+                var stdOutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+                var stdErrTask = process.StandardError.ReadToEndAsync(cancellationToken);
 
                 // Wait with cancellation support
                 try

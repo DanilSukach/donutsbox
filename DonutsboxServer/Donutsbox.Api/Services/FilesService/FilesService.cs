@@ -369,7 +369,7 @@ public class FilesService(
 
         using (var stream = request.File.OpenReadStream())
         {
-            await minioService.UploadAudioAsync(objectKey, stream, request.File.ContentType);
+            await minioService.UploadAudioAsync(objectKey, stream, request.File.ContentType!);
         }
 
         audio.Status = "UPLOADED";

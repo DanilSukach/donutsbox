@@ -36,5 +36,9 @@ public class KafkaProducerService : IDisposable
         _logger.LogInformation("Published audio.processed for {AudioId}", evt.AudioId);
     }
 
-    public void Dispose() => _producer.Dispose();
+    public void Dispose()
+    {
+        _producer?.Dispose();
+        GC.SuppressFinalize(this);
+    }
 }
