@@ -28,21 +28,29 @@
       <!-- Информация об авторе (только для feed) -->
       @if (showAuthorInfo()) {
         <div class="flex items-center gap-3 mb-3 px-4 py-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-t-xl border-b-2 border-amber-200">
-          @if (post.creatorAvatarUrl) {
-            <img 
-              [src]="post.creatorAvatarUrl" 
-              [alt]="post.creatorPageName"
-              class="w-12 h-12 rounded-full object-cover border-2 border-amber-300 shadow-sm"
-            />
-          } @else {
-            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-sm">
-              <lucide-icon name="user" class="w-6 h-6 text-white" />
+          <button
+            type="button"
+            (click)="navigateToCreatorProfile(post)"
+            [disabled]="!post.creatorId"
+            class="flex items-center gap-3 flex-1 text-left hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            [title]="post.creatorId ? 'Перейти на канал ' + (post.creatorPageName || 'автора') : ''"
+          >
+            @if (post.creatorAvatarUrl) {
+              <img 
+                [src]="post.creatorAvatarUrl" 
+                [alt]="post.creatorPageName"
+                class="w-12 h-12 rounded-full object-cover border-2 border-amber-300 shadow-sm cursor-pointer"
+              />
+            } @else {
+              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-sm cursor-pointer">
+                <lucide-icon name="user" class="w-6 h-6 text-white" />
+              </div>
+            }
+            <div class="flex-1">
+              <h4 class="font-semibold text-gray-900 cursor-pointer hover:text-amber-700 transition-colors">{{ post.creatorPageName || 'Автор' }}</h4>
+              <p class="text-xs text-gray-500">{{ formatDate(post.createdAt) }}</p>
             </div>
-          }
-          <div class="flex-1">
-            <h4 class="font-semibold text-gray-900">{{ post.creatorPageName || 'Автор' }}</h4>
-            <p class="text-xs text-gray-500">{{ formatDate(post.createdAt) }}</p>
-          </div>
+          </button>
         </div>
       }
       

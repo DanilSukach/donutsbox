@@ -93,6 +93,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
+      MINIO_PROMETHEUS_AUTH_TYPE: public
       # Настройка для работы через прокси
       MINIO_BROWSER_REDIRECT_URL: https://donutsbox.ru/minio-console
     volumes:
@@ -277,6 +278,7 @@ services:
     depends_on:
       - postgres-exporter
       - kafka-exporter
+      - minio
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
       interval: 30s

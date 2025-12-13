@@ -25,10 +25,10 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         }
 
         // Валидация пароля
-        var passwordValidationResult = ValidatePassword(dto.Password);
-        if (!passwordValidationResult.IsValid)
+        var (IsValid, ErrorMessage) = ValidatePassword(dto.Password);
+        if (!IsValid)
         {
-            throw new InvalidOperationException(passwordValidationResult.ErrorMessage);
+            throw new InvalidOperationException(ErrorMessage);
         }
 
         if (dto.Password != dto.RepeatPassword)
@@ -190,10 +190,10 @@ public class AuthService(IAuthRepository repository, IJwtService jwt) : IAuthSer
         }
 
         // Валидация пароля
-        var passwordValidationResult = ValidatePassword(dto.Password);
-        if (!passwordValidationResult.IsValid)
+        var (IsValid, ErrorMessage) = ValidatePassword(dto.Password);
+        if (!IsValid)
         {
-            throw new InvalidOperationException(passwordValidationResult.ErrorMessage);
+            throw new InvalidOperationException(ErrorMessage);
         }
 
         if (dto.Password != dto.RepeatPassword)

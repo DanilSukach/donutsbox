@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -151,7 +152,6 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Инициализация админа при запуске
 using (var scope = app.Services.CreateScope())
 {
     try
@@ -165,6 +165,12 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "Произошла ошибка при инициализации администратора");
     }
 }
+
+app.UseHttpMetrics();
+app.MapMetrics();
+
+app.UseHttpMetrics();
+app.MapMetrics();
 
 app.MapControllers();
 
