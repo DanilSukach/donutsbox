@@ -33,7 +33,7 @@ public class KafkaMessageProducer : IMessageProducer, IDisposable
             MessageTimeoutMs = 30000,  // 30 секунд
             RequestTimeoutMs = 30000,
             MessageSendMaxRetries = 10,
-            RetryBackoffMs = 100,
+            RetryBackoffMs = 1000, // Увеличиваем задержку между retry до 1 секунды
 
             // Для немедленной отправки без буферизации
             BatchSize = 1,  // Отправлять сразу
@@ -42,13 +42,35 @@ public class KafkaMessageProducer : IMessageProducer, IDisposable
             CompressionType = CompressionType.None,
             SocketTimeoutMs = 60000,
             ApiVersionRequestTimeoutMs = 10000,
+            
+            // Настройки для автоматического переподключения
+            ReconnectBackoffMs = 1000, // Начальная задержка переподключения: 1 секунда
+            ReconnectBackoffMaxMs = 10000, // Максимальная задержка переподключения: 10 секунд
+            SocketKeepaliveEnable = true, // Включаем keepalive для поддержания соединения
+            MetadataMaxAgeMs = 300000, // 5 минут - максимальный возраст метаданных
 
             // Добавим логирование для отладки
             Debug = "broker,topic,msg"
         };
 
         _producer = new ProducerBuilder<string, string>(config)
-            .SetErrorHandler((_, e) => _logger.LogError("Kafka Producer Error: {Reason}", e.Reason))
+            .SetErrorHandler((_, e) =>
+            {
+                // Логируем ошибки подключения как предупреждения, а не ошибки
+                if (e.Code == ErrorCode.Local_Transport)
+                {
+                    _logger.LogWarning("Kafka Producer connection issue: {Reason} (Code: {Code}). Will retry automatically.", 
+                        e.Reason, e.Code);
+                }
+                else if (e.IsFatal)
+                {
+                    _logger.LogError("Kafka Producer Fatal Error: {Reason} (Code: {Code})", e.Reason, e.Code);
+                }
+                else
+                {
+                    _logger.LogWarning("Kafka Producer Error: {Reason} (Code: {Code})", e.Reason, e.Code);
+                }
+            })
             .SetLogHandler((_, log) =>
             {
                 var logLevel = log.Level switch

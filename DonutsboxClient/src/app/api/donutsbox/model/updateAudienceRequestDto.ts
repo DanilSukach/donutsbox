@@ -9,7 +9,8 @@
  */
 
 
-export interface UpdateCommentRequestDto { 
-    text: string;
+export interface UpdateAudienceRequestDto { 
+    isPublic?: boolean | null;
+    subscriptionIds?: Array<string> | null;
 }
 

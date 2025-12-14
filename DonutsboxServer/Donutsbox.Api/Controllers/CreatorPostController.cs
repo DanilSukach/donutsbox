@@ -13,7 +13,7 @@ namespace Donutsbox.Api.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public class CreatorPostController(ICreatorPostService creatorPostService) : ControllerBase
+public class CreatorPostController(ICreatorPostService creatorPostService, ILogger<CreatorPostController> logger) : ControllerBase
 {
     /// <summary>
     /// Шаг 1: Создать черновик поста (не опубликован)
@@ -74,6 +74,25 @@ public class CreatorPostController(ICreatorPostService creatorPostService) : Con
         try
         {
             var result = await creatorPostService.AddTextToPostAsync(postId, request, User);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Обновить видимость поста (аудиторию) для черновика
+    /// </summary>
+    [HttpPut("{postId:guid}/audience")]
+    public async Task<ActionResult<UpdateAudienceResponseDto>> UpdatePostAudience(
+      [FromRoute] Guid postId,
+      [FromBody] UpdateAudienceRequestDto request)
+    {
+        try
+        {
+            var result = await creatorPostService.UpdateAudienceAsync(postId, request, User);
             return Ok(result);
         }
         catch (InvalidOperationException ex)

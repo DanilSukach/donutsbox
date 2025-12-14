@@ -367,6 +367,55 @@
           placeholder="Введите текст поста"
         ></textarea>
       </div>
+
+      <!-- Видимость поста (только для черновиков) -->
+      @if (!post().isPublished && (!post().publishedAt || post().publishedAt === '')) {
+        <div class="border-2 border-amber-200 rounded-xl p-4 bg-amber-50">
+          <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div class="flex-1">
+              <h3 class="font-bold text-amber-900 text-lg flex items-center gap-1">
+                <lucide-icon name="target" class="w-5 h-5" /> Кто увидит пост
+              </h3>
+              <p class="text-sm text-amber-800">Выберите, будет ли пост доступен всем или только подписчикам определённых тарифов.</p>
+            </div>
+            <div class="flex gap-3 text-sm">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="editAudience" [checked]="editAudienceType() === 'public'" (change)="setEditAudience('public')" />
+                <span>Все пользователи</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer" [class.text-gray-400]="editAvailableSubscriptions().length === 0">
+                <input type="radio" name="editAudience" [checked]="editAudienceType() === 'subscribers'" (change)="setEditAudience('subscribers')" [disabled]="editAvailableSubscriptions().length === 0" />
+                <span>Только подписчики</span>
+              </label>
+            </div>
+          </div>
+
+          @if (editAudienceType() === 'subscribers') {
+            <div class="mt-4">
+              @if (editSubscriptionsLoading()) {
+                <p class="text-sm text-amber-800">Загружаем список подписок...</p>
+              } @else if (editSubscriptionsError()) {
+                <p class="text-sm text-red-600">{{ editSubscriptionsError() }}</p>
+              } @else if (editAvailableSubscriptions().length === 0) {
+                <p class="text-sm text-amber-800">У вас пока нет оформленных подписок. Создайте тарифы, чтобы ограничивать доступ к постам.</p>
+              } @else {
+                <div class="space-y-2">
+                  @for (sub of editAvailableSubscriptions(); track sub.id) {
+                    <label class="flex items-center gap-3 bg-white rounded-lg p-3 border border-amber-200 cursor-pointer">
+                      <input type="checkbox" [checked]="isEditSubscriptionSelected(sub.id!)" (change)="toggleEditSubscription(sub.id!)" />
+                      <div class="flex-1">
+                        <p class="font-semibold text-gray-900">{{ sub.name }}</p>
+                        <p class="text-xs text-gray-500">{{ sub.price }}</p>
+                      </div>
+                    </label>
+                  }
+                  <p class="text-xs text-amber-700">Выбрано: {{ editSelectedSubscriptionIds().size }} / {{ editAvailableSubscriptions().length }}</p>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
     </div>
 
     <!-- Footer -->

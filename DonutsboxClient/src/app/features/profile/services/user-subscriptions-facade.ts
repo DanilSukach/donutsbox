@@ -23,7 +23,6 @@ export class UserSubscriptionsFacade {
 
     return this.userDataService.apiUserDataSubscriptionsGet().pipe(
       tap((subscriptions) => {
-        console.log('Подписки пользователя загружены:', subscriptions);
         this.subscriptions.set(subscriptions);
         this.isLoading.set(false);
       }),

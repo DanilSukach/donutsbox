@@ -170,9 +170,6 @@ export class FeedFacade {
       return of({ posts: [], total: 0 });
     }
     return this.creatorPostService.apiCreatorPostFeedGet(page, pageSize).pipe(
-      tap((response) => {
-        console.log('Feed posts loaded:', response);
-      }),
       catchError((error) => {
         console.error('Error loading feed:', error);
         throw error;

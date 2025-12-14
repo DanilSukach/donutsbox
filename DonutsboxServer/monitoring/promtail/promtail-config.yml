@@ -1,6 +1,7 @@
 server:
   http_listen_port: 9080
   grpc_listen_port: 0
+  log_level: info
 
 positions:
   filename: /tmp/positions.yaml
@@ -14,73 +15,99 @@ scrape_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
     relabel_configs:
+      # Фильтруем только нужные контейнеры (учитываем префикс /)
       - source_labels: ['__meta_docker_container_name']
-        regex: '/(.*)'
-        target_label: 'container'
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'logstream'
+        regex: '/(auth-api|donutsbox-api|admin-service-api|file-service-api|nginx)'
+        action: keep
+
+      # Service - сначала устанавливаем из Docker Compose service label (приоритет)
+      # Это соответствует меткам в Prometheus
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        regex: '(.+)'
         target_label: 'service'
+        replacement: '${1}'
+
+      # Service - если Docker Compose label нет, берем из имени контейнера (fallback)
+      # Убираем префикс / из имени контейнера
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'service'
+        replacement: '${1}'
+      
+      # Job - устанавливаем на основе service (как в Prometheus)
+      # Это обеспечивает консистентность: job="auth-api", service="auth-api"
+      # Копируем значение service в job
+      - source_labels: ['service']
+        target_label: 'job'
+        regex: '(.+)'
+        replacement: '${1}'
+
+      # Container - дополнительная метка для идентификации контейнера
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+        replacement: '${1}'
+
+      # Project из Docker Compose (опционально)
       - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
+        regex: '(.+)'
         target_label: 'project'
-
-  - job_name: auth-api
-    docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-        refresh_interval: 5s
-    relabel_configs:
-      - source_labels: ['__meta_docker_container_name']
-        regex: 'auth-api'
-        action: keep
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'logstream'
-      - source_labels: ['__meta_docker_container_name']
-        regex: '/(.*)'
-        target_label: 'container'
         replacement: '${1}'
 
-  - job_name: donutsbox-api
-    docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-        refresh_interval: 5s
-    relabel_configs:
-      - source_labels: ['__meta_docker_container_name']
-        regex: 'donutsbox-api'
-        action: keep
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'logstream'
-      - source_labels: ['__meta_docker_container_name']
-        regex: '/(.*)'
-        target_label: 'container'
-        replacement: '${1}'
+      # Удаляем все служебные метки ПОСЛЕ применения всех остальных
+      # ВАЖНО: regex '__.*' удаляет только метки, начинающиеся с '__'
+      # Метки job, container, service, project НЕ удаляются
+      - action: labeldrop
+        regex: '__.*'
 
-  - job_name: admin-service-api
-    docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-        refresh_interval: 5s
-    relabel_configs:
-      - source_labels: ['__meta_docker_container_name']
-        regex: 'admin-service-api'
-        action: keep
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'logstream'
-      - source_labels: ['__meta_docker_container_name']
-        regex: '/(.*)'
-        target_label: 'container'
-        replacement: '${1}'
-
-  - job_name: file-service-api
-    docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-        refresh_interval: 5s
-    relabel_configs:
-      - source_labels: ['__meta_docker_container_name']
-        regex: 'file-service-api'
-        action: keep
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'logstream'
-      - source_labels: ['__meta_docker_container_name']
-        regex: '/(.*)'
-        target_label: 'container'
-        replacement: '${1}'
+  # Конфигурация для парсинга файловых логов с кастомным форматом
+  # ВАЖНО: Убедитесь, что volume смонтирован в docker-compose.yml
+  - job_name: file-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          # КРИТИЧЕСКИ ВАЖНО: метка job должна быть установлена здесь
+          # Это гарантирует наличие хотя бы одной метки для всех записей
+          job: file-logs
+          __path__: /logs/*.log
+    
+    # УПРОЩЕННЫЙ ВАРИАНТ ДЛЯ НАЧАЛА
+    # Этот вариант просто отправляет все строки с меткой job
+    # После проверки работы можно включить полную обработку ниже
+    pipeline_stages:
+      # Просто отправляем исходную строку - метка job уже есть
+      - output:
+          source: message
+    
+    # ПОЛНЫЙ ВАРИАНТ С ОБРАБОТКОЙ (раскомментируйте после проверки базовой работы)
+    # pipeline_stages:
+    #   # Разбор строки лога
+    #   - regex:
+    #       expression: '\[(?P<time>[^\]]+)\] \[(?P<tenantid>[^\]]+)\] \[(?P<severity>[^\]]+)\] \[(?P<module>[^\]]+)\] \[(?P<msg>.*)\]'
+    #   
+    #   # Создание меток из извлеченных полей (только если regex сработал)
+    #   - labels:
+    #       tenantid:
+    #       severity:
+    #       module:
+    #   
+    #   # Установка времени
+    #   - timestamp:
+    #       format: 02.01.2006 15:04:05
+    #       source: time
+    #       location: Asia/Krasnoyarsk
+    #   
+    #   # Удаление ненужных меток (но job остается!)
+    #   - labeldrop:
+    #       - filename
+    #       - time
+    #   
+    #   # Форматирование сообщения
+    #   - template:
+    #       source: msgData
+    #       template: '{{ .msg }}'
+    #   
+    #   - output:
+    #       source: msgData
 

@@ -32,6 +32,7 @@ interface Post {
   text?: string | null;
   createdAt: string;
   publishedAt?: string | null;
+  isPublished?: boolean;
   likesCount?: number;
   dislikesCount?: number;
   commentsCount?: number;
@@ -42,6 +43,8 @@ interface Post {
   isLocked?: boolean;
   lockedMessage?: string | null;
   isShadowBanned?: boolean;
+  audienceType?: string | null;
+  subscriptionIds?: string[];
 }
 
 @Component({
@@ -62,6 +65,11 @@ export class PostCard implements OnDestroy {
   readonly editTitle = signal<string>('');
   readonly editText = signal<string>('');
   readonly isUpdating = signal(false);
+  readonly editAudienceType = signal<'public' | 'subscribers'>('public');
+  readonly editAvailableSubscriptions = signal<any[]>([]);
+  readonly editSelectedSubscriptionIds = signal<Set<string>>(new Set<string>());
+  readonly editSubscriptionsLoading = signal(false);
+  readonly editSubscriptionsError = signal<string | null>(null);
   
   // CDK Overlay для модалок
   @ViewChild('editModalTemplate') editModalTemplate!: TemplateRef<unknown>;
@@ -341,6 +349,17 @@ export class PostCard implements OnDestroy {
     this.editTitle.set(post.title || '');
     this.editText.set(post.text || '');
     
+    // Инициализируем видимость поста
+    const audienceType = post.audienceType === 'Subscribers' ? 'subscribers' : 'public';
+    this.editAudienceType.set(audienceType);
+    this.editSelectedSubscriptionIds.set(new Set(post.subscriptionIds || []));
+    
+    // Загружаем подписки, если пост не опубликован (черновик)
+    const isPostPublished = post.isPublished === true || (post.publishedAt != null && post.publishedAt !== '');
+    if (!isPostPublished) {
+      this.loadSubscriptionsForEdit();
+    }
+    
     // Создаём overlay
     this.editOverlayRef = this.overlay.create({
       hasBackdrop: true,
@@ -360,6 +379,45 @@ export class PostCard implements OnDestroy {
     this.editOverlayRef.backdropClick().subscribe(() => this.closeEditModal());
     
     this.showEditModal.set(true);
+  }
+
+  loadSubscriptionsForEdit(): void {
+    this.editSubscriptionsLoading.set(true);
+    this.editSubscriptionsError.set(null);
+    
+    this.postsFacade.getCreatorSubscriptions().subscribe({
+      next: (subscriptions) => {
+        this.editAvailableSubscriptions.set(subscriptions);
+        this.editSubscriptionsLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Ошибка загрузки подписок:', error);
+        this.editSubscriptionsError.set('Не удалось загрузить список подписок');
+        this.editSubscriptionsLoading.set(false);
+      }
+    });
+  }
+
+  setEditAudience(type: 'public' | 'subscribers'): void {
+    this.editAudienceType.set(type);
+    if (type === 'public') {
+      this.editSelectedSubscriptionIds.set(new Set());
+    }
+  }
+
+  toggleEditSubscription(subscriptionId: string): void {
+    const current = this.editSelectedSubscriptionIds();
+    const updated = new Set(current);
+    if (updated.has(subscriptionId)) {
+      updated.delete(subscriptionId);
+    } else {
+      updated.add(subscriptionId);
+    }
+    this.editSelectedSubscriptionIds.set(updated);
+  }
+
+  isEditSubscriptionSelected(subscriptionId: string): boolean {
+    return this.editSelectedSubscriptionIds().has(subscriptionId);
   }
 
   closeEditModal(): void {
@@ -389,11 +447,49 @@ export class PostCard implements OnDestroy {
     this.currentText.set(text || null);
 
     this.isUpdating.set(true);
-    this.postsFacade.updatePostText(this.post().id, title, text).subscribe({
+    const post = this.post();
+    
+    // Обновляем текст
+    this.postsFacade.updatePostText(post.id, title, text).subscribe({
       next: () => {
-        console.log('Пост обновлен успешно:', this.post().id);
-        this.closeEditModal();
-        this.isUpdating.set(false);
+        // Если пост не опубликован, обновляем видимость
+        // Используем isPublished, если оно есть, иначе проверяем publishedAt
+        const isPostPublished = post.isPublished === true || (post.publishedAt != null && post.publishedAt !== '');
+        if (!isPostPublished) {
+          const selectedSubscriptionIds = this.editSelectedSubscriptionIds();
+          const subscriptionIdsArray = selectedSubscriptionIds.size > 0 
+            ? Array.from(selectedSubscriptionIds) 
+            : null;
+          
+          // Если выбрано "subscribers", но нет выбранных подписок, не отправляем запрос
+          if (this.editAudienceType() === 'subscribers' && (!subscriptionIdsArray || subscriptionIdsArray.length === 0)) {
+            console.warn('Нельзя установить видимость "Только подписчики" без выбранных подписок');
+            this.closeEditModal();
+            this.isUpdating.set(false);
+            return;
+          }
+          
+          this.postsFacade.updatePostAudience(
+            post.id,
+            this.editAudienceType() === 'public' ? true : (this.editAudienceType() === 'subscribers' ? false : null),
+            subscriptionIdsArray
+          ).subscribe({
+            next: () => {
+              console.log('Пост обновлен успешно:', post.id);
+              this.closeEditModal();
+              this.isUpdating.set(false);
+            },
+            error: (error) => {
+              console.error('Ошибка обновления видимости поста:', error);
+              this.closeEditModal();
+              this.isUpdating.set(false);
+            }
+          });
+        } else {
+          console.log('Пост обновлен успешно:', post.id);
+          this.closeEditModal();
+          this.isUpdating.set(false);
+        }
       },
       error: (error) => {
         console.error('Ошибка обновления поста:', error);

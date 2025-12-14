@@ -39,6 +39,18 @@ scrape_configs:
         labels:
           service: 'kafka'
 
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+        labels:
+          service: 'loki'
+
+  - job_name: 'promtail'
+    static_configs:
+      - targets: ['promtail:9080']
+        labels:
+          service: 'promtail'
+
   - job_name: 'minio'
     static_configs:
       - targets: ['minio:9000']

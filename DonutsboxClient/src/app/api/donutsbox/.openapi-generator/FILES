@@ -61,6 +61,9 @@ model/subscriptionDto.ts
 model/subscriptionPaymentRequestDto.ts
 model/subscriptionPaymentResponseDto.ts
 model/subscriptionPaymentStatusDto.ts
+model/subscriptionUpdateDto.ts
+model/updateAudienceRequestDto.ts
+model/updateAudienceResponseDto.ts
 model/updateCommentRequestDto.ts
 model/updateImageKeyDto.ts
 model/uploadImagesResponseDto.ts

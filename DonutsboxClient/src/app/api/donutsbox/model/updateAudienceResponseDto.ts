@@ -9,7 +9,8 @@
  */
 
 
-export interface UpdateCommentRequestDto { 
-    text: string;
+export interface UpdateAudienceResponseDto { 
+    postId?: string;
+    message?: string | null;
 }
 

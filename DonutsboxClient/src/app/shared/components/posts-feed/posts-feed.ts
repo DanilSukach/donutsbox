@@ -63,7 +63,6 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
       
       const isFirstLoad = this.lastTrigger === -1;
       this.lastTrigger = trigger;
-      console.log('🔄 posts-feed: effect сработал, trigger:', trigger, 'isFirstLoad:', isFirstLoad);
       
       // Используем untracked для избежания бесконечного цикла
       untracked(() => {
@@ -96,7 +95,6 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
       (entries) => {
         const entry = entries[0];
         if (entry.isIntersecting && !this.isLoading() && this.hasMore()) {
-          console.log('📍 Sentinel видим, загружаем еще...');
           this.loadMore();
         }
       },
@@ -122,7 +120,6 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
     if (!this.isBrowser) {
       return;
     }
-    console.log('🔄 Мягкое обновление постов');
     this.softRefresh();
   }
 
@@ -140,8 +137,6 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
     
     loadFunction(1, this.pageSize).subscribe({
       next: (response) => {
-        console.log('✅ Soft refresh - посты загружены:', response);
-        
         const newPosts = response.posts || [];
         const existingPosts = this.posts();
         
@@ -150,11 +145,8 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
         const trulyNewPosts = newPosts.filter((p: any) => !existingIds.has(p.postId || p.id));
         
         if (trulyNewPosts.length > 0) {
-          console.log(`📥 Добавлено ${trulyNewPosts.length} новых постов`);
           // Добавляем новые посты в начало
           this.posts.update(existing => [...trulyNewPosts, ...existing]);
-        } else {
-          console.log('📭 Новых постов нет');
         }
         
         // Обновляем существующие посты (например, статус видео)
@@ -188,7 +180,6 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
     if (!this.isBrowser) {
       return;
     }
-    console.log('🔄 Полный сброс и загрузка постов');
     this.posts.set([]);
     this.currentPage.set(1);
     this.hasMore.set(true);
@@ -208,8 +199,6 @@ export class PostsFeed implements AfterViewInit, OnDestroy {
     
     loadFunction(this.currentPage(), this.pageSize).subscribe({
       next: (response) => {
-        console.log('✅ Посты загружены:', response);
-        
         const newPosts = response.posts || [];
         
         // Для первой страницы заменяем, для остальных добавляем
