@@ -26,13 +26,46 @@ schema_config:
         period: 24h
 
 limits_config:
+  # Отклонение старых образцов (больше 7 дней)
   reject_old_samples: true
   reject_old_samples_max_age: 168h
+  
+  # Лимиты приема данных (MB/s)
   ingestion_rate_mb: 16
   ingestion_burst_size_mb: 32
+  
+  # Ретеншн: хранение логов 14 дней (336 часов)
+  # После этого compactor автоматически удалит старые данные
+  retention_period: 336h
+  
+  # Лимиты на количество уникальных меток (предотвращение взрыва кардинальности)
+  max_label_name_length: 1024
+  max_label_value_length: 4096
+  max_entries_limit_per_query: 10000
+  
+  # Лимиты на размер запросов
+  max_query_length: 721h
+  max_query_parallelism: 32
+  max_streams_per_user: 10000
+  max_line_size: 256KB
 
 chunk_store_config:
   max_look_back_period: 0s
+
+# Compactor: автоматическая очистка старых данных
+# Работает в фоновом режиме и удаляет данные старше retention_period
+compactor:
+  working_directory: /loki/compactor
+  shared_store: filesystem
+  compaction_interval: 10m
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 150
+
+# Настройки хранилища для compactor
+storage_config:
+  filesystem:
+    directory: /loki/chunks
 
 analytics:
   reporting_enabled: false

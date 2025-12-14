@@ -51,23 +51,52 @@ public class UnifiedMediaProcessedConsumer(
             MaxPollIntervalMs = 300000,
             // Оптимизация производительности
             FetchMinBytes = 1,
-            FetchWaitMaxMs = 500,
-            MaxPartitionFetchBytes = 1048576 // 1MB на партицию
+            FetchWaitMaxMs = 100, // Уменьшаем время ожидания для более быстрого получения сообщений
+            MaxPartitionFetchBytes = 1048576, // 1MB на партицию
+            // Настройки для автоматического переподключения
+            ReconnectBackoffMs = 1000, // Начальная задержка переподключения: 1 секунда
+            ReconnectBackoffMaxMs = 10000, // Максимальная задержка переподключения: 10 секунд
+            SocketKeepaliveEnable = true, // Включаем keepalive для поддержания соединения
+            MetadataMaxAgeMs = 300000, // 5 минут - максимальный возраст метаданных
+            SocketTimeoutMs = 60000 // 60 секунд - timeout для сокета
         };
 
         using var consumer = new ConsumerBuilder<Ignore, string>(consumerConfig)
-            .SetErrorHandler((_, e) => logger.LogError("Kafka consumer error: {Reason}", e.Reason))
+            .SetErrorHandler((_, e) =>
+            {
+                // Логируем ошибки подключения как предупреждения, т.к. они будут автоматически обработаны
+                if (e.Code == ErrorCode.Local_Transport)
+                {
+                    logger.LogWarning("Kafka Consumer connection issue: {Reason} (Code: {Code}). Will retry automatically.", 
+                        e.Reason, e.Code);
+                }
+                else if (e.IsFatal)
+                {
+                    logger.LogError("Kafka Consumer Fatal Error: Code={Code}, Reason={Reason}", e.Code, e.Reason);
+                }
+                else
+                {
+                    logger.LogWarning("Kafka Consumer Error: Code={Code}, Reason={Reason}", e.Code, e.Reason);
+                }
+            })
             .Build();
 
         // Подписываемся на оба топика
         consumer.Subscribe([videoTopic, audioTopic]);
         logger.LogInformation("Subscribed to topics: {VideoTopic}, {AudioTopic}", videoTopic, audioTopic);
 
+        var reconnectDelay = TimeSpan.FromSeconds(1); // Начальная задержка переподключения
+        const int maxReconnectDelay = 10; // Максимальная задержка в секундах
+        var consumeTimeout = TimeSpan.FromSeconds(1); // Уменьшаем timeout для более частых проверок
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                var cr = consumer.Consume(TimeSpan.FromSeconds(10));
+                var cr = consumer.Consume(consumeTimeout);
+                
+                // Сбрасываем задержку переподключения при успешном получении сообщения
+                reconnectDelay = TimeSpan.FromSeconds(1);
 
                 if (cr == null || cr.IsPartitionEOF)
                 {
@@ -107,13 +136,36 @@ public class UnifiedMediaProcessedConsumer(
                 if (ex.Error.Code == ErrorCode.UnknownTopicOrPart)
                 {
                     logger.LogWarning("Topic does not exist yet. Waiting for topic creation...");
-                    await Task.Delay(5000, stoppingToken); // Ждем 5 секунд перед повторной попыткой
+                    await Task.Delay(5000, stoppingToken).ConfigureAwait(false); // Ждем 5 секунд перед повторной попыткой
+                    reconnectDelay = TimeSpan.FromSeconds(1); // Сбрасываем задержку
+                }
+                else if (ex.Error.Code == ErrorCode.Local_Transport)
+                {
+                    // Ошибки подключения - переподключаемся с экспоненциальной задержкой
+                    logger.LogWarning("Kafka connection error: {Reason} (Code: {Code}). Reconnecting in {Delay}s...", 
+                        ex.Error.Reason, ex.Error.Code, reconnectDelay.TotalSeconds);
+                    await Task.Delay(reconnectDelay, stoppingToken).ConfigureAwait(false);
+                    
+                    // Увеличиваем задержку экспоненциально, но не более maxReconnectDelay
+                    var nextDelay = reconnectDelay.TotalSeconds * 2;
+                    reconnectDelay = TimeSpan.FromSeconds(Math.Min(nextDelay, maxReconnectDelay));
+                    
+                    // Пытаемся переподписаться на топики
+                    try
+                    {
+                        consumer.Subscribe([videoTopic, audioTopic]);
+                        logger.LogInformation("Re-subscribed to topics after connection error");
+                    }
+                    catch (Exception subEx)
+                    {
+                        logger.LogError(subEx, "Failed to re-subscribe to topics");
+                    }
                 }
                 else
                 {
-                    logger.LogError(ex, "Kafka consume error: {Reason}", ex.Error.Reason);
-                    // Небольшая задержка при ошибках потребления
-                    await Task.Delay(2000, stoppingToken);
+                    logger.LogError(ex, "Kafka consume error: {Reason} (Code: {Code})", ex.Error.Reason, ex.Error.Code);
+                    // Небольшая задержка при других ошибках потребления
+                    await Task.Delay(2000, stoppingToken).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -273,17 +325,30 @@ public class UnifiedMediaProcessedConsumer(
             }
 
             var postId = audio.ContentPostId;
+            
+            // Логируем текущий статус перед обновлением
+            logger.LogInformation("Audio {AudioId} current status: {Status}, ProcessedPath: {ProcessedPath}", 
+                evt.AudioId, audio.Status, audio.ProcessedPath);
+            
+            // Логируем информацию о посте
+            if (audio.ContentPost != null)
+            {
+                logger.LogInformation("Audio {AudioId} belongs to post {PostId}, IsPublished: {IsPublished}, IsPendingPublish: {IsPendingPublish}", 
+                    evt.AudioId, postId, audio.ContentPost.IsPublished, audio.ContentPost.IsPendingPublish);
+            }
 
             // File.Service.Api уже загружает обработанное аудио в audioProcessedBucket,
             // поэтому просто сохраняем путь как есть
             audio.ProcessedPath = evt.OutputPath;
 
             // Обновляем статус
+            var oldStatus = audio.Status;
             audio.Status = "READY";
 
             await db.SaveChangesAsync(stoppingToken);
 
-            logger.LogInformation("Audio {AudioId} marked as READY, sending SignalR notification immediately", evt.AudioId);
+            logger.LogInformation("Audio {AudioId} status updated from {OldStatus} to {NewStatus}, ProcessedPath: {ProcessedPath}", 
+                evt.AudioId, oldStatus, audio.Status, audio.ProcessedPath);
 
             // Отправляем уведомление через SignalR СРАЗУ после обновления статуса
             try

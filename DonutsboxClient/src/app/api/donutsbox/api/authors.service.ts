@@ -29,6 +29,8 @@ import { SubscriptionCreateDto } from '../model/subscriptionCreateDto';
 // @ts-ignore
 import { SubscriptionDto } from '../model/subscriptionDto';
 // @ts-ignore
+import { SubscriptionUpdateDto } from '../model/subscriptionUpdateDto';
+// @ts-ignore
 import { UpdateImageKeyDto } from '../model/updateImageKeyDto';
 // @ts-ignore
 import { UserRequestDto } from '../model/userRequestDto';
@@ -564,6 +566,75 @@ export class AuthorsService extends BaseService {
             {
                 context: localVarHttpContext,
                 body: subscriptionCreateDto,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Обновление подписки автора
+     * @param subscriptionId Идентификатор подписки
+     * @param subscriptionUpdateDto Данные для обновления
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public apiAuthorsSubscriptionSubscriptionIdPut(subscriptionId: string, subscriptionUpdateDto?: SubscriptionUpdateDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public apiAuthorsSubscriptionSubscriptionIdPut(subscriptionId: string, subscriptionUpdateDto?: SubscriptionUpdateDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public apiAuthorsSubscriptionSubscriptionIdPut(subscriptionId: string, subscriptionUpdateDto?: SubscriptionUpdateDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public apiAuthorsSubscriptionSubscriptionIdPut(subscriptionId: string, subscriptionUpdateDto?: SubscriptionUpdateDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (subscriptionId === null || subscriptionId === undefined) {
+            throw new Error('Required parameter subscriptionId was null or undefined when calling apiAuthorsSubscriptionSubscriptionIdPut.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (Bearer) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('Bearer', 'Authorization', localVarHeaders, 'Bearer ');
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json',
+            'text/json',
+            'application/*+json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/Authors/subscription/${this.configuration.encodeParam({name: "subscriptionId", value: subscriptionId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<any>('put', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: subscriptionUpdateDto,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

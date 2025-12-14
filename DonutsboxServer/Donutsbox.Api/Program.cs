@@ -173,7 +173,7 @@ builder.Services.AddScoped<ISubscriptionPaymentService, SubscriptionPaymentServi
 
 builder.Services.AddSingleton<IMinioService, MinioService>();
 
-builder.Services.AddScoped<IMessageProducer, KafkaMessageProducer>();
+builder.Services.AddSingleton<IMessageProducer, KafkaMessageProducer>();
 
 builder.Services.AddSignalR();
 

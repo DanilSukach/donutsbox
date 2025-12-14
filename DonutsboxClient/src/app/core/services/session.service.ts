@@ -58,9 +58,6 @@ export class SessionService {
           throw error;
         }),
         tap((session) => {
-          if (session) {
-            console.log('✅ SessionService: Session loaded successfully', session.userId);
-          }
           this.current.set(session);
           this.loaded.set(true);
         }),

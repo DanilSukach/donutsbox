@@ -34,13 +34,10 @@ export class VideoStatusPollService implements OnDestroy {
     const wasPolling = this.isPolling();
     
     if (!wasPolling) {
-      console.log('🔄 Запускаю отслеживание статуса медиа через SignalR...');
       this.isPolling.set(true);
       this.processingMediaIds.clear();
       this.processingPosts.clear();
       this.currentPostId = null;
-    } else {
-      console.log('🔄 Обновляю список отслеживаемых медиа...');
     }
 
     // Загружаем текущие посты для определения, какие медиа обрабатываются
@@ -90,12 +87,6 @@ export class VideoStatusPollService implements OnDestroy {
           }
         });
 
-        if (!hasProcessingMedia && !wasPolling) {
-          console.log('✅ Нет обрабатываемого медиа-контента');
-          this.stopPolling();
-        } else {
-          console.log(`📊 Отслеживаем ${this.processingMediaIds.size} медиа-файлов через SignalR (${wasPolling ? 'обновлено' : 'новое отслеживание'})`);
-        }
       },
       error: (err) => {
         console.error('❌ Ошибка загрузки постов:', err);
@@ -117,12 +108,11 @@ export class VideoStatusPollService implements OnDestroy {
           withCredentials: true
         })
         .withAutomaticReconnect()
-        .configureLogging(signalR.LogLevel.Information)
+        .configureLogging(signalR.LogLevel.Error)
         .build();
 
       // Обработчик уведомления о готовности видео
       this.hubConnection.on('VideoProcessed', (data: { videoId: string; status: string; processedPath: string; postId?: string }) => {
-        console.log('✅ Получено уведомление: видео обработано', data);
         const mediaId = `video-${data.videoId}`;
         this.processingMediaIds.delete(mediaId);
         
@@ -145,7 +135,6 @@ export class VideoStatusPollService implements OnDestroy {
 
       // Обработчик уведомления о готовности аудио
       this.hubConnection.on('AudioProcessed', (data: { audioId: string; status: string; processedPath: string; postId?: string }) => {
-        console.log('✅ Получено уведомление: аудио обработано', data);
         const mediaId = `audio-${data.audioId}`;
         this.processingMediaIds.delete(mediaId);
         
@@ -167,27 +156,25 @@ export class VideoStatusPollService implements OnDestroy {
       });
 
       this.hubConnection.onreconnecting(() => {
-        console.log('🔄 Переподключение к SignalR...');
+        // Переподключение к SignalR
       });
 
       this.hubConnection.onreconnected(() => {
-        console.log('✅ Переподключение к SignalR успешно');
         this.joinUserGroup();
       });
 
       this.hubConnection.onclose(() => {
-        console.log('❌ Соединение с SignalR закрыто');
+        // Соединение с SignalR закрыто
       });
     }
 
     if (this.hubConnection.state === signalR.HubConnectionState.Disconnected) {
       this.hubConnection.start()
         .then(() => {
-          console.log('✅ Подключение к SignalR установлено');
           this.joinUserGroup();
         })
         .catch((err) => {
-          console.error('❌ Ошибка подключения к SignalR:', err);
+          console.error('Ошибка подключения к SignalR:', err);
         });
     }
   }
@@ -195,11 +182,8 @@ export class VideoStatusPollService implements OnDestroy {
   private joinUserGroup(): void {
     if (this.hubConnection && this.hubConnection.state === signalR.HubConnectionState.Connected) {
       this.hubConnection.invoke('JoinUserGroup')
-        .then(() => {
-          console.log('✅ Присоединен к группе пользователя для уведомлений о медиа');
-        })
         .catch((err) => {
-          console.error('❌ Ошибка присоединения к группе:', err);
+          console.error('Ошибка присоединения к группе:', err);
         });
     }
   }
@@ -221,32 +205,20 @@ export class VideoStatusPollService implements OnDestroy {
         }
       }
       
-      console.log('✅ Весь медиа-контент обработан!', {
-        postId: publishedPostId,
-        currentPostId: this.currentPostId,
-        processingPosts: Array.from(this.processingPosts.keys()),
-        processingMediaIds: Array.from(this.processingMediaIds)
-      });
-      
       this.stopPolling();
       
       // Уведомляем о публикации поста для локального удаления из черновиков
       if (publishedPostId) {
-        console.log('📢 Отправка уведомления о публикации поста:', publishedPostId);
         this.postsRefreshService.notifyPostPublished(publishedPostId);
         // Очищаем сохраненный postId
         this.currentPostId = null;
       } else {
-        console.warn('⚠️ Не удалось определить postId для публикации, просто обновляем');
         this.postsRefreshService.triggerRefresh();
       }
-    } else {
-      console.log(`⏳ Осталось обработать: ${this.processingMediaIds.size} медиа-файлов, постов: ${this.processingPosts.size}`);
     }
   }
 
   stopPolling(): void {
-    console.log('⏹️ Остановка отслеживания');
     this.isPolling.set(false);
     this.processingMediaIds.clear();
     this.processingPosts.clear();
@@ -258,7 +230,7 @@ export class VideoStatusPollService implements OnDestroy {
     this.stopPolling();
     if (this.hubConnection) {
       this.hubConnection.stop().catch(err => {
-        console.error('❌ Ошибка при остановке SignalR соединения:', err);
+        console.error('Ошибка при остановке SignalR соединения:', err);
       });
     }
   }

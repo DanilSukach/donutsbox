@@ -102,6 +102,11 @@ export class ProfilePage implements OnInit, OnDestroy {
   readonly editDraftTitle = signal('');
   readonly editDraftText = signal('');
   readonly isUpdatingDraft = signal(false);
+  readonly editDraftAudienceType = signal<'public' | 'subscribers'>('public');
+  readonly editDraftAvailableSubscriptions = signal<any[]>([]);
+  readonly editDraftSelectedSubscriptionIds = signal<Set<string>>(new Set<string>());
+  readonly editDraftSubscriptionsLoading = signal(false);
+  readonly editDraftSubscriptionsError = signal<string | null>(null);
   private editDraftOverlayRef: OverlayRef | null = null;
   @ViewChild('editDraftModalTemplate') editDraftModalTemplate!: TemplateRef<any>;
   
@@ -146,7 +151,6 @@ export class ProfilePage implements OnInit, OnDestroy {
       // Защита от бесконечного цикла - обновляем только если trigger изменился
       if (trigger > this.lastRefreshTrigger && this.isOwnProfile() && this.isCurrentUserCreator()) {
         this.lastRefreshTrigger = trigger;
-        console.log('🔄 Обновление черновиков через effect, trigger:', trigger);
         // Обновляем черновики автоматически при обновлении постов
         this.loadDrafts();
       }
@@ -213,15 +217,19 @@ export class ProfilePage implements OnInit, OnDestroy {
     this.sessionService.ensureSession().subscribe((session) => {
       this.checkProfileOwnership();
       this.checkUserRole();
+      
+      
       // Загружаем аватарку и черновики после проверки сессии
+      // Используем небольшую задержку, чтобы убедиться, что checkProfileOwnership выполнился
+      setTimeout(() => {
       if (this.isOwnProfile()) {
         this.loadUserAvatar();
-        // Загружаем черновики, если пользователь является создателем
-        // Используем session?.isCreator напрямую, так как checkUserRole уже установил isCurrentUserCreator
-        if (session?.isCreator) {
-          this.loadDrafts();
-        }
+        // Загружаем черновики для своего профиля
+        // API вернет пустой список, если пользователь не создатель, поэтому проверка роли не нужна
+        this.loadDrafts();
       }
+      }, 100);
+      
       // Проверяем, нужно ли показать модальное окно первого входа
       if (session?.isFirstLogin && this.isOwnProfile()) {
         this.showFirstLoginModal.set(true);
@@ -231,28 +239,14 @@ export class ProfilePage implements OnInit, OnDestroy {
     // Подписываемся на событие публикации поста через Observable
     this.postPublishedSub = this.postsRefresh.postPublished.subscribe((postId: string) => {
       if (this.isOwnProfile() && this.isCurrentUserCreator()) {
-        console.log('🗑️ Получено событие публикации поста:', postId);
-        const currentDrafts = this.drafts();
-        const beforeCount = currentDrafts.length;
         const normalizedPostId = String(postId).toLowerCase();
         
-        console.log('🗑️ Текущие черновики:', currentDrafts.map(d => ({ id: d.id, title: d.title })));
-        
         this.drafts.update(d => {
-          const filtered = d.filter(p => {
+          return d.filter(p => {
             const draftId = String(p.id || '').toLowerCase();
-            const shouldKeep = draftId !== normalizedPostId;
-            if (!shouldKeep) {
-              console.log('🗑️ Найден пост для удаления:', p.id, '===', postId, 'Title:', p.title);
-            }
-            return shouldKeep;
+            return draftId !== normalizedPostId;
           });
-          console.log('🗑️ После фильтрации:', filtered.length, 'из', d.length, 'черновиков');
-          return filtered;
         });
-        
-        const afterCount = this.drafts().length;
-        console.log('🗑️ Результат удаления:', beforeCount, '->', afterCount, 'черновиков');
       }
     });
     
@@ -455,10 +449,8 @@ export class ProfilePage implements OnInit, OnDestroy {
   }
 
   navigateToFeed(): void {
-    console.log('Попытка перехода к ленте...');
     this.router.navigate(['/feed']).then(
       (success) => {
-        console.log('Навигация к /feed:', success ? 'успешна' : 'неуспешна');
       },
       (error) => {
         console.error('Ошибка навигации к /feed:', error);
@@ -469,9 +461,7 @@ export class ProfilePage implements OnInit, OnDestroy {
   toggleSettingsDropdown(event: Event): void {
     event.stopPropagation();
     event.preventDefault();
-    console.log('🔧 Переключение dropdown, текущее состояние:', this.showSettingsDropdown());
     this.showSettingsDropdown.update(v => !v);
-    console.log('🔧 Новое состояние dropdown:', this.showSettingsDropdown());
   }
 
   openChangePasswordModal(event?: Event): void {
@@ -705,19 +695,23 @@ export class ProfilePage implements OnInit, OnDestroy {
   }
 
   loadDrafts(): void {
-    if (!this.isCurrentUserCreator()) {
-      console.log('⚠️ loadDrafts: Пользователь не является создателем');
+    // Убираем проверку isCurrentUserCreator, так как она может быть false из-за задержки инициализации
+    // Вместо этого проверяем isOwnProfile, так как черновики доступны только для своего профиля
+    if (!this.isOwnProfile()) {
       return;
     }
     
-    console.log('📝 Загрузка черновиков...');
     this.draftsLoading.set(true);
     this.postsFacade.getMyPosts(1, 50, false).subscribe({
       next: (response) => {
         const drafts = response.posts || [];
-        console.log('✅ Черновики загружены:', drafts.length, 'постов');
+        
         this.drafts.set(drafts);
         this.draftsLoading.set(false);
+        
+        // Автоматически показываем раздел черновиков, даже если их нет
+        // Это нужно для того, чтобы пользователь видел раздел и мог создавать новые черновики
+        this.showDrafts.set(true);
         
         // Проверяем, есть ли черновики с уже обработанным медиа, которые должны быть опубликованы
         this.checkAndPublishReadyDrafts(drafts);
@@ -725,12 +719,16 @@ export class ProfilePage implements OnInit, OnDestroy {
         // Если есть черновики с обрабатываемым медиа, инициализируем SignalR для отслеживания
         const hasProcessingMedia = drafts.some(d => this.hasProcessingMedia(d));
         if (hasProcessingMedia) {
-          console.log('🔄 Найдены черновики с обрабатываемым медиа, инициализирую SignalR...');
+        
+          this.videoStatusPollService.startPollingAfterPublish();
+        } else {
+          // Инициализируем SignalR даже если нет обрабатываемого медиа, чтобы получать уведомления
+          // Это важно для случаев, когда медиа обрабатывается в фоне
+  
           this.videoStatusPollService.startPollingAfterPublish();
         }
       },
       error: (err) => {
-        console.error('❌ Ошибка загрузки черновиков:', err);
         this.drafts.set([]);
         this.draftsLoading.set(false);
       }
@@ -760,7 +758,7 @@ export class ProfilePage implements OnInit, OnDestroy {
                           audios.every((a: any) => a.status === 'READY');
           
           if (allReady && videos.length + audios.length > 0) {
-            console.log('✅ Найден черновик с готовым медиа, который должен быть опубликован:', draft.id);
+            
             // Пост должен был быть опубликован автоматически, но не был
             // Обновляем черновики через небольшую задержку, чтобы получить актуальный статус
             setTimeout(() => {
@@ -902,6 +900,14 @@ export class ProfilePage implements OnInit, OnDestroy {
     this.editDraftTitle.set(draft.title || '');
     this.editDraftText.set(draft.text || '');
     
+    // Инициализируем видимость черновика
+    const audienceType = draft.audienceType === 'Subscribers' ? 'subscribers' : 'public';
+    this.editDraftAudienceType.set(audienceType);
+    this.editDraftSelectedSubscriptionIds.set(new Set(draft.subscriptionIds || []));
+    
+    // Загружаем подписки
+    this.loadDraftSubscriptionsForEdit();
+    
     // Создаём overlay
     this.editDraftOverlayRef = this.overlay.create({
       hasBackdrop: true,
@@ -919,6 +925,45 @@ export class ProfilePage implements OnInit, OnDestroy {
     
     // Закрытие по клику на backdrop
     this.editDraftOverlayRef.backdropClick().subscribe(() => this.closeEditDraftModal());
+  }
+
+  loadDraftSubscriptionsForEdit(): void {
+    this.editDraftSubscriptionsLoading.set(true);
+    this.editDraftSubscriptionsError.set(null);
+    
+    this.postsFacade.getCreatorSubscriptions().subscribe({
+      next: (subscriptions) => {
+        this.editDraftAvailableSubscriptions.set(subscriptions);
+        this.editDraftSubscriptionsLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Ошибка загрузки подписок:', error);
+        this.editDraftSubscriptionsError.set('Не удалось загрузить список подписок');
+        this.editDraftSubscriptionsLoading.set(false);
+      }
+    });
+  }
+
+  setDraftEditAudience(type: 'public' | 'subscribers'): void {
+    this.editDraftAudienceType.set(type);
+    if (type === 'public') {
+      this.editDraftSelectedSubscriptionIds.set(new Set());
+    }
+  }
+
+  toggleDraftEditSubscription(subscriptionId: string): void {
+    const current = this.editDraftSelectedSubscriptionIds();
+    const updated = new Set(current);
+    if (updated.has(subscriptionId)) {
+      updated.delete(subscriptionId);
+    } else {
+      updated.add(subscriptionId);
+    }
+    this.editDraftSelectedSubscriptionIds.set(updated);
+  }
+
+  isDraftEditSubscriptionSelected(subscriptionId: string): boolean {
+    return this.editDraftSelectedSubscriptionIds().has(subscriptionId);
   }
 
   closeEditDraftModal(): void {
@@ -944,14 +989,41 @@ export class ProfilePage implements OnInit, OnDestroy {
 
     this.isUpdatingDraft.set(true);
 
+    // Обновляем текст
     this.postsFacade.updatePostText(draft.id, title, text).subscribe({
       next: () => {
-        // Обновляем черновик локально
-        this.drafts.update(drafts => 
-          drafts.map(d => d.id === draft.id ? { ...d, title, text } : d)
-        );
-        this.isUpdatingDraft.set(false);
-        this.closeEditDraftModal();
+        // Обновляем видимость
+        this.postsFacade.updatePostAudience(
+          draft.id,
+          this.editDraftAudienceType() === 'public' ? true : null,
+          this.editDraftAudienceType() === 'subscribers' 
+            ? Array.from(this.editDraftSelectedSubscriptionIds())
+            : null
+        ).subscribe({
+          next: () => {
+            // Обновляем черновик локально
+            this.drafts.update(drafts => 
+              drafts.map(d => d.id === draft.id ? { 
+                ...d, 
+                title, 
+                text,
+                audienceType: this.editDraftAudienceType() === 'public' ? 'Public' : 'Subscribers',
+                subscriptionIds: Array.from(this.editDraftSelectedSubscriptionIds())
+              } : d)
+            );
+            this.isUpdatingDraft.set(false);
+            this.closeEditDraftModal();
+          },
+          error: (err: any) => {
+            console.error('Ошибка обновления видимости черновика:', err);
+            // Обновляем только текст, если видимость не обновилась
+            this.drafts.update(drafts => 
+              drafts.map(d => d.id === draft.id ? { ...d, title, text } : d)
+            );
+            this.isUpdatingDraft.set(false);
+            this.closeEditDraftModal();
+          }
+        });
       },
       error: (err: any) => {
         console.error('Ошибка обновления черновика:', err);

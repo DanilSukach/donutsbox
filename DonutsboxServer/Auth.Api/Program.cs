@@ -166,8 +166,6 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-app.UseHttpMetrics();
-app.MapMetrics();
 
 app.UseHttpMetrics();
 app.MapMetrics();

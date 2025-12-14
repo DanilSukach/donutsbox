@@ -190,6 +190,47 @@ public class CreatorPostService(
         };
     }
 
+    public async Task<UpdateAudienceResponseDto> UpdateAudienceAsync(Guid postId, UpdateAudienceRequestDto request, ClaimsPrincipal user)
+    {
+        var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("User ID claim not found"));
+        var currentUser = await db.Users
+            .Include(u => u.CreatorPageData)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+        if (currentUser?.CreatorPageData == null)
+            throw new InvalidOperationException("Creator page not found");
+        
+        var post = await db.ContentPosts
+            .Include(p => p.Subscriptions)
+            .FirstOrDefaultAsync(p =>
+                p.Id == postId &&
+                p.CreatorPageDataId == currentUser.CreatorPageData.Id) 
+            ?? throw new InvalidOperationException("Post not found or doesn't belong to you");
+        
+        if (post.IsPublished)
+            throw new InvalidOperationException("Cannot update audience for published post");
+
+        var subscriptionIds = request.SubscriptionIds ?? [];
+        var audienceType = DetermineAudienceType(request.IsPublic, subscriptionIds);
+        var targetSubscriptions = await LoadCreatorSubscriptionsAsync(currentUser.CreatorPageData.Id, subscriptionIds);
+        ValidateAudienceConfiguration(audienceType, targetSubscriptions);
+
+        post.AudienceType = audienceType;
+        post.Subscriptions.Clear();
+        foreach (var subscription in targetSubscriptions)
+        {
+            post.Subscriptions.Add(subscription);
+        }
+
+        await db.SaveChangesAsync();
+
+        return new UpdateAudienceResponseDto
+        {
+            PostId = post.Id,
+            Message = "Post audience updated successfully."
+        };
+    }
+
     public async Task<PublishPostResponseDto> PublishPostAsync(Guid postId, ClaimsPrincipal user)
     {
         var userId = Guid.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -219,6 +260,11 @@ public class CreatorPostService(
             v.Status == "UPLOADED" || v.Status == "PROCESSING" || v.Status == "UPLOADING");
         var hasProcessingAudios = post.Audios.Any(a => 
             a.Status == "UPLOADED" || a.Status == "PROCESSING" || a.Status == "UPLOADING");
+        
+        var videoStatuses = post.Videos.Select(v => v.Status).ToList();
+        var audioStatuses = post.Audios.Select(a => a.Status).ToList();
+        logger.LogInformation("PublishPostAsync: Post {PostId} - Video statuses: [{Videos}], Audio statuses: [{Audios}], hasProcessingVideos: {HasVideos}, hasProcessingAudios: {HasAudios}", 
+            postId, string.Join(", ", videoStatuses), string.Join(", ", audioStatuses), hasProcessingVideos, hasProcessingAudios);
 
         if (hasProcessingVideos || hasProcessingAudios)
         {
@@ -227,7 +273,7 @@ public class CreatorPostService(
             post.IsPendingPublish = true;
             await db.SaveChangesAsync();
             
-            logger.LogInformation("Post {PostId} has processing media, will be published automatically after processing", postId);
+            logger.LogInformation("Post {PostId} has processing media, IsPendingPublish set to true, will be published automatically after processing", postId);
             
             return new PublishPostResponseDto
             {
@@ -292,16 +338,20 @@ public class CreatorPostService(
             var videosStatuses = post.Videos.Select(v => v.Status).ToList();
             var audiosStatuses = post.Audios.Select(a => a.Status).ToList();
             
-            logger.LogInformation("Checking post {PostId} media status - Videos: [{Videos}], Audios: [{Audios}]", 
+            logger.LogInformation("Checking post {PostId} media status - Videos: [{Videos}], Audios: [{Audios}], IsPendingPublish: {IsPendingPublish}", 
                 postId, 
                 string.Join(", ", videosStatuses), 
-                string.Join(", ", audiosStatuses));
+                string.Join(", ", audiosStatuses),
+                post.IsPendingPublish);
 
             // Проверяем, есть ли необработанное медиа
             var hasProcessingVideos = post.Videos.Any(v => 
                 v.Status == "UPLOADED" || v.Status == "PROCESSING" || v.Status == "UPLOADING");
             var hasProcessingAudios = post.Audios.Any(a => 
                 a.Status == "UPLOADED" || a.Status == "PROCESSING" || a.Status == "UPLOADING");
+            
+            logger.LogInformation("Post {PostId} processing check - hasProcessingVideos: {HasVideos}, hasProcessingAudios: {HasAudios}", 
+                postId, hasProcessingVideos, hasProcessingAudios);
 
             // Если есть необработанное медиа, не публикуем
             if (hasProcessingVideos || hasProcessingAudios)
@@ -857,6 +907,7 @@ public class CreatorPostService(
 
         query = query
             .Include(p => p.Videos.Where(v => v.Status == "READY"))
+            .Include(p => p.Audios.Where(a => a.Status == "READY"))
             .Include(p => p.CreatorPageData)
                 .ThenInclude(cpd => cpd.User)
                 .ThenInclude(u => u.UserData)
@@ -889,6 +940,13 @@ public class CreatorPostService(
                     Status = v.Status,
                     ThumbnailUrl = v.ThumbnailUrl,
                     HlsUrl = v.ProcessedPath != null ? $"/api/main/api/Files/{v.Id}/hls/index.m3u8" : null
+                }).ToList(),
+                Audios = p.Audios.Select(a => new PostAudioDto
+                {
+                    Id = a.Id,
+                    Title = a.Title,
+                    Status = a.Status,
+                    ProcessedPath = a.ProcessedPath
                 }).ToList(),
                 PictureUrls = new List<string>(), 
                 CreatorPageName = p.CreatorPageData.PageName,
@@ -949,6 +1007,24 @@ public class CreatorPostService(
                 }
             }
             post.PictureUrls = presignedUrls;
+
+            // Генерируем presigned URLs для аудио
+            foreach (var audio in post.Audios)
+            {
+                if (!string.IsNullOrWhiteSpace(audio.ProcessedPath))
+                {
+                    try
+                    {
+                        var presignedUrl = await minio.GetPresignedGetUrlAsync(audio.ProcessedPath, minio.GetAudioProcessedBucket(), 300);
+                        audio.ProcessedPath = presignedUrl; // Заменяем путь на presigned URL
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to generate presigned URL for audio {AudioPath}", audio.ProcessedPath);
+                        audio.ProcessedPath = null; // Убираем путь, если не удалось сгенерировать URL
+                    }
+                }
+            }
 
             if (!post.IsLocked && !string.IsNullOrEmpty(post.CreatorAvatarUrl))
             {

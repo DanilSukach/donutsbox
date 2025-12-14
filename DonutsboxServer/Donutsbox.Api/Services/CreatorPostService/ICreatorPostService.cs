@@ -10,6 +10,7 @@ public interface ICreatorPostService
     Task<AddVideosResponseDto> AddVideosToPostAsync(Guid postId, AddVideosRequestDto request, ClaimsPrincipal user);
     Task<AddImagesResponseDto> AddImagesToPostAsync(Guid postId, AddImagesRequestDto request, ClaimsPrincipal user);
     Task<AddTextResponseDto> AddTextToPostAsync(Guid postId, AddTextRequestDto request, ClaimsPrincipal user);
+    Task<UpdateAudienceResponseDto> UpdateAudienceAsync(Guid postId, UpdateAudienceRequestDto request, ClaimsPrincipal user);
     Task<PublishPostResponseDto> PublishPostAsync(Guid postId, ClaimsPrincipal user);
     Task<MessageResponseDto> UnpublishPostAsync(Guid postId, ClaimsPrincipal user);
     Task<UploadImagesResponseDto> UploadImagesAsync(UploadImagesRequestDto request, ClaimsPrincipal user);

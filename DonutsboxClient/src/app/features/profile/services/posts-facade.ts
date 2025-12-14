@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { AddTextRequestDto, AddTextResponseDto, AddVideosRequestDto, AddVideosResponseDto, ContentPostReactionDto, CreateDraftRequestDto, CreatorPostService, CreatorPostsResponseDto, CreatorSubscriptionsService, FilesService, MessageResponseDto, MyPostsResponseDto, MyVideoResponseDto, PostDraftResponseDto, PublishPostResponseDto, SubscriptionDto, UploadImagesResponseDto, UserInteractionService, VideoUploadResponseDto } from '@app/api/donutsbox';
+import { AddTextRequestDto, AddTextResponseDto, AddVideosRequestDto, AddVideosResponseDto, ContentPostReactionDto, CreateDraftRequestDto, CreatorPostService, CreatorPostsResponseDto, CreatorSubscriptionsService, FilesService, MessageResponseDto, MyPostsResponseDto, MyVideoResponseDto, PostDraftResponseDto, PublishPostResponseDto, SubscriptionDto, UpdateAudienceRequestDto, UpdateAudienceResponseDto, UploadImagesResponseDto, UserInteractionService, VideoUploadResponseDto } from '@app/api/donutsbox';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { PostsRefresh } from '@app/core/services/posts-refresh.service';
 
@@ -105,7 +105,6 @@ export class PostsFacade {
   deletePost(postId: string): Observable<any> {
     return this.creatorPostService.apiCreatorPostPostIdDelete(postId).pipe(
       tap(() => {
-        console.log('Пост удален, обновляем список');
         this.postsRefresh.triggerRefresh();
       }),
       catchError((error) => {
@@ -138,11 +137,27 @@ export class PostsFacade {
     // Используем сгенерированный API клиент
     return this.creatorPostService.apiCreatorPostPostIdTextPut(postId, request).pipe(
       tap(() => {
-        console.log('Пост обновлен успешно');
         // Не обновляем список постов, чтобы избежать перезагрузки страницы
       }),
       catchError((error) => {
         console.error('Ошибка обновления поста:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  updatePostAudience(postId: string, isPublic: boolean | null, subscriptionIds: string[] | null): Observable<UpdateAudienceResponseDto> {
+    const request: UpdateAudienceRequestDto = {
+      isPublic: isPublic ?? undefined,
+      subscriptionIds: subscriptionIds?.length ? subscriptionIds : undefined
+    };
+    
+    return this.creatorPostService.apiCreatorPostPostIdAudiencePut(postId, request).pipe(
+      tap(() => {
+        this.postsRefresh.triggerRefresh();
+      }),
+      catchError((error) => {
+        console.error('Ошибка обновления видимости поста:', error);
         return throwError(() => error);
       })
     );
